@@ -162,7 +162,6 @@
                 name: 'Commando',
                 image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/5/50/Commando.png',
                 description: 'A versatile survivor excelling in on-hit item synergies and rapid-fire damage.',
-                howToUnlockSurvivor: 'Unlocked by default.',
                 skills: {
                     primary: { name: 'Double Tap', description: 'Fire two shots for 90% damage each.' },
                     secondary: { name: 'Phase Round', description: 'Fire a piercing round for 200% damage.' },
@@ -200,7 +199,6 @@
                 name: 'Huntress',
                 image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/6/6f/Huntress.png',
                 description: 'A highly mobile survivor with auto-targeting abilities, perfect for hit-and-run tactics.',
-                howToUnlockSurvivor: 'Unlocked by default.',
                 skills: {
                     primary: { name: 'Strafe', description: 'Fire homing arrows for 150% damage.' },
                     secondary: { name: 'Laser Glaive', description: 'Fire a glaive that bounces to up to 6 enemies for 250% damage.' },
@@ -236,7 +234,6 @@
                 name: 'Bandit',
                 image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/1/1f/Bandit.png',
                 description: 'A burst-damage specialist who can vanish and deal massive damage from behind enemies.',
-                howToUnlockSurvivor: 'Complete the "Warrior" challenge by beating the 3rd teleporter event without dying.',
                 skills: {
                     primary: { name: 'Blast', description: 'Fire a spread of shots for 60% damage per pellet.' },
                     secondary: { name: 'Desperado', description: 'Fire a shotgun blast for 300% damage.' },
@@ -822,7 +819,6 @@
             'Gesture of the Drowned': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/c/c9/Gesture_of_the_Drowned.png', description: 'Automatically activates your equipment when its cooldown is ready.', rarity: 'lunar' }
         };
 
-        // Get DOM elements
         const survivorTableContainer = document.getElementById('survivorTableContainer');
         const characterCardContainer = document.getElementById('characterCardContainer');
         const survivorTableBody = document.getElementById('survivorTableBody');
@@ -852,6 +848,13 @@
                     </li>
                 `).join('');
             }
+            
+            const howToUnlockSurvivorHtml = character.howToUnlockSurvivor ? `
+                <div class="mt-4">
+                    <h3 class="text-lg font-semibold text-white mb-2">How to Unlock Survivor</h3>
+                    <p class="text-gray-400 text-sm">${character.howToUnlockSurvivor}</p>
+                </div>
+            ` : '';
 
             characterCard.innerHTML = `
                 <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4 mb-4">
@@ -861,6 +864,7 @@
                         <p class="text-gray-400 text-sm">${character.description}</p>
                     </div>
                 </div>
+                ${howToUnlockSurvivorHtml}
                 <div class="mb-4">
                     <h3 class="text-lg font-semibold text-white mb-2">Recommended Skills</h3>
                     <ul class="list-disc list-inside text-gray-400">
@@ -871,23 +875,25 @@
                 </div>
                 <div>
                     <h3 class="text-lg font-semibold text-white mb-2">Item Priority</h3>
-                    <div class="mb-4">
-                        <h4 class="item-category text-[#f7b731]">Core Items</h4>
-                        <ul class="item-list text-gray-400">
-                            ${createItemList(character.items.core)}
-                        </ul>
-                    </div>
-                    <div class="mb-4">
-                        <h4 class="item-category text-[#4cd137]">Strong Synergies</h4>
-                        <ul class="item-list text-gray-400">
-                            ${createItemList(character.items.synergy)}
-                        </ul>
-                    </div>
-                    <div>
-                        <h4 class="item-category text-[#9c88ff]">Situational Items</h4>
-                        <ul class="item-list text-gray-400">
-                            ${createItemList(character.items.situational)}
-                        </ul>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="mb-4 md:mb-0">
+                            <h4 class="item-category text-[#f7b731]">Core Items</h4>
+                            <ul class="item-list text-gray-400">
+                                ${createItemList(character.items.core)}
+                            </ul>
+                        </div>
+                        <div class="mb-4 md:mb-0">
+                            <h4 class="item-category text-[#4cd137]">Strong Synergies</h4>
+                            <ul class="item-list text-gray-400">
+                                ${createItemList(character.items.synergy)}
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="item-category text-[#9c88ff]">Situational Items</h4>
+                            <ul class="item-list text-gray-400">
+                                ${createItemList(character.items.situational)}
+                            </ul>
+                        </div>
                     </div>
                 </div>
                 <div class="mt-4">

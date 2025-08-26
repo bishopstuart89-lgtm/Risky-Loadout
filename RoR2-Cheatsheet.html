@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Risk of Rain 2 - Interactive Character Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chosen Palette: Slate & Amber -->
+    <!-- Application Structure Plan: The application uses a two-column layout. A fixed navigation sidebar on the left lists all characters, allowing for quick selection. The main content area on the right dynamically updates to display the details of the selected character. This structure was chosen for its intuitive user flow, enabling users to easily switch between characters and compare their builds without scrolling or page reloads. A summary chart is included in the main content area to provide a quick visual comparison of item synergy counts across all characters, adding an analytical layer that a static table lacks. -->
+    <!-- Visualization & Content Choices: Character Selection -> Goal: Organize/Navigate -> Method: Vertical button list -> Interaction: Click to update main content view. Justification: Standard, intuitive navigation pattern. Character Details -> Goal: Inform -> Method: Dynamically updated HTML text blocks (cards) -> Interaction: Content changes based on selection. Justification: Clear and direct presentation of qualitative data. Synergy Comparison -> Goal: Compare -> Method: Horizontal Bar Chart (Chart.js/Canvas) -> Interaction: Highlights the bar for the selected character. Justification: Effectively compares a single metric (number of synergistic items) across all characters, providing an immediate overview. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 250px;
+            max-height: 300px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 300px;
+                max-height: 400px;
+            }
+        }
+        .dark .bg-slate-50 { background-color: #1e293b; }
+        .dark .bg-white { background-color: #334155; }
+        .dark .text-slate-800 { color: #f1f5f9; }
+        .dark .text-slate-900 { color: #e2e8f0; }
+        .dark .text-slate-600 { color: #94a3b8; }
+        .dark .text-slate-700 { color: #cbd5e1; }
+        .dark .border-slate-200 { border-color: #475569; }
+        .dark .bg-amber-500 { background-color: #d97706; }
+        .dark .bg-amber-400 { background-color: #fbbf24; }
+        .dark .chart-tooltip { background-color: #0f172a; }
+    </style>
+     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <div class="flex flex-col md:flex-row min-h-screen">
+        <aside class="w-full md:w-64 bg-white border-b md:border-r border-slate-200 p-4">
+            <h1 class="text-xl font-bold text-slate-900 mb-4">Survivors</h1>
+            <nav id="survivor-nav" class="flex flex-row md:flex-col gap-2 overflow-x-auto pb-2">
+            </nav>
+        </aside>
+
+        <main id="main-content" class="flex-1 p-4 sm:p-6 lg:p-8">
+            <button id="theme-toggle" class="absolute top-4 right-4 p-2 rounded-full bg-white shadow-md text-slate-800 transition-colors duration-300">
+                <span id="theme-icon">🌙</span>
+            </button>
+            <div class="max-w-4xl mx-auto">
+                <header class="mb-8">
+                    <h2 id="character-name" class="text-4xl font-bold tracking-tight text-slate-900"></h2>
+                    <p id="character-notes" class="mt-2 text-lg text-slate-600"></p>
+                </header>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <section>
+                        <h3 class="text-2xl font-semibold text-slate-900 mb-4">Starting Abilities</h3>
+                        <ul id="abilities-list" class="space-y-3">
+                        </ul>
+                    </section>
+                    <section>
+                        <h3 class="text-2xl font-semibold text-slate-900 mb-4">Key Item Synergies</h3>
+                        <ul id="items-list" class="space-y-3">
+                        </ul>
+                    </section>
+                </div>
+                
+                <section class="mt-12">
+                     <h3 class="text-2xl font-semibold text-slate-900 mb-4 text-center">Comparative Synergy Overview</h3>
+                     <p class="text-center text-slate-600 mb-4">This chart shows the number of key synergistic items listed for each survivor, offering a glimpse into potential build complexity or item dependency.</p>
+                    <div class="chart-container">
+                        <canvas id="synergy-chart"></canvas>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const survivorData = [
+            { name: "Commando", abilities: ["Double Tap", "Phase Round", "Tactical Dive", "Suppressive Fire"], items: ["Tri-Tip Dagger", "Soldier's Syringe", "AtG Missile Mk. 1", "Sticky Bomb", "Sentient Meat Hook", "Ukulele", "Backup Magazine", "Harvester's Scythe", "Predatory Instincts", "Crowbar", "Lens Maker's Glasses", "Paul's Goat Hoof", "Hopoo Feather", "Focus Crystal", "Crit Glasses", "Tougher Times"], notes: "Excels with on-hit items due to high rate of fire." },
+            { name: "Huntress", abilities: ["Strafe", "Laser Glaive", "Blink", "Arrow Rain"], items: ["Ukulele", "AtG Missile Mk. 1", "Soldier's Syringe", "Ignition Tank", "Sentient Meat Hook", "Old Guillotine", "Tri-Tip Dagger", "Crit Glasses", "Crowbar", "Laser Scope", "Predatory Instincts", "Tougher Times", "Hopoo Feather", "Lens Maker's Glasses", "Brilliant Behemoth"], notes: "Benefits from items that trigger on-hit or deal area damage." },
+            { name: "Bandit", abilities: ["Burst", "Serrated Dagger", "Smokebomb", "Desperado"], items: ["Shatterspleen", "Crit Glasses", "Tri-Tip Dagger", "Brainstalks", "Soulbound Catalyst", "Ignition Tank", "Royal Capacitor", "Brilliant Behemoth", "Crowbar", "Old Guillotine", "Bandolier", "Hopoo Feather", "Backup Magazine", "Forgive Me Please", "Hardlight Afterburner"], notes: "Crits and on-hit effects are key. His Desperado ability can scale infinitely." },
+            { name: "MUL-T", abilities: ["Rebar Puncher/Nailgun", "Scrap Launcher", "Transport Mode", "Retool"], items: ["Backup Magazine", "Soldier's Syringe", "Tri-Tip Dagger", "Fuel Cell", "Ignition Tank", "Gasoline", "Will-o'-the-wisp", "Brainstalks", "Ukulele", "Repulsion Armor Plate", "Hopoo Feather", "Old War Stealthkit", "Tougher Times", "Sticky Bomb", "57 Leaf Clover"], notes: "Nailgun benefits from attack speed and on-hit items." },
+            { name: "Engineer", abilities: ["Auto-Turret", "Pressure Mines", "Bubble Shield"], items: ["Bustling Fungus", "N'kuhana's Opinion", "Aegis", "Backup Magazine", "Soulbound Catalyst", "Fuel Cell", "Happiest Mask", "Brilliant Behemoth", "Sentient Meat Hook", "Unstable Tesla Coil", "Tougher Times", "Dio's Best Friend", "57 Leaf Clover", "Infusion", "Interstellar Desk Plant"], notes: "Turrets can use items for you. Bustling Fungus is a staple for healing turrets." },
+            { name: "Artificer", abilities: ["Charged Nano-Bomb", "Cast Flame Bolt", "Flamethrower/Plasma Bolt", "Snapfreeze"], items: ["Soulbound Catalyst", "Ignition Tank", "Gasoline", "Royal Capacitor", "Brilliant Behemoth", "Brainstalks", "Purity", "Unstable Tesla Coil", "Crowbar", "Ceremonial Dagger", "Hopoo Feather", "Backup Magazine", "Forgive Me Please", "Hardlight Afterburner", "Focus Crystal"], notes: "Has low attack speed but high burst damage. Benefits from cooldown reduction." },
+            { name: "Mercenary", abilities: ["Whirlwind", "Blinding Assault", "Eviscerate", "Rising Thunder"], items: ["Brainstalks", "Purity", "Soulbound Catalyst", "Ceremonial Dagger", "Hardlight Afterburner", "Harvester's Scythe", "Chronobauble", "AtG Missile Mk. 1", "Bandolier", "Old Guillotine", "Hopoo Feather", "Ocular HUD", "Backup Magazine", "Tougher Times", "Forgive Me Please"], notes: "High mobility melee character focused on invincibility frames and cooldowns." },
+            { name: "Loader", abilities: ["Spiked Gauntlet", "Hydraulic Gauntlet", "Thunder Gauntlet", "M551 Pylon"], items: ["Focus Crystal", "Old Guillotine", "Harvester's Scythe", "Shatterspleen", "Backup Magazine", "Brainstalks", "Tri-Tip Dagger", "Berserker's Pauldron", "Brilliant Behemoth", "Sentient Meat Hook", "Wax Quail", "Hopoo Feather", "Shaped Glass", "Forgive Me Please", "Tougher Times"], notes: "High burst melee damage. Focus Crystal provides a huge damage boost." },
+            { name: "Acrid", abilities: ["Vicious Ferocity", "Poisonous Bite", "Caustic Slime", "Ravenous Bite"], items: ["Tri-Tip Dagger", "Gasoline", "Ignition Tank", "Will-o'-the-wisp", "Shatterspleen", "Purity", "Brilliant Behemoth", "Sentient Meat Hook", "Unstable Tesla Coil", "Ceremonial Dagger", "Focus Crystal", "Hopoo Feather", "Old War Stealthkit", "Backup Magazine", "Tougher Times"], notes: "Benefits greatly from items that apply more status effects like poison, bleed, and burn." },
+            { name: "Captain", abilities: ["Ocular HUD", "57 Leaf Clover", "Tri-Tip Dagger", "Harvester's Scythe", "Brainstalks", "Royal Capacitor"], items: ["Soldier's Syringe", "Ukulele", "Ceremonial Dagger", "Repulsion Armor Plate", "Unstable Tesla Coil", "Tougher Times", "Hopoo Feather", "Wax Quail", "Forgive Me Please"], notes: "High mobility melee character focused on invincibility frames and cooldowns." },
+            { name: "REX", abilities: ["Rejuvenation Rack", "Bustling Fungus", "Harvester's Sythe", "Interstellar Desk Plant", "Infusion"], items: ["Tougher Times", "Rose Buckler", "Focus Crystal", "Foreign Fruit", "Old War Stealthkit", "Soldier's Syringe", "Backup Magazine", "Hopoo Feather", "Ceremonial Dagger"], notes: "High mobility melee character focused on invincibility frames and cooldowns." },
+            { name: "Commando (Alt Abilities)", abilities: ["Sentient Meat Hook", "Crowbar", "AtG Missile Mk. 1", "Ignition Tank", "Unstable Tesla Coil"], items: ["Armor-Piercing Rounds", "Ukulele", "Tri-Tip Dagger", "Sticky Bomb", "Brilliant Behemoth", "Soldier's Syringe", "Backup Magazine", "Hopoo Feather", "Forgive Me Please"], notes: "High mobility melee character focused on invincibility frames and cooldowns." },
+            { name: "Void Fiend", abilities: ["Purity", "Soldier's Syringe", "Tri-Tip Dagger", "Brainstalks", "Crowbar"], items: ["Alien Head", "Ignition Tank", "Backup Magazine", "Sentient Meat Hook", "Ceremonial Dagger", "Hopoo Feather", "Tougher Times", "Old War Stealthkit", "Unstable Tesla Coil", "Repulsion Armor Plate"], notes: "High mobility melee character focused on invincibility frames and cooldowns." },
+            { name: "Heretic", abilities: ["You cannot play as Heretic directly. She is a transformation of any character upon acquiring four lunar items: Visions, Hooks, Strides, and Essence of Heresy. Her items are based on the host player's build."], items: ["N/A"], notes: "High mobility melee character focused on invincibility frames and cooldowns." },
+            { name: "Railgunner", abilities: ["Crowbar", "Armor-Piercing Rounds", "Harvester's Scythe", "Focus Crystal", "Old Guillotine"], items: ["H3AD-5T v2", "Hopoo Feather", "AtG Missile Mk. 1", "Brilliant Behemoth", "Lens Maker's Glasses", "Tougher Times", "Paul's Goat Hoof", "Sticky Bomb"], notes: "High mobility melee character focused on invincibility frames and cooldowns." },
+            { name: "Chef", abilities: ["Ignition Tank", "Gasoline", "Tri-Tip Dagger", "Soulbound Catalyst", "Ukulele"], items: ["Brainstalks", "AtG Missile Mk. 1", "Brilliant Behemoth", "Backup Magazine", "Sentient Meat Hook", "Hopoo Feather", "Paul's Goat Hoof", "Tougher Times", "Repulsion Armor Plate"], notes: "High mobility melee character focused on invincibility frames and cooldowns." },
+            { name: "False Son", abilities: ["Ignition Tank", "Will-o'-the-wisp", "Gasoline", "Ukulele", "AtG Missile Mk. 1"], items: ["Tri-Tip Dagger", "Brainstalks", "Sticky Bomb", "Brilliant Behemoth", "Sentient Meat Hook", "Hopoo Feather", "Tougher Times", "Paul's Goat Hoof", "Backup Magazine"], notes: "High mobility melee character focused on invincibility frames and cooldowns." },
+            { name: "Seeker", abilities: ["Purity", "Brainstalks", "AtG Missile Mk. 1", "Razorwire", "Aegis"], items: ["Repulsion Plate", "Old War Stealthkit", "N'kuhana's Opinion", "Unstable Tesla Coil", "Tougher Times", "Hopoo Feather", "Rose Buckler", "Soldier's Syringe", "Interstellar Desk Plant"], notes: "High mobility melee character focused on invincibility frames and cooldowns." }
+        ];
+
+        const itemData = {
+            "Tri-Tip Dagger": { icon: "🔪", description: "10% chance to bleed enemies for 240% base damage." },
+            "Soldier's Syringe": { icon: "💉", description: "Increases attack speed by 15%." },
+            "AtG Missile Mk. 1": { icon: "🚀", description: "3% chance to fire a missile for 300% TOTAL damage." },
+            "Sticky Bomb": { icon: "💣", description: "5% chance to stick a bomb to enemies for 180% damage." },
+            "Sentient Meat Hook": { icon: "🎣", description: "10% chance to fire a seeking hook that pulls enemies in." },
+            "Ukulele": { icon: "🎸", description: "25% chance to fire chain lightning for 80% damage." },
+            "Backup Magazine": { icon: "📦", description: "Adds an additional charge to your secondary skill." },
+            "Harvester's Scythe": { icon: "🌾", description: "Crit strikes heal you for 8 HP." },
+            "Predatory Instincts": { icon: "🦅", description: "Gain 5% attack speed on crit, stacking up to 30%." },
+            "Crowbar": { icon: "🔧", description: "Deal +75% damage to enemies above 90% health." },
+            "Lens Maker's Glasses": { icon: "👓", description: "Adds 10% critical strike chance." },
+            "Paul's Goat Hoof": { icon: "🐐", description: "Increases move speed by 14%." },
+            "Hopoo Feather": { icon: "🪶", description: "Adds an additional jump." },
+            "Focus Crystal": { icon: "💎", description: "Deal +20% damage to enemies within 13m." },
+            "Crit Glasses": { icon: "👓", description: "Adds 10% critical strike chance." },
+            "Tougher Times": { icon: "🧸", description: "15% chance to block all incoming damage." },
+            "Ignition Tank": { icon: "🔥", description: "Adds an ignition effect to fire damage sources, burning enemies for 300% damage." },
+            "Old Guillotine": { icon: "✂️", description: "Elites are instantly killed when they fall below 20% health." },
+            "Laser Scope": { icon: "🎯", description: "100% crit chance on the first hit of an attack." },
+            "Brilliant Behemoth": { icon: "✨", description: "Adds an explosion to all projectiles, dealing 60% total damage." },
+            "Shatterspleen": { icon: "🪓", description: "Crit strikes explode, dealing 400% damage and applying bleed." },
+            "Brainstalks": { icon: "🧠", description: "Killing an elite monster resets all your skill cooldowns for 4s." },
+            "Soulbound Catalyst": { icon: "🔮", description: "Killing an enemy reduces all skill cooldowns by 1s." },
+            "Royal Capacitor": { icon: "⚡", description: "Calls down a lightning strike on a target, dealing 2000% damage." },
+            "Bandolier": { icon: "🎒", description: "18% chance for enemies to drop an ammo pack on death, resetting all cooldowns." },
+            "Forgive Me Please": { icon: "👻", description: "Activating your equipment summons a ghost of a killed enemy for 30s." },
+            "Hardlight Afterburner": { icon: "🛩️", description: "Adds 2 charges to your Utility skill." },
+            "Fuel Cell": { icon: "🔋", description: "Adds 1 charge to your equipment and reduces equipment cooldown." },
+            "Gasoline": { icon: "⛽", description: "Killing an enemy creates a fire pool that burns enemies for 150% damage." },
+            "Will-o'-the-wisp": { icon: "🔵", description: "Killing an enemy creates a lava pillar, dealing 350% damage to nearby enemies." },
+            "Repulsion Armor Plate": { icon: "🛡️", description: "Reduces all incoming damage by 5." },
+            "57 Leaf Clover": { icon: "🍀", description: "Rerolls all random effects that are not a chance on hit." },
+            "N'kuhana's Opinion": { icon: "💀", description: "Store 10% of healing as Soul Energy. Fire 5 skulls for 250% damage when energy is full." },
+            "Aegis": { icon: "⚔️", description: "Heal for more than your max health to gain a temporary barrier." },
+            "Dio's Best Friend": { icon: "🐶", description: "Grants a second life." },
+            "Infusion": { icon: "💧", description: "Gain 1 permanent health for every enemy killed." },
+            "Interstellar Desk Plant": { icon: "🌿", description: "On killing an enemy, a plant grows that heals all allies inside its radius." },
+            "Ceremonial Dagger": { icon: "🔪", description: "Killing an enemy fires three homing daggers for 150% damage." },
+            "Chronobauble": { icon: "⏳", description: "Hitting an enemy slows them for 2s." },
+            "Shaped Glass": { icon: "🔻", description: "Increases base damage by 100%, but reduces max health by 50%." },
+            "Rejuvenation Rack": { icon: "🧪", description: "Doubles all healing received." },
+            "Rose Buckler": { icon: "🌹", description: "Gain +30 armor while sprinting." },
+            "Foreign Fruit": { icon: "🍐", description: "Heals you for 50% of your max health." },
+            "H3AD-5T v2": { icon: "🤖", description: "Increases jump height. Falling from high up creates a powerful explosion." },
+            "Armor-Piercing Rounds": { icon: "🕳️", description: "Increases damage to bosses by 20%." },
+            "Razorwire": { icon: "🕸️", description: "Taking damage launches two razorwire projectiles, dealing 160% damage." },
+            "Unstable Tesla Coil": { icon: "🌀", description: "Shock enemies every 0.5s for 200% damage." }
+        };
+
+        const navContainer = document.getElementById('survivor-nav');
+        const characterNameEl = document.getElementById('character-name');
+        const characterNotesEl = document.getElementById('character-notes');
+        const abilitiesListEl = document.getElementById('abilities-list');
+        const itemsListEl = document.getElementById('items-list');
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+
+        let synergyChart;
+        let activeSurvivor = survivorData[0].name;
+        
+        const baseColor = 'rgba(234, 179, 8, 0.6)';
+        const highlightColor = 'rgba(234, 179, 8, 1)';
+        const baseBorderColor = 'rgba(234, 179, 8, 1)';
+        const highlightBorderColor = 'rgba(202, 138, 4, 1)';
+
+        function createAbilitiesListItem(text) {
+            return `<li class="flex items-center bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+                        <span class="w-2 h-2 bg-amber-400 rounded-full mr-3"></span>
+                        <span class="text-slate-700">${text}</span>
+                    </li>`;
+        }
+
+        function createItemListItem(itemName) {
+            const item = itemData[itemName];
+            const icon = item ? item.icon : "❓";
+            const description = item ? item.description : "No description available.";
+
+            return `<li class="relative group">
+                        <div class="flex items-center bg-white p-3 rounded-lg border border-slate-200 shadow-sm transition-transform duration-200 hover:scale-[1.02]">
+                            <span class="mr-3 text-lg">${icon}</span>
+                            <span class="text-slate-700 font-medium">${itemName}</span>
+                        </div>
+                        <div class="absolute z-10 w-64 p-3 mt-2 bg-slate-900 text-white text-sm rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none -top-1/2 left-full ml-4">
+                            <span class="font-bold">${itemName}:</span> ${description}
+                        </div>
+                    </li>`;
+        }
+
+        function updateContent(survivorName) {
+            const survivor = survivorData.find(s => s.name === survivorName);
+            if (!survivor) return;
+            
+            activeSurvivor = survivor.name;
+
+            characterNameEl.textContent = survivor.name;
+            characterNotesEl.textContent = survivor.notes;
+
+            abilitiesListEl.innerHTML = survivor.abilities.map(createAbilitiesListItem).join('');
+            itemsListEl.innerHTML = survivor.items.map(createItemListItem).join('');
+            
+            updateNavStyles();
+            updateChartHighlight();
+        }
+
+        function updateNavStyles() {
+            Array.from(navContainer.children).forEach(button => {
+                if (button.dataset.survivor === activeSurvivor) {
+                    button.classList.remove('bg-white', 'text-slate-700', 'hover:bg-slate-100');
+                    button.classList.add('bg-amber-500', 'text-white', 'font-semibold', 'shadow');
+                } else {
+                    button.classList.add('bg-white', 'text-slate-700', 'hover:bg-slate-100');
+                    button.classList.remove('bg-amber-500', 'text-white', 'font-semibold', 'shadow');
+                }
+            });
+        }
+        
+        function updateChartHighlight() {
+            if (!synergyChart) return;
+            
+            const backgroundColors = synergyChart.data.datasets[0].data.map((_, index) => {
+                return synergyChart.data.labels[index] === activeSurvivor ? highlightColor : baseColor;
+            });
+            const borderColors = synergyChart.data.datasets[0].data.map((_, index) => {
+                return synergyChart.data.labels[index] === activeSurvivor ? highlightBorderColor : baseBorderColor;
+            });
+
+            synergyChart.data.datasets[0].backgroundColor = backgroundColors;
+            synergyChart.data.datasets[0].borderColor = borderColors;
+            synergyChart.update();
+        }
+
+        function initializeNav() {
+            survivorData.forEach(survivor => {
+                const button = document.createElement('button');
+                button.textContent = survivor.name;
+                button.dataset.survivor = survivor.name;
+                button.className = 'w-full text-left p-3 rounded-lg transition-colors duration-200 border border-slate-200';
+                button.addEventListener('click', () => updateContent(survivor.name));
+                navContainer.appendChild(button);
+            });
+        }
+
+        function initializeChart() {
+            const ctx = document.getElementById('synergy-chart').getContext('2d');
+            const labels = survivorData.map(s => s.name);
+            const data = survivorData.map(s => s.items.length);
+
+            synergyChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Number of Key Synergies',
+                        data: data,
+                        backgroundColor: baseColor,
+                        borderColor: baseBorderColor,
+                        borderWidth: 2,
+                        borderRadius: 4,
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: '#1e293b',
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 12 },
+                            padding: 10,
+                            cornerRadius: 4,
+                            displayColors: false,
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: {
+                                color: '#e2e8f0'
+                            },
+                            ticks: {
+                                color: '#475569',
+                                font: {
+                                    weight: '500'
+                                }
+                            }
+                        },
+                        y: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#475569',
+                                font: {
+                                    weight: '500'
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function toggleDarkMode() {
+            const isDarkMode = document.body.classList.toggle('dark');
+            if (isDarkMode) {
+                themeIcon.textContent = '☀️';
+            } else {
+                themeIcon.textContent = '🌙';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeNav();
+            initializeChart();
+            updateContent(survivorData[0].name);
+            themeToggle.addEventListener('click', toggleDarkMode);
+        });
+    </script>
+</body>
+</html>

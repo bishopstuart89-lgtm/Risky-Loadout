@@ -3,335 +3,963 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Risk of Rain 2 - Interactive Character Guide</title>
+    <title>Risk of Rain 2 Loadout Guide</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Chosen Palette: Slate & Amber -->
-    <!-- Application Structure Plan: The application uses a two-column layout. A fixed navigation sidebar on the left lists all characters, allowing for quick selection. The main content area on the right dynamically updates to display the details of the selected character. This structure was chosen for its intuitive user flow, enabling users to easily switch between characters and compare their builds without scrolling or page reloads. A summary chart is included in the main content area to provide a quick visual comparison of item synergy counts across all characters, adding an analytical layer that a static table lacks. -->
-    <!-- Visualization & Content Choices: Character Selection -> Goal: Organize/Navigate -> Method: Vertical button list -> Interaction: Click to update main content view. Justification: Standard, intuitive navigation pattern. Character Details -> Goal: Inform -> Method: Dynamically updated HTML text blocks (cards) -> Interaction: Content changes based on selection. Justification: Clear and direct presentation of qualitative data. Synergy Comparison -> Goal: Compare -> Method: Horizontal Bar Chart (Chart.js/Canvas) -> Interaction: Highlights the bar for the selected character. Justification: Effectively compares a single metric (number of synergistic items) across all characters, providing an immediate overview. -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <!-- Inter Font -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
     <style>
+        /* Custom styles for the app */
         body {
             font-family: 'Inter', sans-serif;
+            background-color: #0d1117;
+            color: #c9d1d9;
         }
-        .chart-container {
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            padding: 2rem 1rem;
+        }
+
+        /* Style for the filter dropdown */
+        .filter-select {
+            background-color: #21262d;
+            border: 1px solid #30363d;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            color: #c9d1d9;
+            font-size: 1rem;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .filter-select:hover {
+            border-color: #58a6ff;
+        }
+
+        /* Style for the character cards */
+        .character-card {
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .item-list li {
             position: relative;
-            width: 100%;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
-            height: 250px;
-            max-height: 300px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
         }
-        @media (min-width: 768px) {
-            .chart-container {
-                height: 300px;
-                max-height: 400px;
-            }
+
+        .item-list img {
+            border-radius: 0.25rem;
+            object-fit: cover;
         }
-        .dark .bg-slate-50 { background-color: #1e293b; }
-        .dark .bg-white { background-color: #334155; }
-        .dark .text-slate-800 { color: #f1f5f9; }
-        .dark .text-slate-900 { color: #e2e8f0; }
-        .dark .text-slate-600 { color: #94a3b8; }
-        .dark .text-slate-700 { color: #cbd5e1; }
-        .dark .border-slate-200 { border-color: #475569; }
-        .dark .bg-amber-500 { background-color: #d97706; }
-        .dark .bg-amber-400 { background-color: #fbbf24; }
-        .dark .chart-tooltip { background-color: #0f172a; }
+
+        .item-category {
+            font-weight: 600;
+        }
+
+        /* Custom styles for the table view */
+        .table-row {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .table-row:hover {
+            background-color: #1f2937;
+        }
+
+        /* Dark mode specific styles for toggle */
+        body.light {
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        body.light .character-card {
+            background-color: #ffffff;
+            border-color: #e2e8f0;
+        }
+        body.light .filter-select {
+            background-color: #ffffff;
+            border-color: #e2e8f0;
+            color: #1e293b;
+        }
+        body.light .table-row:hover {
+            background-color: #f1f5f9;
+        }
+        body.light #backButton {
+            background-color: #3b82f6;
+        }
+
+        .rarity-common { border: 2px solid #ffffff; }
+        .rarity-uncommon { border: 2px solid #4cd137; }
+        .rarity-legendary { border: 2px solid #f7b731; }
+        .rarity-boss { border: 2px solid #9c88ff; }
+        .rarity-lunar { border: 2px solid #58a6ff; }
+        .rarity-placeholder { border: 2px solid #808080; }
+
+        .item-icon-with-border {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 0.25rem;
+            transition: border-color 0.2s;
+        }
     </style>
-     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body class="bg-slate-50 text-slate-800">
+<body class="bg-[#0d1117] text-[#c9d1d9]">
+    <div class="container">
+        <header class="text-center mb-12">
+            <h1 class="text-4xl sm:text-5xl font-bold text-white mb-2">Risk of Rain 2 Loadouts</h1>
+            <p class="text-lg text-gray-400">Find the best builds for every survivor.</p>
+        </header>
 
-    <div class="flex flex-col md:flex-row min-h-screen">
-        <aside class="w-full md:w-64 bg-white border-b md:border-r border-slate-200 p-4">
-            <h1 class="text-xl font-bold text-slate-900 mb-4">Survivors</h1>
-            <nav id="survivor-nav" class="flex flex-row md:flex-col gap-2 overflow-x-auto pb-2">
-            </nav>
-        </aside>
+        <!-- Dark/Light Mode Toggle Button -->
+        <button id="themeToggle" class="absolute top-4 right-4 text-white p-2 rounded-full">
+            <svg id="moonIcon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+            <svg id="sunIcon" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+        </button>
 
-        <main id="main-content" class="flex-1 p-4 sm:p-6 lg:p-8">
-            <button id="theme-toggle" class="absolute top-4 right-4 p-2 rounded-full bg-white shadow-md text-slate-800 transition-colors duration-300">
-                <span id="theme-icon">🌙</span>
-            </button>
-            <div class="max-w-4xl mx-auto">
-                <header class="mb-8">
-                    <h2 id="character-name" class="text-4xl font-bold tracking-tight text-slate-900"></h2>
-                    <p id="character-notes" class="mt-2 text-lg text-slate-600"></p>
-                </header>
-
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <section>
-                        <h3 class="text-2xl font-semibold text-slate-900 mb-4">Starting Abilities</h3>
-                        <ul id="abilities-list" class="space-y-3">
-                        </ul>
-                    </section>
-                    <section>
-                        <h3 class="text-2xl font-semibold text-slate-900 mb-4">Key Item Synergies</h3>
-                        <ul id="items-list" class="space-y-3">
-                        </ul>
-                    </section>
-                </div>
-                
-                <section class="mt-12">
-                     <h3 class="text-2xl font-semibold text-slate-900 mb-4 text-center">Comparative Synergy Overview</h3>
-                     <p class="text-center text-slate-600 mb-4">This chart shows the number of key synergistic items listed for each survivor, offering a glimpse into potential build complexity or item dependency.</p>
-                    <div class="chart-container">
-                        <canvas id="synergy-chart"></canvas>
-                    </div>
-                </section>
-
+        <!-- Table View (Initially visible) -->
+        <div id="survivorTableContainer" class="">
+            <div class="overflow-x-auto rounded-lg shadow-md border border-gray-700">
+                <table class="min-w-full divide-y divide-gray-700">
+                    <thead class="bg-gray-800">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Survivor</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Description</th>
+                        </tr>
+                    </thead>
+                    <tbody id="survivorTableBody" class="bg-gray-900 divide-y divide-gray-700">
+                        <!-- Table rows will be inserted here by JavaScript -->
+                    </tbody>
+                </table>
             </div>
-        </main>
+        </div>
+
+        <!-- Character Card View (Initially hidden) -->
+        <div id="characterCardContainer" class="hidden">
+            <button id="backButtonTop" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full transition-colors duration-200 mb-8">
+                ← Back to Survivors
+            </button>
+            <div id="characterCard" class="character-card p-6">
+                <!-- Character details will be dynamically inserted here by JavaScript -->
+            </div>
+            <button id="backButtonBottom" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full transition-colors duration-200 mt-8">
+                ← Back to Survivors
+            </button>
+        </div>
     </div>
 
     <script>
-        const survivorData = [
-            { name: "Commando", abilities: ["Double Tap", "Phase Round", "Tactical Dive", "Suppressive Fire"], items: ["Tri-Tip Dagger", "Soldier's Syringe", "AtG Missile Mk. 1", "Sticky Bomb", "Sentient Meat Hook", "Ukulele", "Backup Magazine", "Harvester's Scythe", "Predatory Instincts", "Crowbar", "Lens Maker's Glasses", "Paul's Goat Hoof", "Hopoo Feather", "Focus Crystal", "Crit Glasses", "Tougher Times"], notes: "Excels with on-hit items due to high rate of fire." },
-            { name: "Huntress", abilities: ["Strafe", "Laser Glaive", "Blink", "Arrow Rain"], items: ["Ukulele", "AtG Missile Mk. 1", "Soldier's Syringe", "Ignition Tank", "Sentient Meat Hook", "Old Guillotine", "Tri-Tip Dagger", "Crit Glasses", "Crowbar", "Laser Scope", "Predatory Instincts", "Tougher Times", "Hopoo Feather", "Lens Maker's Glasses", "Brilliant Behemoth"], notes: "Benefits from items that trigger on-hit or deal area damage." },
-            { name: "Bandit", abilities: ["Burst", "Serrated Dagger", "Smokebomb", "Desperado"], items: ["Shatterspleen", "Crit Glasses", "Tri-Tip Dagger", "Brainstalks", "Soulbound Catalyst", "Ignition Tank", "Royal Capacitor", "Brilliant Behemoth", "Crowbar", "Old Guillotine", "Bandolier", "Hopoo Feather", "Backup Magazine", "Forgive Me Please", "Hardlight Afterburner"], notes: "Crits and on-hit effects are key. His Desperado ability can scale infinitely." },
-            { name: "MUL-T", abilities: ["Rebar Puncher/Nailgun", "Scrap Launcher", "Transport Mode", "Retool"], items: ["Backup Magazine", "Soldier's Syringe", "Tri-Tip Dagger", "Fuel Cell", "Ignition Tank", "Gasoline", "Will-o'-the-wisp", "Brainstalks", "Ukulele", "Repulsion Armor Plate", "Hopoo Feather", "Old War Stealthkit", "Tougher Times", "Sticky Bomb", "57 Leaf Clover"], notes: "Nailgun benefits from attack speed and on-hit items." },
-            { name: "Engineer", abilities: ["Auto-Turret", "Pressure Mines", "Bubble Shield"], items: ["Bustling Fungus", "N'kuhana's Opinion", "Aegis", "Backup Magazine", "Soulbound Catalyst", "Fuel Cell", "Happiest Mask", "Brilliant Behemoth", "Sentient Meat Hook", "Unstable Tesla Coil", "Tougher Times", "Dio's Best Friend", "57 Leaf Clover", "Infusion", "Interstellar Desk Plant"], notes: "Turrets can use items for you. Bustling Fungus is a staple for healing turrets." },
-            { name: "Artificer", abilities: ["Charged Nano-Bomb", "Cast Flame Bolt", "Flamethrower/Plasma Bolt", "Snapfreeze"], items: ["Soulbound Catalyst", "Ignition Tank", "Gasoline", "Royal Capacitor", "Brilliant Behemoth", "Brainstalks", "Purity", "Unstable Tesla Coil", "Crowbar", "Ceremonial Dagger", "Hopoo Feather", "Backup Magazine", "Forgive Me Please", "Hardlight Afterburner", "Focus Crystal"], notes: "Has low attack speed but high burst damage. Benefits from cooldown reduction." },
-            { name: "Mercenary", abilities: ["Whirlwind", "Blinding Assault", "Eviscerate", "Rising Thunder"], items: ["Brainstalks", "Purity", "Soulbound Catalyst", "Ceremonial Dagger", "Hardlight Afterburner", "Harvester's Scythe", "Chronobauble", "AtG Missile Mk. 1", "Bandolier", "Old Guillotine", "Hopoo Feather", "Ocular HUD", "Backup Magazine", "Tougher Times", "Forgive Me Please"], notes: "High mobility melee character focused on invincibility frames and cooldowns." },
-            { name: "Loader", abilities: ["Spiked Gauntlet", "Hydraulic Gauntlet", "Thunder Gauntlet", "M551 Pylon"], items: ["Focus Crystal", "Old Guillotine", "Harvester's Scythe", "Shatterspleen", "Backup Magazine", "Brainstalks", "Tri-Tip Dagger", "Berserker's Pauldron", "Brilliant Behemoth", "Sentient Meat Hook", "Wax Quail", "Hopoo Feather", "Shaped Glass", "Forgive Me Please", "Tougher Times"], notes: "High burst melee damage. Focus Crystal provides a huge damage boost." },
-            { name: "Acrid", abilities: ["Vicious Ferocity", "Poisonous Bite", "Caustic Slime", "Ravenous Bite"], items: ["Tri-Tip Dagger", "Gasoline", "Ignition Tank", "Will-o'-the-wisp", "Shatterspleen", "Purity", "Brilliant Behemoth", "Sentient Meat Hook", "Unstable Tesla Coil", "Ceremonial Dagger", "Focus Crystal", "Hopoo Feather", "Old War Stealthkit", "Backup Magazine", "Tougher Times"], notes: "Benefits greatly from items that apply more status effects like poison, bleed, and burn." },
-            { name: "Captain", abilities: ["Ocular HUD", "57 Leaf Clover", "Tri-Tip Dagger", "Harvester's Scythe", "Brainstalks", "Royal Capacitor"], items: ["Soldier's Syringe", "Ukulele", "Ceremonial Dagger", "Repulsion Armor Plate", "Unstable Tesla Coil", "Tougher Times", "Hopoo Feather", "Wax Quail", "Forgive Me Please"], notes: "High mobility melee character focused on invincibility frames and cooldowns." },
-            { name: "REX", abilities: ["Rejuvenation Rack", "Bustling Fungus", "Harvester's Sythe", "Interstellar Desk Plant", "Infusion"], items: ["Tougher Times", "Rose Buckler", "Focus Crystal", "Foreign Fruit", "Old War Stealthkit", "Soldier's Syringe", "Backup Magazine", "Hopoo Feather", "Ceremonial Dagger"], notes: "High mobility melee character focused on invincibility frames and cooldowns." },
-            { name: "Commando (Alt Abilities)", abilities: ["Sentient Meat Hook", "Crowbar", "AtG Missile Mk. 1", "Ignition Tank", "Unstable Tesla Coil"], items: ["Armor-Piercing Rounds", "Ukulele", "Tri-Tip Dagger", "Sticky Bomb", "Brilliant Behemoth", "Soldier's Syringe", "Backup Magazine", "Hopoo Feather", "Forgive Me Please"], notes: "High mobility melee character focused on invincibility frames and cooldowns." },
-            { name: "Void Fiend", abilities: ["Purity", "Soldier's Syringe", "Tri-Tip Dagger", "Brainstalks", "Crowbar"], items: ["Alien Head", "Ignition Tank", "Backup Magazine", "Sentient Meat Hook", "Ceremonial Dagger", "Hopoo Feather", "Tougher Times", "Old War Stealthkit", "Unstable Tesla Coil", "Repulsion Armor Plate"], notes: "High mobility melee character focused on invincibility frames and cooldowns." },
-            { name: "Heretic", abilities: ["You cannot play as Heretic directly. She is a transformation of any character upon acquiring four lunar items: Visions, Hooks, Strides, and Essence of Heresy. Her items are based on the host player's build."], items: ["N/A"], notes: "High mobility melee character focused on invincibility frames and cooldowns." },
-            { name: "Railgunner", abilities: ["Crowbar", "Armor-Piercing Rounds", "Harvester's Scythe", "Focus Crystal", "Old Guillotine"], items: ["H3AD-5T v2", "Hopoo Feather", "AtG Missile Mk. 1", "Brilliant Behemoth", "Lens Maker's Glasses", "Tougher Times", "Paul's Goat Hoof", "Sticky Bomb"], notes: "High mobility melee character focused on invincibility frames and cooldowns." },
-            { name: "Chef", abilities: ["Ignition Tank", "Gasoline", "Tri-Tip Dagger", "Soulbound Catalyst", "Ukulele"], items: ["Brainstalks", "AtG Missile Mk. 1", "Brilliant Behemoth", "Backup Magazine", "Sentient Meat Hook", "Hopoo Feather", "Paul's Goat Hoof", "Tougher Times", "Repulsion Armor Plate"], notes: "High mobility melee character focused on invincibility frames and cooldowns." },
-            { name: "False Son", abilities: ["Ignition Tank", "Will-o'-the-wisp", "Gasoline", "Ukulele", "AtG Missile Mk. 1"], items: ["Tri-Tip Dagger", "Brainstalks", "Sticky Bomb", "Brilliant Behemoth", "Sentient Meat Hook", "Hopoo Feather", "Tougher Times", "Paul's Goat Hoof", "Backup Magazine"], notes: "High mobility melee character focused on invincibility frames and cooldowns." },
-            { name: "Seeker", abilities: ["Purity", "Brainstalks", "AtG Missile Mk. 1", "Razorwire", "Aegis"], items: ["Repulsion Plate", "Old War Stealthkit", "N'kuhana's Opinion", "Unstable Tesla Coil", "Tougher Times", "Hopoo Feather", "Rose Buckler", "Soldier's Syringe", "Interstellar Desk Plant"], notes: "High mobility melee character focused on invincibility frames and cooldowns." }
+        // Data for each character's loadout, items, and unlocks
+        const characters = [
+            {
+                name: 'Commando',
+                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/5/50/Commando.png',
+                description: 'A versatile survivor excelling in on-hit item synergies and rapid-fire damage.',
+                howToUnlockSurvivor: 'Unlocked by default.',
+                skills: {
+                    primary: { name: 'Double Tap', description: 'Fire two shots for 90% damage each.' },
+                    secondary: { name: 'Phase Round', description: 'Fire a piercing round for 200% damage.' },
+                    utility: { name: 'Tactical Dive', description: 'Dodge attacks and reload your weapons.' },
+                    special: { name: 'Suppressive Fire', description: 'Fire a hail of bullets, stunning enemies.' }
+                },
+                items: {
+                    core: [
+                        { name: 'Soldier\'s Syringe', rarity: 'common' },
+                        { name: 'Tri-Tip Dagger', rarity: 'common' },
+                        { name: 'AtG Missile Mk. 1', rarity: 'legendary' }
+                    ],
+                    synergy: [
+                        { name: 'Ukulele', rarity: 'uncommon' },
+                        { name: 'Predatory Instincts', rarity: 'uncommon' },
+                        { name: 'Lens-Maker\'s Glasses', rarity: 'common' },
+                        { name: 'Kjaro\'s Band', rarity: 'legendary' },
+                        { name: 'Runald\'s Band', rarity: 'legendary' }
+                    ],
+                    situational: [
+                        { name: 'Sticky Bomb', rarity: 'common' },
+                        { name: 'Gasoline', rarity: 'common' },
+                        { name: 'Will-o\'-the-wisp', rarity: 'uncommon' },
+                        { name: 'Hardlight Afterburner', rarity: 'legendary' },
+                        { name: 'Brilliant Behemoth', rarity: 'legendary' }
+                    ]
+                },
+                unlocks: [
+                    { type: 'Ability', name: 'Incorruptible (Slide)', description: 'Finish 20 stages in a single run without picking up any Lunar items.' },
+                    { type: 'Ability', name: 'Phase Blast (Secondary)', description: 'Kill a teleporter boss in under 5 seconds.' },
+                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
+                ]
+            },
+            {
+                name: 'Huntress',
+                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/6/6f/Huntress.png',
+                description: 'A highly mobile survivor with auto-targeting abilities, perfect for hit-and-run tactics.',
+                howToUnlockSurvivor: 'Unlocked by default.',
+                skills: {
+                    primary: { name: 'Strafe', description: 'Fire homing arrows for 150% damage.' },
+                    secondary: { name: 'Laser Glaive', description: 'Fire a glaive that bounces to up to 6 enemies for 250% damage.' },
+                    utility: { name: 'Phase Blink', description: 'Teleport a short distance in a chosen direction.' },
+                    special: { name: 'Arrow Rain', description: 'Leap into the air and fire a volley of arrows for 300% damage.' }
+                },
+                items: {
+                    core: [
+                        { name: 'Lens-Maker\'s Glasses', rarity: 'common' },
+                        { name: 'Harvester\'s Scythe', rarity: 'uncommon' },
+                        { name: 'Shatterspleen', rarity: 'boss' }
+                    ],
+                    synergy: [
+                        { name: 'Soldier\'s Syringe', rarity: 'common' },
+                        { name: 'Predatory Instincts', rarity: 'uncommon' },
+                        { name: 'AtG Missile Mk. 1', rarity: 'legendary' },
+                        { name: 'Ceremonial Dagger', rarity: 'legendary' }
+                    ],
+                    situational: [
+                        { name: 'Focus Crystal', rarity: 'common' },
+                        { name: 'Hardlight Afterburner', rarity: 'legendary' },
+                        { name: 'Soulbound Catalyst', rarity: 'legendary' },
+                        { name: 'Ignition Tank', rarity: 'legendary' }
+                    ]
+                },
+                unlocks: [
+                    { type: 'Ability', name: 'Flurry (Primary)', description: 'Complete a run without taking damage in the first three stages.' },
+                    { type: 'Ability', name: 'Ballista (Special)', description: 'Land the killing blow on an Overloading Worm.' },
+                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
+                ]
+            },
+            {
+                name: 'Bandit',
+                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/1/1f/Bandit.png',
+                description: 'A burst-damage specialist who can vanish and deal massive damage from behind enemies.',
+                howToUnlockSurvivor: 'Complete the "Warrior" challenge by beating the 3rd teleporter event without dying.',
+                skills: {
+                    primary: { name: 'Blast', description: 'Fire a spread of shots for 60% damage per pellet.' },
+                    secondary: { name: 'Desperado', description: 'Fire a shotgun blast for 300% damage.' },
+                    utility: { name: 'Smoke Bomb', description: 'Go invisible and deal 200% damage on leaving stealth.' },
+                    special: { name: 'Lights Out', description: 'Fire a special round for 600% damage. Kills reset your cooldowns.' }
+                },
+                items: {
+                    core: [
+                        { name: 'Crowbar', rarity: 'common' },
+                        { name: 'Focus Crystal', rarity: 'common' },
+                        { name: 'Lysate Cell', rarity: 'lunar' }
+                    ],
+                    synergy: [
+                        { name: 'Tri-Tip Dagger', rarity: 'common' },
+                        { name: 'Shatterspleen', rarity: 'boss' },
+                        { name: 'Hardlight Afterburner', rarity: 'legendary' },
+                        { name: 'Pocket I.C.B.M.', rarity: 'legendary' }
+                    ],
+                    situational: [
+                        { name: 'Bandolier', rarity: 'uncommon' },
+                        { name: 'Purity', rarity: 'lunar' },
+                        { name: 'Strides of Heresy', rarity: 'lunar' },
+                        { name: 'Fuel Cell', rarity: 'uncommon' }
+                    ]
+                },
+                unlocks: [
+                    { type: 'Ability', name: 'Sadist (Passive)', description: 'Kill a monster with 20 stacks of Hemorrhage.' },
+                    { type: 'Ability', name: 'Desperado (Secondary)', description: 'Find and kill a Malachite Elite.' },
+                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
+                ]
+            },
+            {
+                name: 'MUL-T',
+                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/6/6f/MUL-T.png',
+                description: 'A heavily armored character with unique weapon-swapping mechanics and high versatility.',
+                skills: {
+                    primary: { name: 'Nailgun', description: 'Fire nails rapidly for 60% damage per nail.' },
+                    secondary: { name: 'Rebar Puncher', description: 'Fire a piercing rebar for 600% damage.' },
+                    utility: { name: 'Transport Mode', description: 'Hunker down and gain armor, but lose movement speed.' },
+                    special: { name: 'Power Mode', description: 'Swap between your two equipped weapons.' }
+                },
+                items: {
+                    core: [
+                        { name: 'Soldier\'s Syringe', rarity: 'common' },
+                        { name: 'Tri-Tip Dagger', rarity: 'common' },
+                        { name: 'AtG Missile Mk. 1', rarity: 'legendary' }
+                    ],
+                    synergy: [
+                        { name: 'Kjaro\'s Band', rarity: 'legendary' },
+                        { name: 'Runald\'s Band', rarity: 'legendary' },
+                        { name: 'Ukulele', rarity: 'uncommon' },
+                        { name: 'Sticky Bomb', rarity: 'common' }
+                    ],
+                    situational: [
+                        { name: 'Crowbar', rarity: 'common' },
+                        { name: 'Backup Magazine', rarity: 'common' },
+                        { name: 'Hardlight Afterburner', rarity: 'legendary' },
+                        { name: 'N\'kuhana\'s Opinion', rarity: 'legendary' }
+                    ]
+                },
+                unlocks: [
+                    { type: 'Ability', name: 'Power Mode (Special)', description: 'Defeat the teleporter boss on Rallypoint Delta in under 10 minutes.' },
+                    { type: 'Ability', name: 'Scrap Launcher (Secondary)', description: 'Collect and carry 12 Crowbars at once.' },
+                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
+                ]
+            },
+            {
+                name: 'Engineer',
+                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/d/d8/Engineer.png',
+                description: 'A defensive survivor who can deploy turrets that inherit all of his items.',
+                skills: {
+                    primary: { name: 'Auto-Nade', description: 'Fire a grenade for 100% damage that explodes on impact.' },
+                    secondary: { name: 'Pressure Mines', description: 'Place a mine for 300% damage that detonates on enemy proximity.' },
+                    utility: { name: 'Mobile Turret', description: 'Deploy a turret that fires automatically and inherits your items.' },
+                    special: { name: 'Bubble Shield', description: 'Deploy a shield that blocks all incoming projectiles.' }
+                },
+                items: {
+                    core: [
+                        { name: 'Bustling Fungus', rarity: 'common' },
+                        { name: 'N\'kuhana\'s Opinion', rarity: 'legendary' },
+                        { name: 'Sentient Meat Hook', rarity: 'legendary' }
+                    ],
+                    synergy: [
+                        { name: 'AtG Missile Mk. 1', rarity: 'legendary' },
+                        { name: 'Will-o\'-the-wisp', rarity: 'uncommon' },
+                        { name: '57 Leaf Clover', rarity: 'legendary' },
+                        { name: 'Brilliant Behemoth', rarity: 'legendary' }
+                    ],
+                    situational: [
+                        { name: 'Hardlight Afterburner', rarity: 'legendary' },
+                        { name: 'Bandolier', rarity: 'uncommon' },
+                        { name: 'Backup Magazine', rarity: 'common' },
+                        { name: 'Shatterspleen', rarity: 'boss' }
+                    ]
+                },
+                unlocks: [
+                    { type: 'Ability', name: 'Mobile Turrets (Special)', description: 'Complete 30 stages in a single run.' },
+                    { type: 'Ability', name: 'Thermal Harpoons (Secondary)', description: 'Kill a teleporter boss within 5 seconds of it spawning.' },
+                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
+                ]
+            },
+            {
+                name: 'Artificer',
+                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/9/98/Artificer.png',
+                description: 'An elemental mage with powerful, high-impact abilities and a strong focus on burst damage.',
+                skills: {
+                    primary: { name: 'Nano-Spear', description: 'Fire a barrage of electric bolts for 80% damage each.' },
+                    secondary: { name: 'Spiked Bomb', description: 'Launch an ice spear for 400% damage that freezes enemies.' },
+                    utility: { name: 'Ion Surge', description: 'Launch a bolt of lightning that stuns enemies.' },
+                    special: { name: 'Flamethrower', description: 'Unleash a continuous stream of fire for 300% damage per second.' }
+                },
+                items: {
+                    core: [
+                        { name: 'Kjaro\'s Band', rarity: 'legendary' },
+                        { name: 'Runald\'s Band', rarity: 'legendary' },
+                        { name: 'Crowbar', rarity: 'common' },
+                        { name: 'Ignition Tank', rarity: 'legendary' }
+                    ],
+                    synergy: [
+                        { name: 'AtG Missile Mk. 1', rarity: 'legendary' },
+                        { name: 'Will-o\'-the-wisp', rarity: 'uncommon' },
+                        { name: 'Gasoline', rarity: 'common' },
+                        { name: 'Sentient Meat Hook', rarity: 'legendary' }
+                    ],
+                    situational: [
+                        { name: 'Brainstalks', rarity: 'legendary' },
+                        { name: 'Hardlight Afterburner', rarity: 'legendary' },
+                        { name: 'Shatterspleen', rarity: 'boss' },
+                        { name: 'Royal Capacitor', rarity: 'legendary' }
+                    ]
+                },
+                unlocks: [
+                    { type: 'Ability', name: 'Charged Nano-Bomb (Primary)', description: 'Kill 20 enemies at once with a single attack.' },
+                    { type: 'Ability', name: 'Flamethrower (Special)', description: 'Stay airborne for 30 consecutive seconds.' },
+                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
+                ]
+            },
+            {
+                name: 'Mercenary',
+                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/0/00/Mercenary.png',
+                description: 'A melee survivor with exceptional mobility and invincibility frames.',
+                skills: {
+                    primary: { name: 'Whirlwind', description: 'Perform a spinning slash, dealing 150% damage.' },
+                    secondary: { name: 'Slicing Winds', description: 'Launch a series of slicing blades for 100% damage each.' },
+                    utility: { name: 'Blinding Assault', description: 'Dash forward, stunning enemies and dealing 300% damage.' },
+                    special: { name: 'Eviscerate', description: 'Lock onto an enemy, dealing 110% damage rapidly. You are invincible during this time.' }
+                },
+                items: {
+                    core: [
+                        { name: 'Hardlight Afterburner', rarity: 'legendary' },
+                        { name: 'Kjaro\'s Band', rarity: 'legendary' },
+                        { name: 'Runald\'s Band', rarity: 'legendary' },
+                        { name: 'Focus Crystal', rarity: 'common' }
+                    ],
+                    synergy: [
+                        { name: 'Tri-Tip Dagger', rarity: 'common' },
+                        { name: 'AtG Missile Mk. 1', rarity: 'legendary' },
+                        { name: '57 Leaf Clover', rarity: 'legendary' },
+                        { name: 'Shatterspleen', rarity: 'boss' }
+                    ],
+                    situational: [
+                        { name: 'Purity', rarity: 'lunar' },
+                        { name: 'Predatory Instincts', rarity: 'uncommon' },
+                        { name: 'Soulbound Catalyst', rarity: 'legendary' }
+                    ]
+                },
+                unlocks: [
+                    { type: 'Ability', name: 'Slicing Winds (Special)', description: 'Complete a Prismatic Trial without taking any damage.' },
+                    { type: 'Ability', name: 'Expose (Passive)', description: 'Perform a multikill of 20 enemies.' },
+                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
+                ]
+            },
+            {
+                name: 'REX',
+                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/7/74/REX.png',
+                description: 'A biomechanical survivor that uses its own health to cast powerful abilities.',
+                skills: {
+                    primary: { name: 'DIRECTIVE: Inject', description: 'Fire a syringe for 150% damage that heals you for a percentage of damage dealt.' },
+                    secondary: { name: 'DIRECTIVE: Disperse', description: 'Fire an explosive blast that deals 200% damage and heals you.' },
+                    utility: { name: 'TANGLED: Growth', description: 'Launch a bundle of seeds that immobilize enemies.' },
+                    special: { name: 'FOUL: Barrage', description: 'Fire a barrage of seeds, dealing 300% damage and healing you for each hit.' }
+                },
+                items: {
+                    core: [
+                        { name: 'Medkit', rarity: 'common' },
+                        { name: 'Planula', rarity: 'boss' },
+                        { name: 'Weeping Fungus', rarity: 'lunar' }
+                    ],
+                    synergy: [
+                        { name: 'Kjaro\'s Band', rarity: 'legendary' },
+                        { name: 'Runald\'s Band', rarity: 'legendary' },
+                        { name: 'Brainstalks', rarity: 'legendary' },
+                        { name: 'Alien Head', rarity: 'legendary' }
+                    ],
+                    situational: [
+                        { name: 'Bustling Fungus', rarity: 'common' },
+                        { name: 'Aegis', rarity: 'legendary' },
+                        { name: 'Rejuvenation Rack', rarity: 'legendary' },
+                        { name: 'N\'kuhana\'s Opinion', rarity: 'legendary' }
+                    ]
+                },
+                unlocks: [
+                    { type: 'Ability', name: 'Backlash (Secondary)', description: 'Defeat a boss while at or below 50% health.' },
+                    { type: 'Ability', name: 'Blight (Passive)', description: 'Kill a boss with a single attack.' },
+                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
+                ]
+            },
+            {
+                name: 'Loader',
+                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/2/25/Loader.png',
+                description: 'A tanky survivor who deals massive damage with her charged gauntlets.',
+                skills: {
+                    primary: { name: 'Knuckleboom', description: 'Punch for 200% damage, with the final hit dealing 600%.' },
+                    secondary: { name: 'Charged Gauntlet', description: 'Grapple to enemies and charge a punch for up to 2500% damage.' },
+                    utility: { name: 'M551 Pylon', description: 'Deploy a pylon that fires a stun-locking projectile.' },
+                    special: { name: 'Thunder Gauntlet', description: 'Grapple to a surface and pull yourself forward, dealing 2000% damage on impact.' }
+                },
+                items: {
+                    core: [
+                        { name: 'Kjaro\'s Band', rarity: 'legendary' },
+                        { name: 'Runald\'s Band', rarity: 'legendary' },
+                        { name: 'Focus Crystal', rarity: 'common' },
+                        { name: 'Crowbar', rarity: 'common' }
+                    ],
+                    synergy: [
+                        { name: 'Shatterspleen', rarity: 'boss' },
+                        { name: 'Will-o\'-the-wisp', rarity: 'uncommon' },
+                        { name: 'Sentient Meat Hook', rarity: 'legendary' },
+                        { name: 'Ignition Tank', rarity: 'legendary' }
+                    ],
+                    situational: [
+                        { name: 'Hardlight Afterburner', rarity: 'legendary' },
+                        { name: 'Plasma Shrimp', rarity: 'legendary' },
+                        { name: 'Tougher Times', rarity: 'common' },
+                        { name: 'Happiest Mask', rarity: 'legendary' }
+                    ]
+                },
+                unlocks: [
+                    { type: 'Ability', name: 'Mjolnir (Primary)', description: 'Kill 3 other Loaders in the Bulwark’s Ambry.' },
+                    { type: 'Ability', name: 'Charged Gauntlet (Secondary)', description: 'Deal 1,000 damage or more with a single hit.' },
+                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
+                ]
+            },
+            {
+                name: 'Acrid',
+                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/8/8e/Acrid.png',
+                description: 'A poison-based melee/ranged hybrid who specializes in damage over time.',
+                skills: {
+                    passive: { name: 'Blight', description: 'Poison enemies, dealing 10% damage per second for 5s.' },
+                    primary: { name: 'Vicious Wounds', description: 'Bite an enemy for 300% damage and apply Blight.' },
+                    secondary: { name: 'Ravenous Bite', description: 'Leap forward, stunning enemies and dealing 250% damage.' },
+                    utility: { name: 'Caustic Leap', description: 'Leap into the air, landing to deal 300% damage.' },
+                    special: { name: 'Epidemic', description: 'Fire a projectile that infects enemies, causing them to spread Blight.' }
+                },
+                items: {
+                    core: [
+                        { name: 'Death Mark', rarity: 'legendary' },
+                        { name: 'Tri-Tip Dagger', rarity: 'common' },
+                        { name: 'Gasoline', rarity: 'common' }
+                    ],
+                    synergy: [
+                        { name: 'Will-o\'-the-wisp', rarity: 'uncommon' },
+                        { name: 'Ignition Tank', rarity: 'legendary' },
+                        { name: 'Kjaro\'s Band', rarity: 'legendary' },
+                        { name: 'Runald\'s Band', rarity: 'legendary' }
+                    ],
+                    situational: [
+                        { name: 'Primordial Cube', rarity: 'uncommon' },
+                        { name: 'Royal Capacitor', rarity: 'legendary' },
+                        { name: 'Lysate Cell', rarity: 'lunar' },
+                        { name: 'Soulbound Catalyst', rarity: 'legendary' }
+                    ]
+                },
+                unlocks: [
+                    { type: 'Ability', name: 'Vicious Wounds (Primary)', description: 'Complete the Void Fields event and defeat all bosses.' },
+                    { type: 'Ability', name: 'Acidic Touch (Secondary)', description: 'Kill a teleporter boss without taking damage.' },
+                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
+                ]
+            },
+            {
+                name: 'Captain',
+                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/a/a9/Captain.png',
+                description: 'A support-focused survivor with incredible utility and powerful orbital strikes.',
+                skills: {
+                    primary: { name: 'Vulcan Shotgun', description: 'Fire a shotgun blast for 120% damage per pellet.' },
+                    secondary: { name: 'Shocking Beacon', description: 'Call down a beacon that stuns and shocks enemies in an area.' },
+                    utility: { name: 'OGM-72 \'DIABLO\' Strike', description: 'Call down a powerful orbital strike that deals 3000% damage.' },
+                    special: { name: 'Deflecting Microbots', description: 'A swarm of microbots that deflects incoming projectiles.' }
+                },
+                items: {
+                    core: [
+                        { name: 'AtG Missile Mk. 1', rarity: 'legendary' },
+                        { name: 'Kjaro\'s Band', rarity: 'legendary' },
+                        { name: 'Runald\'s Band', rarity: 'legendary' },
+                        { name: 'Ukulele', rarity: 'uncommon' }
+                    ],
+                    synergy: [
+                        { name: 'Fuel Cell', rarity: 'uncommon' },
+                        { name: 'Gesture of the Drowned', rarity: 'lunar' },
+                        { name: '57 Leaf Clover', rarity: 'legendary' },
+                        { name: 'Hardlight Afterburner', rarity: 'legendary' }
+                    ],
+                    situational: [
+                        { name: 'Armor-Piercing Rounds', rarity: 'common' },
+                        { name: 'Backup Magazine', rarity: 'common' },
+                        { name: 'Royal Capacitor', rarity: 'legendary' },
+                        { name: 'Disposable Missile Launcher', rarity: 'legendary' }
+                    ]
+                },
+                unlocks: [
+                    { type: 'Ability', name: 'Diablo Strike (Utility)', description: 'Beat the game by killing the final boss.' },
+                    { type: 'Ability', name: 'Defense Protocol (Special)', description: 'Kill the final boss with a Supply Beacon.' },
+                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
+                ]
+            },
+            {
+                name: 'Railgunner',
+                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/f/fe/Railgunner.png',
+                description: 'A long-range sniper with a guaranteed critical hit mechanic on her weakpoint shots.',
+                skills: {
+                    primary: { name: 'M99 Sniper', description: 'Charge a shot to deal massive damage. Hitting a weakpoint guarantees a crit.' },
+                    secondary: { name: 'XON Commando', description: 'Fire a powerful, single-target shot for 400% damage.' },
+                    utility: { name: 'Polar Field Device', description: 'Deploy a field that slows enemies and blocks projectiles.' },
+                    special: { name: 'Cryo Chamber', description: 'Launch a grenade that deals 1000% damage and freezes enemies.' }
+                },
+                items: {
+                    core: [
+                        { name: 'Harvester\'s Scythe', rarity: 'uncommon' },
+                        { name: 'Shatterspleen', rarity: 'boss' },
+                        { name: 'Crowbar', rarity: 'common' },
+                        { name: 'Focus Crystal', rarity: 'common' }
+                    ],
+                    synergy: [
+                        { name: 'Predatory Instincts', rarity: 'uncommon' },
+                        { name: 'Kjaro\'s Band', rarity: 'legendary' },
+                        { name: 'Runald\'s Band', rarity: 'legendary' },
+                        { name: 'AtG Missile Mk. 1', rarity: 'legendary' }
+                    ],
+                    situational: [
+                        { name: 'Purity', rarity: 'lunar' },
+                        { name: 'Hardlight Afterburner', rarity: 'legendary' },
+                        { name: 'Brilliant Behemoth', rarity: 'legendary' },
+                        { name: 'Soulbound Catalyst', rarity: 'legendary' }
+                    ]
+                },
+                unlocks: [
+                    { type: 'Ability', name: 'Cryo Chamber (Special)', description: 'Defeat the final boss in under 30 minutes.' },
+                    { type: 'Ability', name: 'XON Commando (Secondary)', description: 'Hit a monster 5 times in a single second with your primary.' },
+                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
+                ]
+            },
+            {
+                name: 'Void Fiend',
+                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/5/5b/Void_Fiend.png',
+                description: 'A survivor who swaps between two forms, one for healing and one for pure destruction.',
+                skills: {
+                    primary: { name: 'Corrupt: Purify', description: 'Fire a burst of projectiles for 60% damage each.' },
+                    secondary: { name: 'Corrupt: Suppress', description: 'Unleash a powerful burst of energy for 1000% damage.' },
+                    utility: { name: 'Corrupt: Transport', description: 'Dash forward, dealing 200% damage on impact.' },
+                    special: { name: 'Corrupt: Trespass', description: 'Unleash a powerful blast of energy, dealing 1000% damage.' }
+                },
+                items: {
+                    core: [
+                        { name: 'Weeping Fungus', rarity: 'lunar' },
+                        { name: 'Cautious Slug', rarity: 'common' },
+                        { name: 'Tri-Tip Dagger', rarity: 'common' }
+                    ],
+                    synergy: [
+                        { name: 'Kjaro\'s Band', rarity: 'legendary' },
+                        { name: 'Runald\'s Band', rarity: 'legendary' },
+                        { name: 'Transcendence', rarity: 'lunar' },
+                        { name: 'Purity', rarity: 'lunar' }
+                    ],
+                    situational: [
+                        { name: 'Hardlight Afterburner', rarity: 'legendary' },
+                        { name: 'Lysate Cell', rarity: 'lunar' },
+                        { name: 'Soulbound Catalyst', rarity: 'legendary' },
+                        { name: 'Tougher Times', rarity: 'common' }
+                    ]
+                },
+                unlocks: [
+                    { type: 'Ability', name: 'Suppress (Secondary)', description: 'Kill a Voidling with a fully corrupted attack.' },
+                    { type: 'Ability', name: 'Trespass (Special)', description: 'Reach 100% Corruption in a single run.' },
+                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
+                ]
+            },
+            {
+                name: 'Seeker',
+                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/5/54/Seeker.png',
+                description: 'A unique survivor who can create a destructive aura and bank powerful energy spheres.',
+                skills: {
+                    primary: { name: 'Luminous Bolt', description: 'Fire a bolt of light that stuns enemies and deals 200% damage.' },
+                    secondary: { name: 'Sojourn', description: 'Unleash a powerful orb of energy that deals 300% damage per hit.' },
+                    utility: { name: 'Stasis Orb', description: 'Throw an orb that slows and stuns enemies in a large area.' },
+                    special: { name: 'Astral Form', description: 'Enter a meditative state, gaining invincibility and healing.' }
+                },
+                items: {
+                    core: [
+                        { name: 'Repulsion Armor Plate', rarity: 'common' },
+                        { name: 'Razorwire', rarity: 'common' },
+                        { name: 'Planula', rarity: 'boss' },
+                        { name: 'Topaz Brooch', rarity: 'common' }
+                    ],
+                    synergy: [
+                        { name: 'Weeping Fungus', rarity: 'lunar' },
+                        { name: 'Aegis', rarity: 'legendary' },
+                        { name: 'Gasoline', rarity: 'common' },
+                        { name: 'Will-o\'-the-wisp', rarity: 'uncommon' }
+                    ],
+                    situational: [
+                        { name: 'Ceremonial Dagger', rarity: 'legendary' },
+                        { name: 'Brilliant Behemoth', rarity: 'legendary' },
+                        { name: 'Soulbound Catalyst', rarity: 'legendary' },
+                        { name: 'Happiest Mask', rarity: 'legendary' }
+                    ]
+                },
+                unlocks: [
+                    { type: 'Ability', name: 'Luminous Bolt (Primary)', description: 'Hit a single enemy with all three of your primary attacks.' },
+                    { type: 'Ability', name: 'Astral Form (Special)', description: 'Defeat the False Son boss with a fully charged Astral Form.' },
+                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
+                ]
+            },
+            {
+                name: 'Chef',
+                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/5/51/CHEF.png',
+                description: 'A swift, aggressive survivor who cooks enemies with fire and an oil slick.',
+                skills: {
+                    primary: { name: 'Oil Slick', description: 'Leave a trail of oil that slows enemies.' },
+                    secondary: { name: 'Dice and Slice', description: 'Dash forward, dealing 200% damage and applying a bleed effect.' },
+                    utility: { name: 'Searing Spit', description: 'Spit a searing projectile that ignites enemies for 300% damage.' },
+                    special: { name: 'Cooking with Gas', description: 'Detonate all oil slicks and ignite enemies within them.' }
+                },
+                items: {
+                    core: [
+                        { name: 'Ignition Tank', rarity: 'legendary' },
+                        { name: 'Gasoline', rarity: 'common' },
+                        { name: 'Will-o\'-the-wisp', rarity: 'uncommon' }
+                    ],
+                    synergy: [
+                        { name: 'Kjaro\'s Band', rarity: 'legendary' },
+                        { name: 'Runald\'s Band', rarity: 'legendary' },
+                        { name: 'Brilliant Behemoth', rarity: 'legendary' },
+                        { name: 'Tri-Tip Dagger', rarity: 'common' }
+                    ],
+                    situational: [
+                        { name: 'Soulbound Catalyst', rarity: 'legendary' },
+                        { name: 'Brainstalks', rarity: 'legendary' },
+                        { name: 'Bandolier', rarity: 'uncommon' },
+                        { name: 'Hardlight Afterburner', rarity: 'legendary' }
+                    ]
+                },
+                unlocks: [
+                    { type: 'Ability', name: 'Saute (Secondary)', description: 'Defeat the final boss on Drizzle difficulty.' },
+                    { type: 'Ability', name: 'Searing Spit (Utility)', description: 'Defeat the final boss on Monsoon difficulty.' },
+                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
+                ]
+            },
+            {
+                name: 'Heretic',
+                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/8/81/Heretic.png',
+                description: 'A transformation of any survivor, she is not a standalone character but a temporary powerful form.',
+                skills: {
+                    primary: { name: 'Foul: Miasma', description: 'Launch a miasma orb that explodes into a blight field.' },
+                    secondary: { name: 'Foul: Eclipse', description: 'Summon a beam of darkness that deals 1000% damage per second.' },
+                    utility: { name: 'Foul: Tempest', description: 'Teleport and deal 200% damage on impact.' },
+                    special: { name: 'Foul: Impending Doom', description: 'Summon an orb that deals 1000% damage when enemies are near.' }
+                },
+                items: {
+                    core: [
+                        { name: 'Visions of Heresy', rarity: 'lunar' },
+                        { name: 'Hooks of Heresy', rarity: 'lunar' },
+                        { name: 'Essence of Heresy', rarity: 'lunar' },
+                        { name: 'Strides of Heresy', rarity: 'lunar' }
+                    ],
+                    synergy: [],
+                    situational: []
+                },
+                unlocks: [
+                    { type: 'Transformation', name: 'Heretic', description: 'Acquire one of each Heresy lunar item in a single run.' }
+                ]
+            },
+            {
+                name: 'False Son',
+                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/9/93/False_Son.png',
+                description: 'A slow but stalwart close-range warrior with high defense and extreme durability.',
+                skills: {
+                    primary: { name: 'Stone Slam', description: 'Slam the ground for 300% damage, stunning enemies.' },
+                    secondary: { name: 'Mountain Drop', description: 'Leap into the air and land with a devastating blow for 1000% damage.' },
+                    utility: { name: 'Stone Wall', description: 'Create a wall of stone that blocks projectiles and enemies.' },
+                    special: { name: 'Stone Blast', description: 'Unleash a powerful blast of energy, dealing 1000% damage.' }
+                },
+                items: {
+                    core: [
+                        { name: 'Repulsion Armor Plate', rarity: 'common' },
+                        { name: 'Tougher Times', rarity: 'common' },
+                        { name: 'Aegis', rarity: 'legendary' }
+                    ],
+                    synergy: [
+                        { name: 'Old War Stealthkit', rarity: 'uncommon' },
+                        { name: 'Brainstalks', rarity: 'legendary' },
+                        { name: 'Kjaro\'s Band', rarity: 'legendary' },
+                        { name: 'Runald\'s Band', rarity: 'legendary' }
+                    ],
+                    situational: [
+                        { name: 'Unstable Tesla Coil', rarity: 'legendary' },
+                        { name: 'Brilliant Behemoth', rarity: 'legendary' },
+                        { name: 'Rejuvenation Rack', rarity: 'legendary' },
+                        { name: 'Happiest Mask', rarity: 'legendary' }
+                    ]
+                },
+                unlocks: [
+                    { type: 'Unlock', name: 'False Son', description: 'Defeat the False Son boss while holding the Halcyon Seed.' }
+                ]
+            }
         ];
 
+        // A new object to hold the image URLs and descriptions for each item
         const itemData = {
-            "Tri-Tip Dagger": { icon: "🔪", description: "10% chance to bleed enemies for 240% base damage." },
-            "Soldier's Syringe": { icon: "💉", description: "Increases attack speed by 15%." },
-            "AtG Missile Mk. 1": { icon: "🚀", description: "3% chance to fire a missile for 300% TOTAL damage." },
-            "Sticky Bomb": { icon: "💣", description: "5% chance to stick a bomb to enemies for 180% damage." },
-            "Sentient Meat Hook": { icon: "🎣", description: "10% chance to fire a seeking hook that pulls enemies in." },
-            "Ukulele": { icon: "🎸", description: "25% chance to fire chain lightning for 80% damage." },
-            "Backup Magazine": { icon: "📦", description: "Adds an additional charge to your secondary skill." },
-            "Harvester's Scythe": { icon: "🌾", description: "Crit strikes heal you for 8 HP." },
-            "Predatory Instincts": { icon: "🦅", description: "Gain 5% attack speed on crit, stacking up to 30%." },
-            "Crowbar": { icon: "🔧", description: "Deal +75% damage to enemies above 90% health." },
-            "Lens Maker's Glasses": { icon: "👓", description: "Adds 10% critical strike chance." },
-            "Paul's Goat Hoof": { icon: "🐐", description: "Increases move speed by 14%." },
-            "Hopoo Feather": { icon: "🪶", description: "Adds an additional jump." },
-            "Focus Crystal": { icon: "💎", description: "Deal +20% damage to enemies within 13m." },
-            "Crit Glasses": { icon: "👓", description: "Adds 10% critical strike chance." },
-            "Tougher Times": { icon: "🧸", description: "15% chance to block all incoming damage." },
-            "Ignition Tank": { icon: "🔥", description: "Adds an ignition effect to fire damage sources, burning enemies for 300% damage." },
-            "Old Guillotine": { icon: "✂️", description: "Elites are instantly killed when they fall below 20% health." },
-            "Laser Scope": { icon: "🎯", description: "100% crit chance on the first hit of an attack." },
-            "Brilliant Behemoth": { icon: "✨", description: "Adds an explosion to all projectiles, dealing 60% total damage." },
-            "Shatterspleen": { icon: "🪓", description: "Crit strikes explode, dealing 400% damage and applying bleed." },
-            "Brainstalks": { icon: "🧠", description: "Killing an elite monster resets all your skill cooldowns for 4s." },
-            "Soulbound Catalyst": { icon: "🔮", description: "Killing an enemy reduces all skill cooldowns by 1s." },
-            "Royal Capacitor": { icon: "⚡", description: "Calls down a lightning strike on a target, dealing 2000% damage." },
-            "Bandolier": { icon: "🎒", description: "18% chance for enemies to drop an ammo pack on death, resetting all cooldowns." },
-            "Forgive Me Please": { icon: "👻", description: "Activating your equipment summons a ghost of a killed enemy for 30s." },
-            "Hardlight Afterburner": { icon: "🛩️", description: "Adds 2 charges to your Utility skill." },
-            "Fuel Cell": { icon: "🔋", description: "Adds 1 charge to your equipment and reduces equipment cooldown." },
-            "Gasoline": { icon: "⛽", description: "Killing an enemy creates a fire pool that burns enemies for 150% damage." },
-            "Will-o'-the-wisp": { icon: "🔵", description: "Killing an enemy creates a lava pillar, dealing 350% damage to nearby enemies." },
-            "Repulsion Armor Plate": { icon: "🛡️", description: "Reduces all incoming damage by 5." },
-            "57 Leaf Clover": { icon: "🍀", description: "Rerolls all random effects that are not a chance on hit." },
-            "N'kuhana's Opinion": { icon: "💀", description: "Store 10% of healing as Soul Energy. Fire 5 skulls for 250% damage when energy is full." },
-            "Aegis": { icon: "⚔️", description: "Heal for more than your max health to gain a temporary barrier." },
-            "Dio's Best Friend": { icon: "🐶", description: "Grants a second life." },
-            "Infusion": { icon: "💧", description: "Gain 1 permanent health for every enemy killed." },
-            "Interstellar Desk Plant": { icon: "🌿", description: "On killing an enemy, a plant grows that heals all allies inside its radius." },
-            "Ceremonial Dagger": { icon: "🔪", description: "Killing an enemy fires three homing daggers for 150% damage." },
-            "Chronobauble": { icon: "⏳", description: "Hitting an enemy slows them for 2s." },
-            "Shaped Glass": { icon: "🔻", description: "Increases base damage by 100%, but reduces max health by 50%." },
-            "Rejuvenation Rack": { icon: "🧪", description: "Doubles all healing received." },
-            "Rose Buckler": { icon: "🌹", description: "Gain +30 armor while sprinting." },
-            "Foreign Fruit": { icon: "🍐", description: "Heals you for 50% of your max health." },
-            "H3AD-5T v2": { icon: "🤖", description: "Increases jump height. Falling from high up creates a powerful explosion." },
-            "Armor-Piercing Rounds": { icon: "🕳️", description: "Increases damage to bosses by 20%." },
-            "Razorwire": { icon: "🕸️", description: "Taking damage launches two razorwire projectiles, dealing 160% damage." },
-            "Unstable Tesla Coil": { icon: "🌀", description: "Shock enemies every 0.5s for 200% damage." }
+            'Soldier\'s Syringe': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/f/f2/Soldier%27s_Syringe.png', description: 'Increases attack speed by 15%.', rarity: 'common' },
+            'Tri-Tip Dagger': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/1/17/Tri-Tip_Dagger.png', description: '10% chance to bleed enemies for 240% base damage.', rarity: 'common' },
+            'AtG Missile Mk. 1': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/6/6a/AtG_Missile_Mk._1.png', description: '3% chance to fire a missile for 300% TOTAL damage.', rarity: 'legendary' },
+            'Ukulele': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/9/98/Ukulele.png', description: '25% chance to fire chain lightning for 80% damage.', rarity: 'uncommon' },
+            'Predatory Instincts': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/3/39/Predatory_Instincts.png', description: 'Gain 5% attack speed on crit, stacking up to 30%.', rarity: 'uncommon' },
+            'Lens-Maker\'s Glasses': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/2/23/Lens-Maker%27s_Glasses.png', description: 'Adds 10% critical strike chance.', rarity: 'common' },
+            'Kjaro\'s Band': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/e/eb/Kjaro%27s_Band.png', description: 'Hitting an enemy with a high damage attack ignites them.', rarity: 'legendary' },
+            'Runald\'s Band': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/0/05/Runald%27s_Band.png', description: 'Hitting an enemy with a high damage attack slows them.', rarity: 'legendary' },
+            'Sticky Bomb': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/7/74/Sticky_Bomb.png', description: '5% chance to stick a bomb to enemies for 180% damage.', rarity: 'common' },
+            'Gasoline': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/6/6e/Gasoline.png', description: 'Killing an enemy creates a fire pool that burns enemies for 150% damage.', rarity: 'common' },
+            'Will-o\'-the-wisp': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/c/c4/Will-o%27-the-wisp.png', description: 'Killing an enemy creates a lava pillar, dealing 350% damage to nearby enemies.', rarity: 'uncommon' },
+            'Hardlight Afterburner': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/2/20/Hardlight_Afterburner.png', description: 'Adds 2 charges to your Utility skill.', rarity: 'legendary' },
+            'Brilliant Behemoth': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/f/fa/Brilliant_Behemoth.png', description: 'Adds an explosion to all projectiles, dealing 60% total damage.', rarity: 'legendary' },
+            'Harvester\'s Scythe': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/e/e1/Harvester%27s_Scythe.png', description: 'Crit strikes heal you for 8 HP.', rarity: 'uncommon' },
+            'Shatterspleen': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/c/cd/Shatterspleen.png', description: 'Crit strikes explode, dealing 400% damage and applying bleed.', rarity: 'boss' },
+            'Ceremonial Dagger': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/7/76/Ceremonial_Dagger.png', description: 'Killing an enemy fires three homing daggers for 150% damage.', rarity: 'legendary' },
+            'Focus Crystal': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/5/59/Focus_Crystal.png', description: 'Deal +20% damage to enemies within 13m.', rarity: 'common' },
+            'Soulbound Catalyst': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/f/f1/Soulbound_Catalyst.png', description: 'Killing an enemy reduces all skill cooldowns by 1s.', rarity: 'legendary' },
+            'Ignition Tank': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/e/ed/Ignition_Tank.png', description: 'Adds an ignition effect to fire damage sources, burning enemies for 300% damage.', rarity: 'legendary' },
+            'Crowbar': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/c/c0/Crowbar.png', description: 'Deal +75% damage to enemies above 90% health.', rarity: 'common' },
+            'Lysate Cell': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/5/53/Lysate_Cell.png', description: 'Adds an additional charge to your Special skill.', rarity: 'lunar' },
+            'Pocket I.C.B.M.': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/f/ff/Pocket_I.C.B.M..png', description: 'Missiles from AtG Missile have a 25% chance to be replaced by a micro-missile.', rarity: 'legendary' },
+            'Bandolier': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/6/62/Bandolier.png', description: '18% chance for enemies to drop an ammo pack on death, resetting all cooldowns.', rarity: 'uncommon' },
+            'Purity': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/a/a2/Purity.png', description: 'Reduces skill cooldowns by 2s per stack. Reduces random effects by 33%.', rarity: 'lunar' },
+            'Strides of Heresy': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/1/1a/Strides_of_Heresy.png', description: 'Replaces your utility skill with an ability that grants invincibility and heals.', rarity: 'lunar' },
+            'Fuel Cell': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/4/4d/Fuel_Cell.png', description: 'Adds 1 charge to your equipment and reduces equipment cooldown.', rarity: 'uncommon' },
+            'Backup Magazine': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/f/f3/Backup_Magazine.png', description: 'Adds an additional charge to your secondary skill.', rarity: 'common' },
+            'N\'kuhana\'s Opinion': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/c/c9/N%27kuhana%27s_Opinion.png', description: 'Store 10% of healing as Soul Energy. Fire 5 skulls for 250% damage when energy is full.', rarity: 'legendary' },
+            'Bustling Fungus': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/3/33/Bustling_Fungus.png', description: 'After standing still for 1s, a healing aura appears and heals for 4.5% of your max HP/s.', rarity: 'common' },
+            'Sentient Meat Hook': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/e/e7/Sentient_Meat_Hook.png', description: '10% chance to fire a seeking hook that pulls enemies in.', rarity: 'legendary' },
+            '57 Leaf Clover': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/e/e5/57_Leaf_Clover.png', description: 'Rerolls all random effects that are not a chance on hit.', rarity: 'legendary' },
+            'Brainstalks': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/c/c0/Brainstalks.png', description: 'Killing an elite monster resets all your skill cooldowns for 4s.', rarity: 'legendary' },
+            'Royal Capacitor': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/e/ef/Royal_Capacitor.png', description: 'Calls down a lightning strike on a target, dealing 2000% damage.', rarity: 'legendary' },
+            'Medkit': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/0/0f/Medkit.png', description: 'Heals for 10 HP after taking damage.', rarity: 'common' },
+            'Planula': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/a/a9/Planula.png', description: 'Heals you for 15 HP after blocking damage.', rarity: 'boss' },
+            'Weeping Fungus': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/e/e1/Weeping_Fungus.png', description: 'After sprinting for 1s, creates a healing aura.', rarity: 'lunar' },
+            'Alien Head': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/2/25/Alien_Head.png', description: 'Reduces skill cooldowns by 25%.', rarity: 'legendary' },
+            'Aegis': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/e/e5/Aegis.png', description: 'Heal for more than your max health to gain a temporary barrier.', rarity: 'legendary' },
+            'Rejuvenation Rack': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/0/0a/Rejuvenation_Rack.png', description: 'Doubles all healing received.', rarity: 'legendary' },
+            'Plasma Shrimp': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/c/cf/Plasma_Shrimp.png', description: 'Gain 1 Plasma Shrimp. After 30s, it grants you a second life.', rarity: 'legendary' },
+            'Tougher Times': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/3/39/Tougher_Times.png', description: '15% chance to block all incoming damage.', rarity: 'common' },
+            'Happiest Mask': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/d/d4/Happiest_Mask.png', description: 'Killing an enemy has a 10% chance to summon a ghost.', rarity: 'legendary' },
+            'Death Mark': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/3/34/Death_Mark.png', description: 'Applying 4 unique debuffs to an enemy marks them for death, increasing damage dealt by 50% for 7s.', rarity: 'legendary' },
+            'Primordial Cube': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/d/d9/Primordial_Cube.png', description: 'Sucks enemies into a point, allowing for easy AoE damage.', rarity: 'uncommon' },
+            'Armor-Piercing Rounds': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/f/f0/Armor-Piercing_Rounds.png', description: 'Increases damage to bosses by 20%.', rarity: 'common' },
+            'Disposable Missile Launcher': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/7/78/Disposable_Missile_Launcher.png', description: 'Fires a burst of missiles for 300% total damage.', rarity: 'legendary' },
+            'Cautious Slug': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/c/c6/Cautious_Slug.png', description: 'Gain 3 HP/s while standing still.', rarity: 'common' },
+            'Transcendence': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/8/85/Transcendence.png', description: 'Replaces all HP with shields, which are doubled. Healing converts to shields.', rarity: 'lunar' },
+            'Repulsion Armor Plate': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/a/aa/Repulsion_Armor_Plate.png', description: 'Reduces all incoming damage by 5.', rarity: 'common' },
+            'Razorwire': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/a/ac/Razorwire.png', description: 'Taking damage launches two razorwire projectiles, dealing 160% damage.', rarity: 'common' },
+            'Topaz Brooch': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/c/c5/Topaz_Brooch.png', description: 'Killing an enemy grants you a temporary barrier.', rarity: 'common' },
+            'Dio\'s Best Friend': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/c/c7/Dio%27s_Best_Friend.png', description: 'Grants a second life.', rarity: 'legendary' },
+            'Interstellar Desk Plant': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/d/d1/Interstellar_Desk_Plant.png', description: 'On killing an enemy, a plant grows that heals all allies inside its radius.', rarity: 'uncommon' },
+            'Unstable Tesla Coil': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/e/e4/Unstable_Tesla_Coil.png', description: 'Shock enemies every 0.5s for 200% damage.', rarity: 'legendary' },
+            'Old War Stealthkit': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/2/2c/Old_War_Stealthkit.png', description: 'Taking damage grants 3 seconds of invisibility and 40% move speed.', rarity: 'uncommon' },
+            'H3AD-5T v2': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/9/91/H3AD-5T_v2.png', description: 'Increases jump height. Falling from high up creates a powerful explosion.', rarity: 'legendary' },
+            'Rose Buckler': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/1/1b/Rose_Buckler.png', description: 'Gain +30 armor while sprinting.', rarity: 'uncommon' },
+            'Chronobauble': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/3/30/Chronobauble.png', description: 'Hitting an enemy slows them for 2s.', rarity: 'uncommon' },
+            'Shaped Glass': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/8/88/Shaped_Glass.png', description: 'Increases base damage by 100%, but reduces max health by 50%.', rarity: 'lunar' },
+            'Rejuvenation Rack': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/0/0a/Rejuvenation_Rack.png', description: 'Doubles all healing received.', rarity: 'legendary' },
+            'Foreign Fruit': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/7/74/Foreign_Fruit.png', description: 'Heals you for 50% of your max health.', rarity: 'uncommon' },
+            'Visions of Heresy': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/3/31/Visions_of_Heresy.png', description: 'Replaces your primary skill with a powerful but slow projectile.', rarity: 'lunar' },
+            'Hooks of Heresy': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/6/66/Hooks_of_Heresy.png', description: 'Replaces your secondary skill with a powerful hook that deals damage and pulls enemies in.', rarity: 'lunar' },
+            'Essence of Heresy': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/3/3e/Essence_of_Heresy.png', description: 'Replaces your special skill with an ability that spawns a healing beacon.', rarity: 'lunar' },
+            'Gesture of the Drowned': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/c/c9/Gesture_of_the_Drowned.png', description: 'Automatically activates your equipment when its cooldown is ready.', rarity: 'lunar' }
         };
 
-        const navContainer = document.getElementById('survivor-nav');
-        const characterNameEl = document.getElementById('character-name');
-        const characterNotesEl = document.getElementById('character-notes');
-        const abilitiesListEl = document.getElementById('abilities-list');
-        const itemsListEl = document.getElementById('items-list');
-        const themeToggle = document.getElementById('theme-toggle');
-        const themeIcon = document.getElementById('theme-icon');
+        // Get DOM elements
+        const survivorTableContainer = document.getElementById('survivorTableContainer');
+        const characterCardContainer = document.getElementById('characterCardContainer');
+        const survivorTableBody = document.getElementById('survivorTableBody');
+        const backButtonTop = document.getElementById('backButtonTop');
+        const backButtonBottom = document.getElementById('backButtonBottom');
+        const characterCard = document.getElementById('characterCard');
+        const themeToggle = document.getElementById('themeToggle');
+        const moonIcon = document.getElementById('moonIcon');
+        const sunIcon = document.getElementById('sunIcon');
 
-        let synergyChart;
-        let activeSurvivor = survivorData[0].name;
-        
-        const baseColor = 'rgba(234, 179, 8, 0.6)';
-        const highlightColor = 'rgba(234, 179, 8, 1)';
-        const baseBorderColor = 'rgba(234, 179, 8, 1)';
-        const highlightBorderColor = 'rgba(202, 138, 4, 1)';
+        // Function to create and render a single character card
+        function renderCharacterCard(character) {
+            function getItemDetails(itemName) {
+                return itemData[itemName] || { icon: 'https://placehold.co/40x40/808080/FFFFFF?text=NA', description: 'No description available.', rarity: 'N/A' };
+            }
 
-        function createAbilitiesListItem(text) {
-            return `<li class="flex items-center bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
-                        <span class="w-2 h-2 bg-amber-400 rounded-full mr-3"></span>
-                        <span class="text-slate-700">${text}</span>
-                    </li>`;
-        }
-
-        function createItemListItem(itemName) {
-            const item = itemData[itemName];
-            const icon = item ? item.icon : "❓";
-            const description = item ? item.description : "No description available.";
-
-            return `<li class="relative group">
-                        <div class="flex items-center bg-white p-3 rounded-lg border border-slate-200 shadow-sm transition-transform duration-200 hover:scale-[1.02]">
-                            <span class="mr-3 text-lg">${icon}</span>
-                            <span class="text-slate-700 font-medium">${itemName}</span>
+            function createItemList(items) {
+                return items.map(item => `
+                    <li class="relative group">
+                        <div class="flex items-center gap-2">
+                            <img src="${getItemDetails(item.name).icon}" alt="${item.name} icon" class="w-10 h-10 object-cover rounded-md item-icon-with-border rarity-${getItemDetails(item.name).rarity}">
+                            <span>${item.name}</span>
                         </div>
-                        <div class="absolute z-10 w-64 p-3 mt-2 bg-slate-900 text-white text-sm rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none -top-1/2 left-full ml-4">
-                            <span class="font-bold">${itemName}:</span> ${description}
+                        <div class="absolute z-10 w-64 p-3 left-1/2 -ml-32 mt-2 bg-gray-800 text-white text-sm rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                            <span class="font-bold">${item.name}:</span> ${getItemDetails(item.name).description}
                         </div>
-                    </li>`;
+                    </li>
+                `).join('');
+            }
+
+            characterCard.innerHTML = `
+                <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4 mb-4">
+                    <img src="${character.image}" alt="${character.name} icon" class="w-24 h-24 object-cover rounded-lg">
+                    <div>
+                        <h2 class="text-xl font-bold text-white mb-1">${character.name}</h2>
+                        <p class="text-gray-400 text-sm">${character.description}</p>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <h3 class="text-lg font-semibold text-white mb-2">Recommended Skills</h3>
+                    <ul class="list-disc list-inside text-gray-400">
+                        ${Object.entries(character.skills).map(([key, value]) => `
+                            <li><strong class="capitalize">${key}:</strong> ${value.name} - ${value.description}</li>
+                        `).join('')}
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-white mb-2">Item Priority</h3>
+                    <div class="mb-4">
+                        <h4 class="item-category text-[#f7b731]">Core Items</h4>
+                        <ul class="item-list text-gray-400">
+                            ${createItemList(character.items.core)}
+                        </ul>
+                    </div>
+                    <div class="mb-4">
+                        <h4 class="item-category text-[#4cd137]">Strong Synergies</h4>
+                        <ul class="item-list text-gray-400">
+                            ${createItemList(character.items.synergy)}
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="item-category text-[#9c88ff]">Situational Items</h4>
+                        <ul class="item-list text-gray-400">
+                            ${createItemList(character.items.situational)}
+                        </ul>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <h3 class="text-lg font-semibold text-white mb-2">How to Unlock Abilities and Skins</h3>
+                    <ul class="list-disc list-inside text-gray-400">
+                        ${character.unlocks.map(unlock => `
+                            <li><strong>${unlock.name}:</strong> ${unlock.description}</li>
+                        `).join('')}
+                    </ul>
+                </div>
+            `;
         }
 
-        function updateContent(survivorName) {
-            const survivor = survivorData.find(s => s.name === survivorName);
-            if (!survivor) return;
-            
-            activeSurvivor = survivor.name;
-
-            characterNameEl.textContent = survivor.name;
-            characterNotesEl.textContent = survivor.notes;
-
-            abilitiesListEl.innerHTML = survivor.abilities.map(createAbilitiesListItem).join('');
-            itemsListEl.innerHTML = survivor.items.map(createItemListItem).join('');
-            
-            updateNavStyles();
-            updateChartHighlight();
-        }
-
-        function updateNavStyles() {
-            Array.from(navContainer.children).forEach(button => {
-                if (button.dataset.survivor === activeSurvivor) {
-                    button.classList.remove('bg-white', 'text-slate-700', 'hover:bg-slate-100');
-                    button.classList.add('bg-amber-500', 'text-white', 'font-semibold', 'shadow');
-                } else {
-                    button.classList.add('bg-white', 'text-slate-700', 'hover:bg-slate-100');
-                    button.classList.remove('bg-amber-500', 'text-white', 'font-semibold', 'shadow');
-                }
+        // Function to render the table of survivors
+        function renderSurvivorTable() {
+            survivorTableBody.innerHTML = ''; // Clear existing rows
+            characters.forEach(character => {
+                const row = document.createElement('tr');
+                row.classList.add('table-row');
+                row.onclick = () => showCharacterCard(character.name);
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center gap-3">
+                            <img class="w-12 h-12 rounded-full" src="${character.image}" alt="${character.name} icon">
+                            <span class="text-white font-medium">${character.name}</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-400">
+                        ${character.description}
+                    </td>
+                `;
+                survivorTableBody.appendChild(row);
             });
         }
-        
-        function updateChartHighlight() {
-            if (!synergyChart) return;
-            
-            const backgroundColors = synergyChart.data.datasets[0].data.map((_, index) => {
-                return synergyChart.data.labels[index] === activeSurvivor ? highlightColor : baseColor;
-            });
-            const borderColors = synergyChart.data.datasets[0].data.map((_, index) => {
-                return synergyChart.data.labels[index] === activeSurvivor ? highlightBorderColor : baseBorderColor;
-            });
 
-            synergyChart.data.datasets[0].backgroundColor = backgroundColors;
-            synergyChart.data.datasets[0].borderColor = borderColors;
-            synergyChart.update();
-        }
-
-        function initializeNav() {
-            survivorData.forEach(survivor => {
-                const button = document.createElement('button');
-                button.textContent = survivor.name;
-                button.dataset.survivor = survivor.name;
-                button.className = 'w-full text-left p-3 rounded-lg transition-colors duration-200 border border-slate-200';
-                button.addEventListener('click', () => updateContent(survivor.name));
-                navContainer.appendChild(button);
-            });
-        }
-
-        function initializeChart() {
-            const ctx = document.getElementById('synergy-chart').getContext('2d');
-            const labels = survivorData.map(s => s.name);
-            const data = survivorData.map(s => s.items.length);
-
-            synergyChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Number of Key Synergies',
-                        data: data,
-                        backgroundColor: baseColor,
-                        borderColor: baseBorderColor,
-                        borderWidth: 2,
-                        borderRadius: 4,
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            backgroundColor: '#1e293b',
-                            titleFont: { size: 14, weight: 'bold' },
-                            bodyFont: { size: 12 },
-                            padding: 10,
-                            cornerRadius: 4,
-                            displayColors: false,
-                        }
-                    },
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            grid: {
-                                color: '#e2e8f0'
-                            },
-                            ticks: {
-                                color: '#475569',
-                                font: {
-                                    weight: '500'
-                                }
-                            }
-                        },
-                        y: {
-                            grid: {
-                                display: false
-                            },
-                            ticks: {
-                                color: '#475569',
-                                font: {
-                                    weight: '500'
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-        
-        function toggleDarkMode() {
-            const isDarkMode = document.body.classList.toggle('dark');
-            if (isDarkMode) {
-                themeIcon.textContent = '☀️';
-            } else {
-                themeIcon.textContent = '🌙';
+        // Function to show the character card and hide the table
+        function showCharacterCard(characterName) {
+            const character = characters.find(c => c.name === characterName);
+            if (character) {
+                renderCharacterCard(character);
+                survivorTableContainer.classList.add('hidden');
+                characterCardContainer.classList.remove('hidden');
             }
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            initializeNav();
-            initializeChart();
-            updateContent(survivorData[0].name);
-            themeToggle.addEventListener('click', toggleDarkMode);
-        });
+        // Function to show the table and hide the character card
+        function showSurvivorTable() {
+            characterCardContainer.classList.add('hidden');
+            survivorTableContainer.classList.remove('hidden');
+        }
+
+        // Dark/Light mode toggle functionality
+        function toggleTheme() {
+            const isLight = document.body.classList.toggle('light');
+            if (isLight) {
+                moonIcon.classList.add('hidden');
+                sunIcon.classList.remove('hidden');
+            } else {
+                moonIcon.classList.remove('hidden');
+                sunIcon.classList.add('hidden');
+            }
+        }
+
+        // Event listener for the back buttons
+        backButtonTop.addEventListener('click', showSurvivorTable);
+        backButtonBottom.addEventListener('click', showSurvivorTable);
+        themeToggle.addEventListener('click', toggleTheme);
+
+        // Initial render on page load
+        window.onload = function() {
+            renderSurvivorTable();
+        };
     </script>
 </body>
 </html>

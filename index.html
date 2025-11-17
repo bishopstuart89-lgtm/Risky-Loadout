@@ -8,11 +8,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* Define CCJPA Colors */
-        .ccjpa-primary { background-color: #192F5A; } /* Navy Blue */
-        .ccjpa-accent { background-color: #FFC72C; color: #192F5A; } /* Yellow/Gold */
-        .ccjpa-text-accent { color: #FFC72C; }
-        .ccjpa-border-accent { border-color: #FFC72C; }
+        /* Define CCJPA Colors (Based on Onboard Portal Style) */
+        .ccjpa-primary { background-color: #26315b; } /* Dark Blue/Main */
+        .ccjpa-accent { background-color: #fee129; color: #26315b; } /* Bright Yellow/Secondary Highlight */
+        .ccjpa-action-button { background-color: #eeb111; color: #000000; } /* Action Gold for primary buttons */
+        .ccjpa-text-accent { color: #fee129; }
+        .ccjpa-border-accent { border-color: #fee129; }
 
         /* Mobile Frame Styling */
         #app-frame {
@@ -32,11 +33,11 @@
             width: 4px;
         }
         .scrollable-content::-webkit-scrollbar-thumb {
-            background-color: rgba(255, 199, 44, 0.5); /* Yellow/Gold semi-transparent */
+            background-color: rgba(254, 225, 41, 0.5); /* Yellow/Gold semi-transparent */
             border-radius: 2px;
         }
         .scrollable-content::-webkit-scrollbar-track {
-            background: #192F5A;
+            background: #26315b;
         }
     </style>
     <script>
@@ -45,8 +46,9 @@
             theme: {
                 extend: {
                     colors: {
-                        'ccjpa-navy': '#192F5A',
-                        'ccjpa-gold': '#FFC72C',
+                        'ccjpa-navy': '#26315b',
+                        'ccjpa-gold': '#fee129',
+                        'ccjpa-action': '#eeb111',
                         'ccjpa-light': '#F5F5F5',
                     },
                 }
@@ -131,18 +133,23 @@
             </div>
         `;
 
-        const getFeatureCard = (icon, title, phase, buttonText = 'Go', buttonAction = '', buttonClass = 'ccjpa-primary') => `
-            <div class="bg-white p-4 rounded-xl shadow-md mb-3 flex items-center justify-between">
-                <div class="flex items-center">
-                    <i class="fas fa-${icon} text-xl w-8 text-ccjpa-gold"></i>
-                    <div>
-                        <h4 class="font-semibold text-ccjpa-navy">${title}</h4>
-                        <span class="text-xs text-gray-500">Phase ${phase} Feature</span>
+        const getFeatureCard = (icon, title, phase, buttonText = 'Go', buttonAction = '', isPrimaryAction = true) => {
+            const buttonClass = isPrimaryAction ? 'ccjpa-action-button' : 'ccjpa-primary text-white';
+            const iconColor = isPrimaryAction ? 'text-ccjpa-gold' : 'text-gray-400';
+            
+            return `
+                <div class="bg-white p-4 rounded-xl shadow-md mb-3 flex items-center justify-between">
+                    <div class="flex items-center">
+                        <i class="fas fa-${icon} text-xl w-8 ${iconColor}"></i>
+                        <div>
+                            <h4 class="font-semibold text-ccjpa-navy">${title}</h4>
+                            <span class="text-xs text-gray-500">Phase ${phase} Feature</span>
+                        </div>
                     </div>
+                    <button onclick="${buttonAction}" class="text-sm px-3 py-1 rounded-full font-bold ${buttonClass} hover:opacity-90 transition duration-200">${buttonText}</button>
                 </div>
-                <button onclick="${buttonAction}" class="text-sm px-3 py-1 rounded-full text-white ${buttonClass} hover:opacity-90 transition duration-200">${buttonText}</button>
-            </div>
-        `;
+            `;
+        };
 
         const getBackButton = (targetScreen = 'home') => `
             <button onclick="setScreen('${targetScreen}')" class="text-ccjpa-navy font-semibold text-sm flex items-center mb-4 hover:opacity-70">
@@ -163,7 +170,7 @@
             alertButton.classList.toggle('hover:bg-green-600', !isAlertActive);
 
             // Update the in-app bell icon
-            alertIcon.classList.toggle('text-red-500', isAlertActive);
+            alertIcon.classList.toggle('text-ccjpa-gold', isAlertActive);
             alertIcon.classList.toggle('text-white', !isAlertActive);
             
             // Re-render the current screen to show the alert change
@@ -180,13 +187,14 @@
 
             // Live Route Card Styling changes based on alert state
             if (isAlertActive) {
+                // Using primary navy background for alert for contrast, yellow text
                 liveRouteCard = `
-                    <div class="bg-red-600/90 p-4 rounded-xl shadow-xl text-white mb-6 border-l-4 border-ccjpa-gold animate-pulse">
+                    <div class="ccjpa-primary p-4 rounded-xl shadow-xl text-white mb-6 border-l-4 border-ccjpa-gold animate-pulse">
                         <div class="flex justify-between items-center mb-2">
                             <h3 class="font-bold text-xl">My Commute (ALERT)</h3>
                             <i class="fas fa-exclamation-triangle text-ccjpa-gold text-2xl"></i>
                         </div>
-                        <p class="text-sm font-light mb-1">Train 729: Sacramento → Emeryville</p>
+                        <p class="text-sm font-light mb-1 text-ccjpa-text-accent">Train 729: Sacramento → Emeryville</p>
                         <div class="text-3xl font-extrabold text-ccjpa-gold flex justify-between items-end mt-3">
                             <span>DELAYED: 10:45 AM</span>
                             <span class="text-lg">40 MIN LATE</span>
@@ -216,14 +224,15 @@
             // Phase 1 MVP Content
             dashboardContent += liveRouteCard;
             dashboardContent += liveAlerts;
-            dashboardContent += getFeatureCard('clock', 'Search Schedule', 1, 'Search', "setScreen('map')"); // Using map screen for schedule logic simulation
+            // Primary actions use the ccjpa-action-button style
+            dashboardContent += getFeatureCard('clock', 'Search Schedule', 1, 'Search', "setScreen('map')", true); 
 
             // Phase 2 Additions
             if (phase >= 2) {
                 dashboardContent += `
                     <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-2 border-b pb-1 border-ccjpa-navy/20">Support & Account</h3>
-                    ${getFeatureCard('money-bill-wave', 'Tap2Ride Review & Refunds', 2, 'Manage', "setScreen('tap2ride')", 'bg-ccjpa-gold/90 text-ccjpa-navy')}
-                    ${getFeatureCard('headset', 'Raise a Concern (Zoho CRM)', 2, 'Report', "setScreen('zoho')")}
+                    ${getFeatureCard('money-bill-wave', 'Tap2Ride Review & Refunds', 2, 'Manage', "setScreen('tap2ride')", true)}
+                    ${getFeatureCard('headset', 'Raise a Concern (Zoho CRM)', 2, 'Report', "setScreen('zoho')", false)}
                 `;
             }
 
@@ -231,8 +240,8 @@
             if (phase === 3) {
                 dashboardContent += `
                     <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-2 border-b pb-1 border-ccjpa-navy/20">Enhanced Services</h3>
-                    ${getFeatureCard('mug-hot', 'OBS Cafe In-Seat Ordering', 3, 'Order Now', "setScreen('cafe_order')", 'bg-green-600')}
-                    ${getFeatureCard('trophy', 'Rewards & Loyalty Program', 3, 'View Status', "setScreen('account')")}
+                    ${getFeatureCard('mug-hot', 'OBS Cafe In-Seat Ordering', 3, 'Order Now', "setScreen('cafe_order')", true)}
+                    ${getFeatureCard('trophy', 'Rewards & Loyalty Program', 3, 'View Status', "setScreen('account')", false)}
                 `;
             }
 
@@ -251,12 +260,12 @@
                 <div class="absolute top-2 left-2 bg-white px-2 py-1 rounded-full text-sm shadow-md">
                     <i class="fas fa-train text-ccjpa-gold"></i> Train 729 Location
                 </div>
-                <div class="absolute bottom-4 right-4 bg-ccjpa-navy text-white text-xs px-2 py-1 rounded-lg">
+                <div class="absolute bottom-4 right-4 ccjpa-primary text-white text-xs px-2 py-1 rounded-lg">
                     <i class="fas fa-location-dot"></i> Approx. 10 minutes to Richmond
                 </div>
             </div>
-            ${getFeatureCard('route', 'Detailed Route Planner', 1, 'Plan Trip')}
-            ${getFeatureCard('map-pin', 'Station Amenities & Connections', 2, 'Explore')}
+            ${getFeatureCard('route', 'Detailed Route Planner', 1, 'Plan Trip', 'javascript:void(0)', true)}
+            ${getFeatureCard('map-pin', 'Station Amenities & Connections', 2, 'Explore', 'javascript:void(0)', false)}
         `;
 
         // 3. Tickets/Purchasing Screen (Varies slightly by phase)
@@ -264,11 +273,11 @@
             let content;
             if (phase === 1) {
                 content = `
-                    <div class="bg-ccjpa-light p-4 rounded-xl shadow-lg border-l-4 border-ccjpa-gold mb-6">
+                    <div class="bg-white p-4 rounded-xl shadow-lg border-l-4 border-ccjpa-gold mb-6">
                         <p class="font-semibold text-lg text-ccjpa-navy">External Ticketing Link (Phase 1)</p>
                         <p class="text-sm text-gray-600 mt-1">All purchases are directed to the secure Amtrak ticketing portal for immediate MVP launch.</p>
                     </div>
-                    <a href="#" class="w-full inline-block ccjpa-accent text-ccjpa-navy font-bold py-3 text-center rounded-xl shadow-lg hover:opacity-90">
+                    <a href="#" class="w-full inline-block ccjpa-action-button text-black font-bold py-3 text-center rounded-xl shadow-lg hover:opacity-90">
                         <i class="fas fa-external-link-alt mr-2"></i> Purchase Tickets Now
                     </a>
                 `;
@@ -279,9 +288,9 @@
                         <p class="text-sm text-gray-600 mt-1">Manage, activate, and show tickets directly inside the app using the integrated secure mobile wallet.</p>
                     </div>
                     <div class="space-y-3">
-                        ${getFeatureCard('qrcode', 'Show My Active Ticket', 2, 'View QR Code', 'bg-green-600')}
-                        ${getFeatureCard('plus-circle', 'Buy New Ticket (In-App)', 2, 'Buy Now', 'ccjpa-primary')}
-                        ${getFeatureCard('receipt', 'Review Ticket History', 2, 'History')}
+                        ${getFeatureCard('qrcode', 'Show My Active Ticket', 2, 'View QR Code', 'javascript:void(0)', true)}
+                        ${getFeatureCard('plus-circle', 'Buy New Ticket (In-App)', 2, 'Buy Now', 'javascript:void(0)', true)}
+                        ${getFeatureCard('receipt', 'Review Ticket History', 2, 'History', 'javascript:void(0)', false)}
                     </div>
                 `;
             }
@@ -296,29 +305,29 @@
         const getAccountScreen = (phase) => {
             let accountFeatures = `
                 <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-2 border-b pb-1 border-ccjpa-navy/20">Basic Account (Phase 1)</h3>
-                ${getFeatureCard('route', 'Manage Favorite Routes', 1, 'Edit')}
-                ${getFeatureCard('key', 'Change Password', 1, 'Go')}
+                ${getFeatureCard('route', 'Manage Favorite Routes', 1, 'Edit', 'javascript:void(0)', false)}
+                ${getFeatureCard('key', 'Change Password', 1, 'Go', 'javascript:void(0)', false)}
             `;
 
             if (phase >= 2) {
                 accountFeatures += `
                     <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-2 border-b pb-1 border-ccjpa-navy/20">Enhanced Services (Phase 2)</h3>
-                    ${getFeatureCard('money-bill-wave', 'Tap2Ride Account & Refunds', 2, 'Manage', "setScreen('tap2ride')", 'bg-ccjpa-gold/90 text-ccjpa-navy')}
-                    ${getFeatureCard('comment-dots', 'Customer Support & Zoho', 2, 'Report Issue', "setScreen('zoho')")}
+                    ${getFeatureCard('money-bill-wave', 'Tap2Ride Account & Refunds', 2, 'Manage', "setScreen('tap2ride')", true)}
+                    ${getFeatureCard('comment-dots', 'Customer Support & Zoho', 2, 'Report Issue', "setScreen('zoho')", true)}
                 `;
             }
 
             if (phase === 3) {
                 accountFeatures += `
                     <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-2 border-b pb-1 border-ccjpa-navy/20">Engagement (Phase 3)</h3>
-                    ${getFeatureCard('gift', 'My Rewards & Loyalty Status', 3, 'Redeem', 'bg-green-600')}
-                    ${getFeatureCard('utensils', 'Cafe Pre-Order History', 3, 'History')}
+                    ${getFeatureCard('gift', 'My Rewards & Loyalty Status', 3, 'Redeem', 'javascript:void(0)', true)}
+                    ${getFeatureCard('utensils', 'Cafe Pre-Order History', 3, 'History', 'javascript:void(0)', false)}
                 `;
             }
 
             return `
                 <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">My CCJPA Account</h2>
-                <div class="bg-ccjpa-navy text-white p-4 rounded-xl text-center mb-6 shadow-md">
+                <div class="ccjpa-primary text-white p-4 rounded-xl text-center mb-6 shadow-md">
                     <p class="text-sm">Welcome Back,</p>
                     <p class="text-xl font-bold">CCJPA Commuter</p>
                 </div>
@@ -339,7 +348,7 @@
             ${getCard('Trip 1: Sacramento to Emeryville', 'Date: Nov 15 | Cost: $34.00 | <span class="text-green-600">Status: Completed</span>', 'bg-white', 'text-ccjpa-navy')}
             ${getCard('Trip 2: Davis to Richmond', 'Date: Nov 14 | Cost: $22.50 | <span class="text-red-600">Status: Auto-Correction Pending</span> <button class="text-sm text-ccjpa-primary underline ml-2">Request Refund</button>', 'bg-white', 'text-ccjpa-navy')}
             
-            <button class="w-full ccjpa-primary text-white font-bold py-3 mt-4 rounded-xl shadow-lg hover:opacity-90">View All Transactions</button>
+            <button class="w-full ccjpa-action-button text-black font-bold py-3 mt-4 rounded-xl shadow-lg hover:opacity-90">View All Transactions</button>
         `;
         
         // 6. Zoho CRM Dedicated Screen (Phase 2)
@@ -361,7 +370,7 @@
                 <label class="block text-sm font-medium text-gray-700 mb-1" for="concern-details">Details:</label>
                 <textarea id="concern-details" rows="4" placeholder="Briefly describe your concern..." class="w-full p-2 border border-gray-300 rounded-md mb-4 focus:ring-ccjpa-primary focus:border-ccjpa-primary"></textarea>
                 
-                <button class="w-full ccjpa-primary text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90">Submit Report</button>
+                <button class="w-full ccjpa-action-button text-black font-bold py-3 rounded-xl shadow-lg hover:opacity-90">Submit Report</button>
             </div>
             
             <div class="text-center text-sm text-gray-500">
@@ -387,7 +396,7 @@
                     <p class="font-semibold text-ccjpa-navy">Capitol Coffee Blend</p>
                     <p class="text-sm text-gray-500">$3.50 | Hot/Iced</p>
                 </div>
-                <button class="bg-ccjpa-gold text-ccjpa-navy px-3 py-1 rounded-full font-bold text-sm hover:opacity-80">Add +</button>
+                <button class="ccjpa-action-button text-black px-3 py-1 rounded-full font-bold text-sm hover:opacity-80">Add +</button>
             </div>
             
             <!-- Menu Item Card -->
@@ -396,7 +405,7 @@
                     <p class="font-semibold text-ccjpa-navy">Bay Area Bagel</p>
                     <p class="text-sm text-gray-500">$4.00 | Cream Cheese Option</p>
                 </div>
-                <button class="bg-ccjpa-gold text-ccjpa-navy px-3 py-1 rounded-full font-bold text-sm hover:opacity-80">Add +</button>
+                <button class="ccjpa-action-button text-black px-3 py-1 rounded-full font-bold text-sm hover:opacity-80">Add +</button>
             </div>
 
             <div class="bg-white p-4 rounded-xl shadow-md mt-6">
@@ -409,7 +418,7 @@
                     <span>Total:</span>
                     <span>$7.50</span>
                 </div>
-                <button class="w-full ccjpa-primary text-white font-bold py-3 mt-3 rounded-xl shadow-lg hover:opacity-90">Complete Order</button>
+                <button class="w-full ccjpa-action-button text-black font-bold py-3 mt-3 rounded-xl shadow-lg hover:opacity-90">Complete Order</button>
             </div>
         `;
         
@@ -476,12 +485,13 @@
         function updatePhaseButtons() {
             Object.keys(phaseButtons).forEach(key => {
                 const btn = phaseButtons[key];
+                // Match the portal style: Active button uses the accent/action color
                 if (parseInt(key) === currentPhase) {
-                    btn.classList.add('ccjpa-accent');
+                    btn.classList.add('ccjpa-action-button');
                     btn.classList.remove('bg-ccjpa-light', 'text-ccjpa-navy');
                 } else {
                     btn.classList.add('bg-ccjpa-light', 'text-ccjpa-navy');
-                    btn.classList.remove('ccjpa-accent');
+                    btn.classList.remove('ccjpa-action-button');
                 }
             });
         }
@@ -490,7 +500,7 @@
             document.querySelectorAll('.nav-icon').forEach(iconButton => {
                 const isMainScreen = ['home', 'map', 'tickets', 'account'].includes(currentScreen);
                 
-                // Only apply active state if on a main navigation screen
+                // Active nav icon should use the bright yellow accent
                 if (isMainScreen && iconButton.getAttribute('data-screen') === currentScreen) {
                     iconButton.classList.add('text-ccjpa-gold');
                     iconButton.classList.remove('text-gray-400', 'hover:text-white');

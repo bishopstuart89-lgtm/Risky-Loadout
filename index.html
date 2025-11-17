@@ -14,6 +14,7 @@
         .ccjpa-action-button { background-color: #eeb111; color: #000000; } /* Action Gold for primary buttons */
         .ccjpa-text-accent { color: #fee129; }
         .ccjpa-border-accent { border-color: #fee129; }
+        .ccjpa-list-shadow { box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03); }
 
         /* Mobile Frame Styling */
         #app-frame {
@@ -103,418 +104,617 @@
                 <i class="fas fa-ticket-alt text-2xl"></i>
                 <span class="text-xs block">Tickets</span>
             </button>
-            <button onclick="setScreen('account')" class="nav-icon text-gray-400 hover:text-white transition duration-200" data-screen="account">
-                <i class="fas fa-user-circle text-2xl"></i>
-                <span class="text-xs block">Account</span>
+            <button onclick="setScreen('support')" class="nav-icon text-gray-400 hover:text-white transition duration-200" data-screen="support">
+                <i class="fas fa-headset text-2xl"></i>
+                <span class="text-xs block">Support</span>
             </button>
         </div>
     </div>
 
     <script>
-        const appContent = document.getElementById('app-content');
-        const alertIcon = document.getElementById('alert-icon');
-        const alertButton = document.getElementById('btn-alert');
-        const phaseButtons = {
-            1: document.getElementById('btn-phase1'),
-            2: document.getElementById('btn-phase2'),
-            3: document.getElementById('btn-phase3')
-        };
+        (function() {
+            const appContent = document.getElementById('app-content');
+            const alertIcon = document.getElementById('alert-icon');
+            const alertButton = document.getElementById('btn-alert');
+            const phaseButtons = {
+                1: document.getElementById('btn-phase1'),
+                2: document.getElementById('btn-phase2'),
+                3: document.getElementById('btn-phase3')
+            };
 
-        let currentPhase = 1;
-        let currentScreen = 'home';
-        let isAlertActive = false; // New global state for alert simulation
+            let currentPhase = 1;
+            let currentScreen = 'home';
+            let isAlertActive = false; // New global state for alert simulation
 
-        // --- Helper Functions ---
+            // --- Helper Functions ---
 
-        const getCard = (title, content, bgColor = 'bg-white', textColor = 'text-ccjpa-navy', extraClass = '') => `
-            <div class="p-4 rounded-xl shadow-md mb-4 ${bgColor} ${textColor} transition duration-300 ${extraClass}">
-                <h3 class="font-bold text-lg mb-2 border-b border-gray-100 pb-1">${title}</h3>
-                <p class="text-sm">${content}</p>
-            </div>
-        `;
-
-        const getFeatureCard = (icon, title, phase, buttonText = 'Go', buttonAction = '', isPrimaryAction = true) => {
-            const buttonClass = isPrimaryAction ? 'ccjpa-action-button' : 'ccjpa-primary text-white';
-            const iconColor = isPrimaryAction ? 'text-ccjpa-gold' : 'text-gray-400';
+            const getCard = (title, content, bgColor = 'bg-white', textColor = 'text-ccjpa-navy', extraClass = '') => `
+                <div class="p-4 rounded-xl shadow-md mb-4 ${bgColor} ${textColor} transition duration-300 ${extraClass}">
+                    <h3 class="font-bold text-lg mb-2 border-b border-gray-100 pb-1">${title}</h3>
+                    <p class="text-sm">${content}</p>
+                </div>
+            `;
             
-            return `
-                <div class="bg-white p-4 rounded-xl shadow-md mb-3 flex items-center justify-between">
+            // NEW LIGHTWEIGHT LIST ITEM STYLE
+            const getListItemLink = (title, description, icon, buttonAction) => `
+                <div onclick="${buttonAction}" class="bg-white p-4 flex items-center justify-between ccjpa-list-shadow rounded-lg transition duration-200 hover:bg-gray-50 cursor-pointer">
                     <div class="flex items-center">
-                        <i class="fas fa-${icon} text-xl w-8 ${iconColor}"></i>
+                        <div class="w-8 h-8 flex items-center justify-center bg-ccjpa-gold rounded-full mr-3 flex-shrink-0">
+                            <i class="fas fa-${icon} text-ccjpa-navy text-sm"></i>
+                        </div>
                         <div>
-                            <h4 class="font-semibold text-ccjpa-navy">${title}</h4>
-                            <span class="text-xs text-gray-500">Phase ${phase} Feature</span>
+                            <p class="font-semibold text-ccjpa-navy text-sm">${title}</p>
+                            <p class="text-xs text-gray-500">${description}</p>
                         </div>
                     </div>
-                    <button onclick="${buttonAction}" class="text-sm px-3 py-1 rounded-full font-bold ${buttonClass} hover:opacity-90 transition duration-200">${buttonText}</button>
+                    <i class="fas fa-chevron-right text-ccjpa-gold text-xs ml-4"></i>
                 </div>
             `;
-        };
 
-        const getBackButton = (targetScreen = 'home') => `
-            <button onclick="setScreen('${targetScreen}')" class="text-ccjpa-navy font-semibold text-sm flex items-center mb-4 hover:opacity-70">
-                <i class="fas fa-arrow-left mr-2"></i> Back
-            </button>
-        `;
 
-        // --- Simulation Functions ---
-
-        function toggleAlert() {
-            isAlertActive = !isAlertActive;
-            
-            // Update the external button state
-            alertButton.textContent = isAlertActive ? 'Simulate Major Alert: ON' : 'Simulate Major Alert: OFF';
-            alertButton.classList.toggle('bg-red-600', isAlertActive);
-            alertButton.classList.toggle('bg-green-500', !isAlertActive);
-            alertButton.classList.toggle('hover:bg-red-700', isAlertActive);
-            alertButton.classList.toggle('hover:bg-green-600', !isAlertActive);
-
-            // Update the in-app bell icon
-            alertIcon.classList.toggle('text-ccjpa-gold', isAlertActive);
-            alertIcon.classList.toggle('text-white', !isAlertActive);
-            
-            // Re-render the current screen to show the alert change
-            renderScreen();
-        }
-
-        // --- Screen Definitions ---
-
-        // 1. Home Screen (Dashboard)
-        const getHomeScreen = (phase) => {
-            let dashboardContent = ``;
-            let liveRouteCard = '';
-            let liveAlerts = '';
-
-            // Live Route Card Styling changes based on alert state
-            if (isAlertActive) {
-                // Using primary navy background for alert for contrast, yellow text
-                liveRouteCard = `
-                    <div class="ccjpa-primary p-4 rounded-xl shadow-xl text-white mb-6 border-l-4 border-ccjpa-gold animate-pulse">
-                        <div class="flex justify-between items-center mb-2">
-                            <h3 class="font-bold text-xl">My Commute (ALERT)</h3>
-                            <i class="fas fa-exclamation-triangle text-ccjpa-gold text-2xl"></i>
-                        </div>
-                        <p class="text-sm font-light mb-1 text-ccjpa-text-accent">Train 729: Sacramento → Emeryville</p>
-                        <div class="text-3xl font-extrabold text-ccjpa-gold flex justify-between items-end mt-3">
-                            <span>DELAYED: 10:45 AM</span>
-                            <span class="text-lg">40 MIN LATE</span>
-                        </div>
-                        <p class="text-xs mt-1 text-gray-200">Reason: Signal failure near Davis. Check map for updated route.</p>
-                    </div>
-                `;
-                liveAlerts = getCard('Major Travel Alert', 'Train 729 is experiencing a major delay. Please check station screens for latest updates.', 'bg-red-100', 'text-red-700', 'border-l-4 border-red-500');
-            } else {
-                liveRouteCard = `
-                    <div class="bg-white p-4 rounded-xl shadow-xl text-ccjpa-navy mb-6 border-l-4 border-ccjpa-primary">
-                        <div class="flex justify-between items-center mb-2">
-                            <h3 class="font-bold text-xl">My Commute (Live)</h3>
-                            <i class="fas fa-star text-ccjpa-gold"></i>
-                        </div>
-                        <p class="text-sm font-light mb-1">Train 729: Sacramento → Emeryville</p>
-                        <div class="text-3xl font-extrabold text-ccjpa-primary flex justify-between items-end mt-3">
-                            <span>ETA: 10:05 AM</span>
-                            <span class="text-lg text-green-600 font-bold">ON TIME</span>
-                        </div>
-                        <p class="text-xs mt-1 text-gray-500">Next stop: Martinez (Estimated 9:51 AM)</p>
-                    </div>
-                `;
-                liveAlerts = getCard('Live Travel Alerts', 'All services running on schedule. Enjoy your ride!', 'bg-green-100', 'text-green-700', 'border-l-4 border-green-500');
-            }
-
-            // Phase 1 MVP Content
-            dashboardContent += liveRouteCard;
-            dashboardContent += liveAlerts;
-            // Primary actions use the ccjpa-action-button style
-            dashboardContent += getFeatureCard('clock', 'Search Schedule', 1, 'Search', "setScreen('map')", true); 
-
-            // Phase 2 Additions
-            if (phase >= 2) {
-                dashboardContent += `
-                    <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-2 border-b pb-1 border-ccjpa-navy/20">Support & Account</h3>
-                    ${getFeatureCard('money-bill-wave', 'Tap2Ride Review & Refunds', 2, 'Manage', "setScreen('tap2ride')", true)}
-                    ${getFeatureCard('headset', 'Raise a Concern (Zoho CRM)', 2, 'Report', "setScreen('zoho')", false)}
-                `;
-            }
-
-            // Phase 3 Additions
-            if (phase === 3) {
-                dashboardContent += `
-                    <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-2 border-b pb-1 border-ccjpa-navy/20">Enhanced Services</h3>
-                    ${getFeatureCard('mug-hot', 'OBS Cafe In-Seat Ordering', 3, 'Order Now', "setScreen('cafe_order')", true)}
-                    ${getFeatureCard('trophy', 'Rewards & Loyalty Program', 3, 'View Status', "setScreen('account')", false)}
-                `;
-            }
-
-            return `
-                <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">Dashboard</h2>
-                ${dashboardContent}
-                <a href="#" class="block text-center text-sm text-ccjpa-navy/70 mt-4 underline">View All Alerts & Updates</a>
+            const getBackButton = (targetScreen = 'home') => `
+                <button onclick="setScreen('${targetScreen}')" class="text-ccjpa-navy font-semibold text-sm flex items-center mb-4 hover:opacity-70">
+                    <i class="fas fa-arrow-left mr-2"></i> Back
+                </button>
             `;
-        };
-        
-        // 2. Live Map Screen (Simplified) - Stays largely the same
-        const getMapScreen = () => `
-            <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">Live Route Map</h2>
-            <div class="bg-gray-200 border-2 border-ccjpa-navy/50 h-64 rounded-xl flex items-center justify-center mb-4 relative">
-                <p class="text-ccjpa-navy/60 font-semibold">Interactive Real-Time Map (Google/Mapbox Integration)</p>
-                <div class="absolute top-2 left-2 bg-white px-2 py-1 rounded-full text-sm shadow-md">
-                    <i class="fas fa-train text-ccjpa-gold"></i> Train 729 Location
-                </div>
-                <div class="absolute bottom-4 right-4 ccjpa-primary text-white text-xs px-2 py-1 rounded-lg">
-                    <i class="fas fa-location-dot"></i> Approx. 10 minutes to Richmond
-                </div>
-            </div>
-            ${getFeatureCard('route', 'Detailed Route Planner', 1, 'Plan Trip', 'javascript:void(0)', true)}
-            ${getFeatureCard('map-pin', 'Station Amenities & Connections', 2, 'Explore', 'javascript:void(0)', false)}
-        `;
 
-        // 3. Tickets/Purchasing Screen (Varies slightly by phase)
-        const getTicketsScreen = (phase) => {
-            let content;
-            if (phase === 1) {
-                content = `
-                    <div class="bg-white p-4 rounded-xl shadow-lg border-l-4 border-ccjpa-gold mb-6">
-                        <p class="font-semibold text-lg text-ccjpa-navy">External Ticketing Link (Phase 1)</p>
-                        <p class="text-sm text-gray-600 mt-1">All purchases are directed to the secure Amtrak ticketing portal for immediate MVP launch.</p>
-                    </div>
-                    <a href="#" class="w-full inline-block ccjpa-action-button text-black font-bold py-3 text-center rounded-xl shadow-lg hover:opacity-90">
-                        <i class="fas fa-external-link-alt mr-2"></i> Purchase Tickets Now
-                    </a>
+            // --- Simulation Functions ---
+
+            window.toggleAlert = function() {
+                isAlertActive = !isAlertActive;
+                
+                // Update the external button state
+                alertButton.textContent = isAlertActive ? 'Simulate Major Alert: ON' : 'Simulate Major Alert: OFF';
+                alertButton.classList.toggle('bg-red-600', isAlertActive);
+                alertButton.classList.toggle('bg-green-500', !isAlertActive);
+                alertButton.classList.toggle('hover:bg-red-700', isAlertActive);
+                alertButton.classList.toggle('hover:bg-green-600', !isAlertActive);
+
+                // Update the in-app bell icon
+                alertIcon.classList.toggle('text-ccjpa-gold', isAlertActive);
+                alertIcon.classList.toggle('text-white', !isAlertActive);
+                
+                // Re-render the current screen to show the alert change
+                renderScreen();
+            }
+
+            // --- Screen Definitions ---
+
+            // 1. Home Screen (Dashboard)
+            const getHomeScreen = (phase) => {
+                let dashboardContent = ``;
+                let liveRouteCard = '';
+                let liveAlerts = '';
+
+                // Live Route Card Styling changes based on alert state
+                if (isAlertActive) {
+                    // Using primary navy background for alert for contrast, yellow text
+                    liveRouteCard = `
+                        <div class="ccjpa-primary p-4 rounded-xl shadow-xl text-white mb-6 border-l-4 border-ccjpa-gold animate-pulse">
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="font-bold text-xl">My Commute (ALERT)</h3>
+                                <i class="fas fa-exclamation-triangle text-ccjpa-gold text-2xl"></i>
+                            </div>
+                            <p class="text-sm font-light mb-1 text-ccjpa-text-accent">Train 729: Sacramento → Emeryville</p>
+                            <div class="text-3xl font-extrabold text-ccjpa-gold flex justify-between items-end mt-3">
+                                <span>DELAYED: 10:45 AM</span>
+                                <span class="text-lg">40 MIN LATE</span>
+                            </div>
+                            <p class="text-xs mt-1 text-gray-200">Reason: Signal failure near Davis. Check map for updated route.</p>
+                        </div>
+                    `;
+                    liveAlerts = getCard('Major Travel Alert', 'Train 729 is experiencing a major delay. Please check station screens for latest updates.', 'bg-red-100', 'text-red-700', 'border-l-4 border-red-500');
+                } else {
+                    liveRouteCard = `
+                        <div class="bg-white p-4 rounded-xl shadow-xl text-ccjpa-navy mb-6 border-l-4 border-ccjpa-primary">
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="font-bold text-xl">My Commute (Live)</h3>
+                                <i class="fas fa-star text-ccjpa-gold"></i>
+                            </div>
+                            <p class="text-sm font-light mb-1">Train 729: Sacramento → Emeryville</p>
+                            <div class="text-3xl font-extrabold text-ccjpa-primary flex justify-between items-end mt-3">
+                                <span>ETA: 10:05 AM</span>
+                                <span class="text-lg text-green-600 font-bold">ON TIME</span>
+                            </div>
+                            <p class="text-xs mt-1 text-gray-500">Next stop: Martinez (Estimated 9:51 AM)</p>
+                        </div>
+                    `;
+                    liveAlerts = getCard('Live Travel Alerts', 'All services running on schedule. Enjoy your ride!', 'bg-green-100', 'text-green-700', 'border-l-4 border-green-500');
+                }
+
+                // Phase 1 MVP Content
+                dashboardContent += liveRouteCard;
+                dashboardContent += liveAlerts;
+                
+                dashboardContent += `<h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-3 border-b pb-1 border-ccjpa-navy/20">Quick Access</h3>`;
+                dashboardContent += `<div class="space-y-3">`;
+
+                // Core MVP Feature: Schedule/Map (Phase 1)
+                dashboardContent += getListItemLink(
+                    'Live Map & Schedule',
+                    'Track your train and check real-time routing.',
+                    'map-marked-alt',
+                    "setScreen('map')"
+                ); 
+                
+                // New Feature: Seat Availability (Phase 2)
+                if (phase >= 2) {
+                    dashboardContent += getListItemLink(
+                        'Carriage Availability',
+                        'View real-time crowding and seating by car.',
+                        'chair',
+                        "setScreen('seats')"
+                    );
+                }
+
+                /* TICKET PURCHASING REMOVED FROM HOME, KEPT ONLY IN 'TICKETS' TAB
+                // Core MVP Feature: Tickets (Phase 1)
+                dashboardContent += getListItemLink(
+                    'Buy Tickets',
+                    'Access the secure portal to purchase fares.',
+                    'ticket-alt',
+                    "setScreen('tickets')"
+                ); 
+                */
+                
+                // Phase 3 Additions: OBS Ordering (High Visibility)
+                if (phase === 3) {
+                    dashboardContent += getListItemLink(
+                        'OBS Cafe Ordering',
+                        'Pre-order food and beverages from your seat.',
+                        'mug-hot',
+                        "setScreen('cafe_order')"
+                    ); 
+                }
+                
+                dashboardContent += `</div>`; // Close space-y-3
+
+                return `
+                    <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">Dashboard</h2>
+                    ${dashboardContent}
+                    <a href="#" class="block text-center text-sm text-ccjpa-navy/70 mt-6 underline">View All Alerts & Updates</a>
                 `;
-            } else { // Phase 2 and 3
-                content = `
-                    <div class="bg-white p-4 rounded-xl shadow-lg border-l-4 border-ccjpa-primary mb-6">
-                        <p class="font-semibold text-lg text-ccjpa-navy">In-App Ticket Wallet (Phase 2+)</p>
-                        <p class="text-sm text-gray-600 mt-1">Manage, activate, and show tickets directly inside the app using the integrated secure mobile wallet.</p>
+            };
+            
+            // 2. Live Map Screen (Simplified) - UPDATED with Real-Time Transfers
+            const getMapScreen = (phase) => {
+                let mapTools = `
+                    ${getListItemLink(
+                        'Route Planner',
+                        'Search schedules and plan connections for your trip.',
+                        'route',
+                        'javascript:void(0)'
+                    )}
+                    ${getListItemLink(
+                        'Station Info',
+                        'View amenities, parking, and transit connections.',
+                        'map-pin',
+                        'javascript:void(0)'
+                    )}
+                `;
+
+                let connectionCard = '';
+                if (phase >= 2) {
+                    connectionCard = `
+                        <div class="bg-white p-4 rounded-xl shadow-lg mt-4 border-l-4 border-ccjpa-accent">
+                            <h3 class="font-bold text-lg text-ccjpa-navy flex justify-between items-center">
+                                Real-Time Transfers <i class="fas fa-arrows-alt-h text-ccjpa-gold"></i>
+                            </h3>
+                            <p class="text-xs text-gray-600 mb-2">Richmond Station Connections (Live Data):</p>
+                            <ul class="list-disc ml-4 text-sm space-y-1">
+                                <li class="text-ccjpa-navy">BART to SFO: <span class="font-bold text-green-600">3 min</span></li>
+                                <li class="text-ccjpa-navy">AC Transit Line 72: <span class="font-bold text-yellow-600">12 min (Delayed)</span></li>
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">Live Route Map</h2>
+                    <div class="bg-gray-200 border-2 border-ccjpa-navy/50 h-64 rounded-xl flex items-center justify-center mb-4 relative">
+                        <p class="text-ccjpa-navy/60 font-semibold">Interactive Real-Time Map (Google/Mapbox Integration)</p>
+                        <div class="absolute top-2 left-2 bg-white px-2 py-1 rounded-full text-sm shadow-md">
+                            <i class="fas fa-train text-ccjpa-gold"></i> Train 729 Location
+                        </div>
+                        <div class="absolute bottom-4 right-4 ccjpa-primary text-white text-xs px-2 py-1 rounded-lg">
+                            <i class="fas fa-location-dot"></i> Approx. 10 minutes to Richmond
+                        </div>
                     </div>
+                    
+                    ${connectionCard}
+
+                    <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-3 border-b pb-1 border-ccjpa-navy/20">Map Tools</h3>
                     <div class="space-y-3">
-                        ${getFeatureCard('qrcode', 'Show My Active Ticket', 2, 'View QR Code', 'javascript:void(0)', true)}
-                        ${getFeatureCard('plus-circle', 'Buy New Ticket (In-App)', 2, 'Buy Now', 'javascript:void(0)', true)}
-                        ${getFeatureCard('receipt', 'Review Ticket History', 2, 'History', 'javascript:void(0)', false)}
+                        ${mapTools}
                     </div>
                 `;
-            }
+            };
 
-            return `
-                <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">Tickets & Fares</h2>
-                ${content}
-            `;
-        };
-        
-        // 4. Account Screen (Most dynamic screen for Phase 2/3 features)
-        const getAccountScreen = (phase) => {
-            let accountFeatures = `
-                <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-2 border-b pb-1 border-ccjpa-navy/20">Basic Account (Phase 1)</h3>
-                ${getFeatureCard('route', 'Manage Favorite Routes', 1, 'Edit', 'javascript:void(0)', false)}
-                ${getFeatureCard('key', 'Change Password', 1, 'Go', 'javascript:void(0)', false)}
-            `;
-
-            if (phase >= 2) {
-                accountFeatures += `
-                    <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-2 border-b pb-1 border-ccjpa-navy/20">Enhanced Services (Phase 2)</h3>
-                    ${getFeatureCard('money-bill-wave', 'Tap2Ride Account & Refunds', 2, 'Manage', "setScreen('tap2ride')", true)}
-                    ${getFeatureCard('comment-dots', 'Customer Support & Zoho', 2, 'Report Issue', "setScreen('zoho')", true)}
-                `;
-            }
-
-            if (phase === 3) {
-                accountFeatures += `
-                    <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-2 border-b pb-1 border-ccjpa-navy/20">Engagement (Phase 3)</h3>
-                    ${getFeatureCard('gift', 'My Rewards & Loyalty Status', 3, 'Redeem', 'javascript:void(0)', true)}
-                    ${getFeatureCard('utensils', 'Cafe Pre-Order History', 3, 'History', 'javascript:void(0)', false)}
-                `;
-            }
-
-            return `
-                <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">My CCJPA Account</h2>
-                <div class="ccjpa-primary text-white p-4 rounded-xl text-center mb-6 shadow-md">
-                    <p class="text-sm">Welcome Back,</p>
-                    <p class="text-xl font-bold">CCJPA Commuter</p>
-                </div>
-                ${accountFeatures}
-            `;
-        };
-        
-        // 5. Tap2Ride Dedicated Screen (Phase 2)
-        const getTap2RideScreen = () => `
-            ${getBackButton('account')}
-            <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">Tap2Ride Account</h2>
-            <div class="ccjpa-accent p-4 rounded-xl text-center mb-6 shadow-md">
-                <p class="text-sm font-semibold">Current Balance:</p>
-                <p class="text-3xl font-extrabold text-ccjpa-navy">$124.50</p>
-            </div>
-            
-            <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-3 border-b pb-1">Recent Trips</h3>
-            ${getCard('Trip 1: Sacramento to Emeryville', 'Date: Nov 15 | Cost: $34.00 | <span class="text-green-600">Status: Completed</span>', 'bg-white', 'text-ccjpa-navy')}
-            ${getCard('Trip 2: Davis to Richmond', 'Date: Nov 14 | Cost: $22.50 | <span class="text-red-600">Status: Auto-Correction Pending</span> <button class="text-sm text-ccjpa-primary underline ml-2">Request Refund</button>', 'bg-white', 'text-ccjpa-navy')}
-            
-            <button class="w-full ccjpa-action-button text-black font-bold py-3 mt-4 rounded-xl shadow-lg hover:opacity-90">View All Transactions</button>
-        `;
-        
-        // 6. Zoho CRM Dedicated Screen (Phase 2)
-        const getZohoCrmScreen = () => `
-            ${getBackButton('account')}
-            <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">Raise a Concern</h2>
-            <div class="bg-white p-4 rounded-xl shadow-md mb-6">
-                <p class="text-sm mb-3">Submit a complaint, lost item report, or general feedback. We'll track it using Zoho CRM.</p>
-                
-                <label class="block text-sm font-medium text-gray-700 mb-1" for="concern-type">Type of Issue:</label>
-                <select id="concern-type" class="w-full p-2 border border-gray-300 rounded-md mb-3 focus:ring-ccjpa-primary focus:border-ccjpa-primary">
-                    <option>Select...</option>
-                    <option>Delay / Service Complaint</option>
-                    <option>Staff Feedback</option>
-                    <option>Lost & Found</option>
-                    <option>Facility Issue</option>
-                </select>
-
-                <label class="block text-sm font-medium text-gray-700 mb-1" for="concern-details">Details:</label>
-                <textarea id="concern-details" rows="4" placeholder="Briefly describe your concern..." class="w-full p-2 border border-gray-300 rounded-md mb-4 focus:ring-ccjpa-primary focus:border-ccjpa-primary"></textarea>
-                
-                <button class="w-full ccjpa-action-button text-black font-bold py-3 rounded-xl shadow-lg hover:opacity-90">Submit Report</button>
-            </div>
-            
-            <div class="text-center text-sm text-gray-500">
-                Your case ID will be sent via email for tracking.
-            </div>
-        `;
-
-        // 7. OBS Cafe Ordering Dedicated Screen (Phase 3)
-        const getCafeOrderingScreen = () => `
-            ${getBackButton('home')}
-            <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">OBS Cafe: Order from Seat</h2>
-            
-            <div class="bg-green-100 p-3 rounded-xl shadow-md mb-6 flex items-center justify-between border-l-4 border-green-600">
-                <p class="text-green-800 font-semibold">Your order will be ready for pickup at the Cafe Car in 5-8 minutes.</p>
-                <i class="fas fa-check-circle text-2xl text-green-600"></i>
-            </div>
-            
-            <h3 class="font-bold text-ccjpa-navy text-lg mb-3">Menu Highlights</h3>
-            
-            <!-- Menu Item Card -->
-            <div class="bg-white p-4 rounded-xl shadow-md mb-3 flex justify-between items-center">
-                <div>
-                    <p class="font-semibold text-ccjpa-navy">Capitol Coffee Blend</p>
-                    <p class="text-sm text-gray-500">$3.50 | Hot/Iced</p>
-                </div>
-                <button class="ccjpa-action-button text-black px-3 py-1 rounded-full font-bold text-sm hover:opacity-80">Add +</button>
-            </div>
-            
-            <!-- Menu Item Card -->
-            <div class="bg-white p-4 rounded-xl shadow-md mb-3 flex justify-between items-center">
-                <div>
-                    <p class="font-semibold text-ccjpa-navy">Bay Area Bagel</p>
-                    <p class="text-sm text-gray-500">$4.00 | Cream Cheese Option</p>
-                </div>
-                <button class="ccjpa-action-button text-black px-3 py-1 rounded-full font-bold text-sm hover:opacity-80">Add +</button>
-            </div>
-
-            <div class="bg-white p-4 rounded-xl shadow-md mt-6">
-                <p class="font-bold text-lg text-ccjpa-navy mb-2">Order Summary</p>
-                <div class="flex justify-between text-sm text-gray-600">
-                    <span>Subtotal:</span>
-                    <span>$7.50</span>
-                </div>
-                <div class="flex justify-between text-base font-bold text-ccjpa-navy mt-1">
-                    <span>Total:</span>
-                    <span>$7.50</span>
-                </div>
-                <button class="w-full ccjpa-action-button text-black font-bold py-3 mt-3 rounded-xl shadow-lg hover:opacity-90">Complete Order</button>
-            </div>
-        `;
-        
-
-        // --- Controller Logic ---
-
-        function renderScreen() {
-            let html = '';
-            const phase = currentPhase;
-            
-            appContent.innerHTML = '';
-            
-            // Render the specific screen based on current state
-            switch (currentScreen) {
-                case 'home':
-                    html = getHomeScreen(phase);
-                    break;
-                case 'map':
-                    html = getMapScreen(phase);
-                    break;
-                case 'tickets':
-                    html = getTicketsScreen(phase);
-                    break;
-                case 'account':
-                    html = getAccountScreen(phase);
-                    break;
-                case 'tap2ride':
-                    html = getTap2RideScreen();
-                    break;
-                case 'zoho':
-                    html = getZohoCrmScreen();
-                    break;
-                case 'cafe_order':
-                    html = getCafeOrderingScreen();
-                    break;
-                default:
-                    html = getHomeScreen(phase);
-                    break;
-            }
-
-            appContent.innerHTML = html;
-            updateNavBar();
-        }
-
-        function setScreen(screenName) {
-            currentScreen = screenName;
-            // Hide the navigation bar for deep-dive utility screens, show for main screens
-            const navBar = document.getElementById('nav-bar');
-            if (['home', 'map', 'tickets', 'account'].includes(screenName)) {
-                navBar.style.display = 'flex';
-            } else {
-                navBar.style.display = 'none';
-            }
-            renderScreen();
-        }
-
-        function setPhase(phase) {
-            currentPhase = phase;
-            currentScreen = 'home'; 
-            renderScreen();
-            updatePhaseButtons();
-        }
-
-        function updatePhaseButtons() {
-            Object.keys(phaseButtons).forEach(key => {
-                const btn = phaseButtons[key];
-                // Match the portal style: Active button uses the accent/action color
-                if (parseInt(key) === currentPhase) {
-                    btn.classList.add('ccjpa-action-button');
-                    btn.classList.remove('bg-ccjpa-light', 'text-ccjpa-navy');
-                } else {
-                    btn.classList.add('bg-ccjpa-light', 'text-ccjpa-navy');
-                    btn.classList.remove('ccjpa-action-button');
+            // 3. Tickets/Purchasing Screen (Varies slightly by phase)
+            const getTicketsScreen = (phase) => {
+                let content;
+                // Note: Now that the Home button is removed, the primary call to action remains high-priority.
+                if (phase === 1) {
+                    content = `
+                        <div class="bg-white p-4 rounded-xl shadow-lg border-l-4 border-ccjpa-gold mb-6">
+                            <p class="font-semibold text-lg text-ccjpa-navy">External Ticketing Link (Phase 1)</p>
+                            <p class="text-sm text-gray-600 mt-1">All purchases are directed to the secure Amtrak ticketing portal for immediate MVP launch.</p>
+                        </div>
+                        <button onclick="javascript:void(0)" class="w-full inline-block ccjpa-action-button text-black font-bold py-3 text-center rounded-xl shadow-lg hover:opacity-90">
+                            <i class="fas fa-external-link-alt mr-2"></i> Purchase Tickets Now
+                        </button>
+                    `;
+                } else { // Phase 2 and 3
+                    content = `
+                        <div class="bg-white p-4 rounded-xl shadow-lg border-l-4 border-ccjpa-primary mb-6">
+                            <p class="font-semibold text-lg text-ccjpa-navy">In-App Ticket Wallet (Phase 2+)</p>
+                            <p class="text-sm text-gray-600 mt-1">Manage, activate, and show tickets directly inside the app using the integrated secure mobile wallet.</p>
+                        </div>
+                        <div class="space-y-3">
+                            ${getListItemLink(
+                                'Active Ticket',
+                                'Show your QR code for boarding and inspection.',
+                                'qrcode',
+                                'javascript:void(0)'
+                            )}
+                            ${getListItemLink(
+                                'Buy New',
+                                'Purchase and load new tickets directly in the app.',
+                                'plus-circle',
+                                'javascript:void(0)'
+                            )}
+                            ${getListItemLink(
+                                'History',
+                                'Review past trips and expense reports.',
+                                'receipt',
+                                'javascript:void(0)'
+                            )}
+                        </div>
+                    `;
                 }
-            });
-        }
 
-        function updateNavBar() {
-            document.querySelectorAll('.nav-icon').forEach(iconButton => {
-                const isMainScreen = ['home', 'map', 'tickets', 'account'].includes(currentScreen);
-                
-                // Active nav icon should use the bright yellow accent
-                if (isMainScreen && iconButton.getAttribute('data-screen') === currentScreen) {
-                    iconButton.classList.add('text-ccjpa-gold');
-                    iconButton.classList.remove('text-gray-400', 'hover:text-white');
-                } else {
-                    iconButton.classList.add('text-gray-400');
-                    iconButton.classList.remove('text-ccjpa-gold');
+                return `
+                    <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">Tickets & Fares</h2>
+                    ${content}
+                `;
+            };
+            
+            // 4. Support Screen (New centralized hub for CRM, Ratings, Tap2Ride, Loyalty)
+            const getSupportScreen = (phase) => {
+                let supportFeatures = `
+                    <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">Support Hub</h2>
+                    <div class="ccjpa-primary text-white p-4 rounded-xl text-center mb-6 shadow-md">
+                        <p class="text-sm">Welcome to your central account and support area.</p>
+                        <p class="text-xl font-bold">CCJPA Commuter</p>
+                    </div>
+                    
+                    <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-3 border-b pb-1 border-ccjpa-navy/20">Account & Settings</h3>
+                    <div class="space-y-3">
+                        ${getListItemLink(
+                            'Favorite Routes',
+                            'Set and manage your saved commute itineraries.',
+                            'route',
+                            'javascript:void(0)'
+                        )}
+                        ${getListItemLink(
+                            'Password & Security',
+                            'Update your password and login credentials.',
+                            'key',
+                            'javascript:void(0)'
+                        )}
+                    </div>
+
+                    <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-3 border-b pb-1 border-ccjpa-navy/20">Customer Service</h3>
+                    <div class="space-y-3">
+                        ${getListItemLink(
+                            'Raise a Concern',
+                            'Submit feedback, complaints, or lost items (Zoho CRM).',
+                            'headset',
+                            "setScreen('zoho')"
+                        )}
+                        ${getListItemLink(
+                            'Rate Onboard Comfort',
+                            'Give real-time feedback on cleanliness and Wi-Fi.',
+                            'star',
+                            "setScreen('rating')"
+                        )}
+                    </div>
+                `;
+
+                if (phase >= 2) {
+                    supportFeatures += `
+                        <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-3 border-b pb-1 border-ccjpa-navy/20">Fare Management (Phase 2)</h3>
+                        <div class="space-y-3">
+                            ${getListItemLink(
+                                'Tap2Ride Account',
+                                'Manage balance, transactions, and request refunds.',
+                                'credit-card',
+                                "setScreen('tap2ride')"
+                            )}
+                        </div>
+                    `;
                 }
-            });
-        }
+                
+                if (phase === 3) {
+                    supportFeatures += `
+                        <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-3 border-b pb-1 border-ccjpa-navy/20">Loyalty Program (Phase 3)</h3>
+                        <div class="space-y-3">
+                            ${getListItemLink(
+                                'Rewards Status',
+                                'View your loyalty points and claim rewards.',
+                                'trophy',
+                                'javascript:void(0)'
+                            )}
+                        </div>
+                    `;
+                }
 
-        // Initialize the app when the page loads
-        window.onload = () => {
-            setPhase(1); // Start with Phase 1 MVP
-        };
+                return supportFeatures;
+            };
+            
+            // 5. Tap2Ride Dedicated Screen (Phase 2)
+            const getTap2RideScreen = () => `
+                ${getBackButton('support')}
+                <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">Tap2Ride Account</h2>
+                <div class="ccjpa-accent p-4 rounded-xl text-center mb-6 shadow-md">
+                    <p class="text-sm font-semibold">Current Balance:</p>
+                    <p class="text-3xl font-extrabold text-ccjpa-navy">$124.50</p>
+                </div>
+                
+                <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-3 border-b pb-1">Recent Trips</h3>
+                ${getCard('Trip 1: Sacramento to Emeryville', 'Date: Nov 15 | Cost: $34.00 | <span class="text-green-600">Status: Completed</span>', 'bg-white', 'text-ccjpa-navy')}
+                ${getCard('Trip 2: Davis to Richmond', 'Date: Nov 14 | Cost: $22.50 | <span class="text-red-600">Status: Auto-Correction Pending</span> <button class="text-sm text-ccjpa-primary underline ml-2">Request Refund</button>', 'bg-white', 'text-ccjpa-navy')}
+                
+                <button onclick="javascript:void(0)" class="w-full ccjpa-action-button text-black font-bold py-3 mt-4 rounded-xl shadow-lg hover:opacity-90">View All Transactions</button>
+            `;
+            
+            // 6. Zoho CRM Dedicated Screen (Phase 2)
+            const getZohoCrmScreen = () => `
+                ${getBackButton('support')}
+                <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">Raise a Concern</h2>
+                <div class="bg-white p-4 rounded-xl shadow-md mb-6">
+                    <p class="text-sm mb-3">Submit a complaint, lost item report, or general feedback. We'll track it using Zoho CRM.</p>
+                    
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="concern-type">Type of Issue:</label>
+                    <select id="concern-type" class="w-full p-2 border border-gray-300 rounded-md mb-3 focus:ring-ccjpa-primary focus:border-ccjpa-primary">
+                        <option>Select...</option>
+                        <option>Delay / Service Complaint</option>
+                        <option>Staff Feedback</option>
+                        <option>Lost & Found</option>
+                        <option>Facility Issue</option>
+                    </select>
+
+                    <label class="block text-sm font-medium text-gray-700 mb-1" for="concern-details">Details:</label>
+                    <textarea id="concern-details" rows="4" placeholder="Briefly describe your concern..." class="w-full p-2 border border-gray-300 rounded-md mb-4 focus:ring-ccjpa-primary focus:border-ccjpa-primary"></textarea>
+                    
+                    <button onclick="javascript:void(0)" class="w-full ccjpa-action-button text-black font-bold py-3 rounded-xl shadow-lg hover:opacity-90">Submit Report</button>
+                </div>
+                
+                <div class="text-center text-sm text-gray-500">
+                    Your case ID will be sent via email for tracking.
+                </div>
+            `;
+            
+            // 7. OBS Cafe Ordering Dedicated Screen (Phase 3)
+            const getCafeOrderingScreen = () => `
+                ${getBackButton('home')}
+                <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">OBS Cafe: Order from Seat</h2>
+                
+                <div class="bg-green-100 p-3 rounded-xl shadow-md mb-6 flex items-center justify-between border-l-4 border-green-600">
+                    <p class="text-green-800 font-semibold">Your order will be ready for pickup at the Cafe Car in 5-8 minutes.</p>
+                    <i class="fas fa-check-circle text-2xl text-green-600"></i>
+                </div>
+                
+                <h3 class="font-bold text-ccjpa-navy text-lg mb-3">Menu Highlights</h3>
+                
+                <!-- Menu Item Card -->
+                <div class="bg-white p-4 rounded-xl shadow-md mb-3 flex justify-between items-center">
+                    <div>
+                        <p class="font-semibold text-ccjpa-navy">Capitol Coffee Blend</p>
+                        <p class="text-sm text-gray-500">$3.50 | Hot/Iced</p>
+                    </div>
+                    <button onclick="javascript:void(0)" class="ccjpa-action-button text-black px-3 py-1 rounded-full font-bold text-sm hover:opacity-80">Add +</button>
+                </div>
+                
+                <!-- Menu Item Card -->
+                <div class="bg-white p-4 rounded-xl shadow-md mb-3 flex justify-between items-center">
+                    <div>
+                        <p class="font-semibold text-ccjpa-navy">Bay Area Bagel</p>
+                        <p class="text-sm text-gray-500">$4.00 | Cream Cheese Option</p>
+                    </div>
+                    <button onclick="javascript:void(0)" class="ccjpa-action-button text-black px-3 py-1 rounded-full font-bold text-sm hover:opacity-80">Add +</button>
+                </div>
+
+                <div class="bg-white p-4 rounded-xl shadow-md mt-6">
+                    <p class="font-bold text-lg text-ccjpa-navy mb-2">Order Summary</p>
+                    <div class="flex justify-between text-sm text-gray-600">
+                        <span>Subtotal:</span>
+                        <span>$7.50</span>
+                    </div>
+                    <div class="flex justify-between text-base font-bold text-ccjpa-navy mt-1">
+                        <span>Total:</span>
+                        <span>$7.50</span>
+                    </div>
+                    <button onclick="javascript:void(0)" class="w-full ccjpa-action-button text-black font-bold py-3 mt-3 rounded-xl shadow-lg hover:opacity-90">Complete Order</button>
+                </div>
+            `;
+            
+            // 8. Seat Availability Screen (Phase 2)
+            const getSeatsScreen = () => `
+                ${getBackButton('home')}
+                <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">Carriage Availability</h2>
+                <p class="text-sm text-gray-600 mb-6">Real-time occupancy data is estimated based on boarding/alighting counts.</p>
+
+                <!-- Carriage List -->
+                <div class="space-y-4">
+                    <div class="bg-white p-4 rounded-xl shadow-md border-l-4 border-green-500">
+                        <h3 class="font-bold text-ccjpa-navy flex justify-between items-center">
+                            Carriage 1 (Cafe Car)
+                            <span class="text-green-500 text-sm font-semibold">Low Occupancy (25%)</span>
+                        </h3>
+                        <p class="text-xs text-gray-500 mt-1">Status: Best Seating Available</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-md border-l-4 border-yellow-500">
+                        <h3 class="font-bold text-ccjpa-navy flex justify-between items-center">
+                            Carriage 2 (Quiet Car)
+                            <span class="text-yellow-500 text-sm font-semibold">Moderate Occupancy (55%)</span>
+                        </h3>
+                        <p class="text-xs text-gray-500 mt-1">Status: Some Empty Rows</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-md border-l-4 border-red-500">
+                        <h3 class="font-bold text-ccjpa-navy flex justify-between items-center">
+                            Carriage 3 (Standard)
+                            <span class="text-red-500 text-sm font-semibold">High Occupancy (85%)</span>
+                        </h3>
+                        <p class="text-xs text-gray-500 mt-1">Status: Standing Room Only</p>
+                    </div>
+                </div>
+                
+                <button onclick="javascript:void(0)" class="w-full ccjpa-action-button text-black font-bold py-3 mt-6 rounded-xl shadow-lg hover:opacity-90">View Detailed Floor Plans</button>
+            `;
+            
+            // 9. Onboard Comfort Rating Screen (Phase 2)
+            const getRatingScreen = () => `
+                ${getBackButton('support')}
+                <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">Rate Onboard Comfort</h2>
+                <div class="bg-white p-4 rounded-xl shadow-md mb-6 text-center">
+                    <p class="text-lg font-bold text-ccjpa-navy mb-2">You are currently in Carriage 2</p>
+                    <div class="flex justify-center space-x-4 mb-4">
+                        <i class="fas fa-train text-ccjpa-primary text-3xl"></i>
+                        <i class="fas fa-arrow-right text-gray-400 text-xl self-center"></i>
+                        <i class="fas fa-chair text-ccjpa-primary text-3xl"></i>
+                    </div>
+                    
+                    <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-3">How was your experience?</h3>
+
+                    <!-- Rating Items -->
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">Carriage Cleanliness</label>
+                            <div class="text-3xl text-ccjpa-gold space-x-2">
+                                <i class="far fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">Temperature / HVAC</label>
+                            <div class="text-3xl text-ccjpa-gold space-x-2">
+                                <i class="far fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600 mb-1">Wi-Fi Quality</label>
+                            <div class="text-3xl text-ccjpa-gold space-x-2">
+                                <i class="far fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <textarea rows="2" placeholder="Optional comments..." class="w-full p-2 border border-gray-300 rounded-md mt-4 text-sm focus:ring-ccjpa-primary focus:border-ccjpa-primary"></textarea>
+                </div>
+                
+                <button onclick="javascript:void(0)" class="w-full ccjpa-action-button text-black font-bold py-3 rounded-xl shadow-lg hover:opacity-90">Submit Rating</button>
+            `;
+            
+
+            // --- Controller Logic ---
+
+            function renderScreen() {
+                let html = '';
+                const phase = currentPhase;
+                
+                appContent.innerHTML = '';
+                
+                // Render the specific screen based on current state
+                switch (currentScreen) {
+                    case 'home':
+                        html = getHomeScreen(phase);
+                        break;
+                    case 'map':
+                        html = getMapScreen(phase);
+                        break;
+                    case 'tickets':
+                        html = getTicketsScreen(phase);
+                        break;
+                    case 'support':
+                        html = getSupportScreen(phase);
+                        break;
+                    case 'tap2ride':
+                        html = getTap2RideScreen();
+                        break;
+                    case 'zoho':
+                        html = getZohoCrmScreen();
+                        break;
+                    case 'cafe_order':
+                        html = getCafeOrderingScreen();
+                        break;
+                    case 'seats':
+                        html = getSeatsScreen();
+                        break;
+                    case 'rating':
+                        html = getRatingScreen();
+                        break;
+                    default:
+                        html = getHomeScreen(phase);
+                        break;
+                }
+
+                appContent.innerHTML = html;
+                updateNavBar();
+            }
+
+            window.setScreen = function(screenName) {
+                currentScreen = screenName;
+                // Hide the navigation bar for deep-dive utility screens, show for main screens
+                const navBar = document.getElementById('nav-bar');
+                if (['home', 'map', 'tickets', 'support'].includes(screenName)) {
+                    navBar.style.display = 'flex';
+                } else {
+                    navBar.style.display = 'none';
+                }
+                renderScreen();
+            }
+
+            window.setPhase = function(phase) {
+                currentPhase = phase;
+                currentScreen = 'home'; 
+                renderScreen();
+                updatePhaseButtons();
+            }
+
+            function updatePhaseButtons() {
+                Object.keys(phaseButtons).forEach(key => {
+                    const btn = phaseButtons[key];
+                    // Match the portal style: Active button uses the accent/action color
+                    if (parseInt(key) === currentPhase) {
+                        btn.classList.add('ccjpa-action-button');
+                        btn.classList.remove('bg-ccjpa-light', 'text-ccjpa-navy');
+                    } else {
+                        btn.classList.add('bg-ccjpa-light', 'text-ccjpa-navy');
+                        btn.classList.remove('ccjpa-action-button');
+                    }
+                });
+            }
+
+            function updateNavBar() {
+                document.querySelectorAll('.nav-icon').forEach(iconButton => {
+                    const isMainScreen = ['home', 'map', 'tickets', 'support'].includes(currentScreen);
+                    
+                    // Active nav icon should use the bright yellow accent
+                    if (isMainScreen && iconButton.getAttribute('data-screen') === currentScreen) {
+                        iconButton.classList.add('text-ccjpa-gold');
+                        iconButton.classList.remove('text-gray-400', 'hover:text-white');
+                    } else {
+                        iconButton.classList.add('text-gray-400');
+                        iconButton.classList.remove('text-ccjpa-gold');
+                    }
+                });
+            }
+
+            // Initialize the app when the page loads
+            window.onload = () => {
+                window.setPhase(1); // Start with Phase 1 MVP
+            };
+        })();
 
     </script>
 </body>

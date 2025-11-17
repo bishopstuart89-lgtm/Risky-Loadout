@@ -3,902 +3,509 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Risk of Rain 2 Loadout Guide</title>
-    <!-- Tailwind CSS CDN -->
+    <title>CCJPA Passenger App Prototype</title>
+    <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Inter Font -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* Custom styles for the app */
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #0d1117;
-            color: #c9d1d9;
-        }
+        /* Define CCJPA Colors */
+        .ccjpa-primary { background-color: #192F5A; } /* Navy Blue */
+        .ccjpa-accent { background-color: #FFC72C; color: #192F5A; } /* Yellow/Gold */
+        .ccjpa-text-accent { color: #FFC72C; }
+        .ccjpa-border-accent { border-color: #FFC72C; }
 
-        .container {
-            max-width: 900px;
-            margin: auto;
-            padding: 2rem 1rem;
-        }
-
-        /* Style for the filter dropdown */
-        .filter-select {
-            background-color: #21262d;
-            border: 1px solid #30363d;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            color: #c9d1d9;
-            font-size: 1rem;
-            cursor: pointer;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        .filter-select:hover {
-            border-color: #58a6ff;
-        }
-
-        /* Style for the character cards */
-        .character-card {
-            background-color: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 0.75rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        
-        .item-list li {
-            position: relative;
+        /* Mobile Frame Styling */
+        #app-frame {
+            height: 700px; /* Fixed height for mobile simulation */
+            width: 380px; /* Fixed width for mobile simulation */
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+            border-radius: 2rem;
+            border: 10px solid #333;
+            overflow: hidden;
             display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.25rem;
+            flex-direction: column;
+            position: relative;
         }
 
-        .item-list img {
-            border-radius: 0.25rem;
-            object-fit: cover;
+        /* Custom scrollbar for content */
+        .scrollable-content::-webkit-scrollbar {
+            width: 4px;
         }
-
-        .item-category {
-            font-weight: 600;
+        .scrollable-content::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 199, 44, 0.5); /* Yellow/Gold semi-transparent */
+            border-radius: 2px;
         }
-
-        /* Custom styles for the table view */
-        .table-row {
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .table-row:hover {
-            background-color: #1f2937;
-        }
-
-        /* Dark mode specific styles for toggle */
-        body.light {
-            background-color: #f8fafc;
-            color: #1e293b;
-        }
-        body.light .character-card {
-            background-color: #ffffff;
-            border-color: #e2e8f0;
-        }
-        body.light .filter-select {
-            background-color: #ffffff;
-            border-color: #e2e8f0;
-            color: #1e293b;
-        }
-        body.light .table-row:hover {
-            background-color: #f1f5f9;
-        }
-        body.light #backButton {
-            background-color: #3b82f6;
-        }
-
-        .rarity-common { border: 2px solid #ffffff; }
-        .rarity-uncommon { border: 2px solid #4cd137; }
-        .rarity-legendary { border: 2px solid #f7b731; }
-        .rarity-boss { border: 2px solid #9c88ff; }
-        .rarity-lunar { border: 2px solid #58a6ff; }
-        .rarity-placeholder { border: 2px solid #808080; }
-
-        .item-icon-with-border {
-            width: 40px;
-            height: 40px;
-            object-fit: cover;
-            border-radius: 0.25rem;
-            transition: border-color 0.2s;
+        .scrollable-content::-webkit-scrollbar-track {
+            background: #192F5A;
         }
     </style>
+    <script>
+        // Set up custom Tailwind colors for the prototype
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'ccjpa-navy': '#192F5A',
+                        'ccjpa-gold': '#FFC72C',
+                        'ccjpa-light': '#F5F5F5',
+                    },
+                }
+            }
+        }
+    </script>
 </head>
-<body class="bg-[#0d1117] text-[#c9d1d9]">
-    <div class="container">
-        <header class="text-center mb-12">
-            <h1 class="text-4xl sm:text-5xl font-bold text-white mb-2">Risk of Rain 2 Loadouts</h1>
-            <p class="text-lg text-gray-400">Find the best builds for every survivor.</p>
-        </header>
+<body class="bg-gray-100 flex flex-col items-center justify-start min-h-screen p-4 font-sans">
 
-        <!-- Dark/Light Mode Toggle Button -->
-        <button id="themeToggle" class="absolute top-4 right-4 text-white p-2 rounded-full">
-            <svg id="moonIcon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
-            <svg id="sunIcon" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+    <h1 class="text-2xl font-bold mb-4 text-ccjpa-navy">CCJPA App Release Prototype</h1>
+    
+    <!-- External Controls -->
+    <div class="mb-6 flex flex-col space-y-2 p-3 bg-ccjpa-navy rounded-xl shadow-lg">
+        <div class="flex space-x-2">
+            <button id="btn-phase1" onclick="setPhase(1)" class="px-3 py-1 text-sm font-semibold rounded-lg transition duration-200 text-ccjpa-navy bg-ccjpa-light">Phase 1: MVP</button>
+            <button id="btn-phase2" onclick="setPhase(2)" class="px-3 py-1 text-sm font-semibold rounded-lg transition duration-200 text-ccjpa-navy bg-ccjpa-light">Phase 2: Enhancement</button>
+            <button id="btn-phase3" onclick="setPhase(3)" class="px-3 py-1 text-sm font-semibold rounded-lg transition duration-200 text-ccjpa-navy bg-ccjpa-light">Phase 3: Future Vision</button>
+        </div>
+        
+        <!-- ALERT SIMULATION BUTTON -->
+        <button id="btn-alert" onclick="toggleAlert()" class="px-4 py-2 text-sm font-bold rounded-lg transition duration-300 shadow-md bg-green-500 text-white hover:bg-green-600">
+            Simulate Major Alert: OFF
         </button>
+    </div>
 
-        <!-- Table View (Initially visible) -->
-        <div id="survivorTableContainer" class="">
-            <div class="overflow-x-auto rounded-lg shadow-md border border-gray-700">
-                <table class="min-w-full divide-y divide-gray-700">
-                    <thead class="bg-gray-800">
-                        <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Survivor</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Description</th>
-                        </tr>
-                    </thead>
-                    <tbody id="survivorTableBody" class="bg-gray-900 divide-y divide-gray-700">
-                        <!-- Table rows will be inserted here by JavaScript -->
-                    </tbody>
-                </table>
-            </div>
+    <!-- Mobile App Frame -->
+    <div id="app-frame" class="bg-ccjpa-light">
+        
+        <!-- Header (Universal) -->
+        <div id="app-header" class="ccjpa-primary text-white p-4 flex justify-between items-center shadow-md">
+            <h2 class="text-xl font-bold">CAPITOL CORRIDOR</h2>
+            <i id="alert-icon" class="fas fa-bell text-white text-xl transition-colors duration-300" title="Alerts"></i>
         </div>
 
-        <!-- Character Card View (Initially hidden) -->
-        <div id="characterCardContainer" class="hidden">
-            <button id="backButtonTop" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full transition-colors duration-200 mb-8">
-                ← Back to Survivors
+        <!-- Content Area -->
+        <div id="app-content" class="flex-grow scrollable-content overflow-y-auto p-4">
+            <!-- Content for the active phase/screen will be inserted here -->
+        </div>
+        
+        <!-- Navigation Bar (Universal) -->
+        <div id="nav-bar" class="ccjpa-primary h-14 w-full flex justify-around items-center border-t border-ccjpa-gold shadow-2xl">
+            <!-- Icons will be dynamically colored based on the 'active' screen -->
+            <button onclick="setScreen('home')" class="nav-icon text-gray-400 hover:text-white transition duration-200" data-screen="home">
+                <i class="fas fa-home text-2xl"></i>
+                <span class="text-xs block">Home</span>
             </button>
-            <div id="characterCard" class="character-card p-6">
-                <!-- Character details will be dynamically inserted here by JavaScript -->
-            </div>
-            <button id="backButtonBottom" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full transition-colors duration-200 mt-8">
-                ← Back to Survivors
+            <button onclick="setScreen('map')" class="nav-icon text-gray-400 hover:text-white transition duration-200" data-screen="map">
+                <i class="fas fa-map-marked-alt text-2xl"></i>
+                <span class="text-xs block">Map</span>
+            </button>
+            <button onclick="setScreen('tickets')" class="nav-icon text-gray-400 hover:text-white transition duration-200" data-screen="tickets">
+                <i class="fas fa-ticket-alt text-2xl"></i>
+                <span class="text-xs block">Tickets</span>
+            </button>
+            <button onclick="setScreen('account')" class="nav-icon text-gray-400 hover:text-white transition duration-200" data-screen="account">
+                <i class="fas fa-user-circle text-2xl"></i>
+                <span class="text-xs block">Account</span>
             </button>
         </div>
     </div>
 
     <script>
-        // Data for each character's loadout, items, and unlocks
-        const characters = [
-            {
-                name: 'Commando',
-                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/5/50/Commando.png',
-                description: 'A versatile survivor excelling in on-hit item synergies and rapid-fire damage.',
-                skills: {
-                    primary: { name: 'Double Tap', description: 'Fire two shots for 90% damage each.' },
-                    secondary: { name: 'Phase Round', description: 'Fire a piercing round for 200% damage.' },
-                    utility: { name: 'Tactical Dive', description: 'Dodge attacks and reload your weapons.' },
-                    special: { name: 'Suppressive Fire', description: 'Fire a hail of bullets, stunning enemies.' }
-                },
-                items: {
-                    damage: [
-                        { name: 'Soldier\'s Syringe', rarity: 'common' },
-                        { name: 'Tri-Tip Dagger', rarity: 'common' },
-                        { name: 'AtG Missile Mk. 1', rarity: 'legendary' },
-                        { name: 'Ukulele', rarity: 'uncommon' },
-                        { name: 'Predatory Instincts', rarity: 'uncommon' },
-                        { name: 'Lens-Maker\'s Glasses', rarity: 'common' },
-                        { name: 'Kjaro\'s Band', rarity: 'legendary' },
-                        { name: 'Runald\'s Band', rarity: 'legendary' }
-                    ],
-                    survivability: [
-                        { name: 'Tougher Times', rarity: 'common' },
-                        { name: 'Medkit', rarity: 'common' },
-                        { name: 'Rose Buckler', rarity: 'uncommon' },
-                    ],
-                    mobility: [
-                        { name: 'Paul\'s Goat Hoof', rarity: 'common' },
-                        { name: 'Hopoo Feather', rarity: 'uncommon' },
-                        { name: 'Hardlight Afterburner', rarity: 'legendary' },
-                    ]
-                },
-                unlocks: [
-                    { type: 'Ability', name: 'Incorruptible (Slide)', description: 'Finish 20 stages in a single run without picking up any Lunar items.' },
-                    { type: 'Ability', name: 'Phase Blast (Secondary)', description: 'Kill a teleporter boss in under 5 seconds.' },
-                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
-                ]
-            },
-            {
-                name: 'Huntress',
-                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/6/6f/Huntress.png',
-                description: 'A highly mobile survivor with auto-targeting abilities, perfect for hit-and-run tactics.',
-                skills: {
-                    primary: { name: 'Strafe', description: 'Fire homing arrows for 150% damage.' },
-                    secondary: { name: 'Laser Glaive', description: 'Fire a glaive that bounces to up to 6 enemies for 250% damage.' },
-                    utility: { name: 'Phase Blink', description: 'Teleport a short distance in a chosen direction.' },
-                    special: { name: 'Arrow Rain', description: 'Leap into the air and fire a volley of arrows for 300% damage.' }
-                },
-                items: {
-                    damage: [
-                        { name: 'Lens-Maker\'s Glasses', rarity: 'common' },
-                        { name: 'Harvester\'s Scythe', rarity: 'uncommon' },
-                        { name: 'Shatterspleen', rarity: 'boss' },
-                        { name: 'AtG Missile Mk. 1', rarity: 'legendary' },
-                        { name: 'Ukulele', rarity: 'uncommon' },
-                        { name: 'Ceremonial Dagger', rarity: 'legendary' }
-                    ],
-                    survivability: [
-                        { name: 'Tougher Times', rarity: 'common' },
-                        { name: 'Medkit', rarity: 'common' },
-                        { name: 'Rose Buckler', rarity: 'uncommon' }
-                    ],
-                    mobility: [
-                        { name: 'Hopoo Feather', rarity: 'uncommon' },
-                        { name: 'Hardlight Afterburner', rarity: 'legendary' },
-                        { name: 'Paul\'s Goat Hoof', rarity: 'common' }
-                    ]
-                },
-                unlocks: [
-                    { type: 'Ability', name: 'Flurry (Primary)', description: 'Complete a run without taking damage in the first three stages.' },
-                    { type: 'Ability', name: 'Ballista (Special)', description: 'Land the killing blow on an Overloading Worm.' },
-                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
-                ]
-            },
-            {
-                name: 'Bandit',
-                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/1/1f/Bandit.png',
-                description: 'A burst-damage specialist who can vanish and deal massive damage from behind enemies.',
-                skills: {
-                    primary: { name: 'Blast', description: 'Fire a spread of shots for 60% damage per pellet.' },
-                    secondary: { name: 'Desperado', description: 'Fire a shotgun blast for 300% damage.' },
-                    utility: { name: 'Smoke Bomb', description: 'Go invisible and deal 200% damage on leaving stealth.' },
-                    special: { name: 'Lights Out', description: 'Fire a special round for 600% damage. Kills reset your cooldowns.' }
-                },
-                items: {
-                    damage: [
-                        { name: 'Crowbar', rarity: 'common' },
-                        { name: 'Focus Crystal', rarity: 'common' },
-                        { name: 'Shatterspleen', rarity: 'boss' },
-                        { name: 'Tri-Tip Dagger', rarity: 'common' },
-                        { name: 'Pocket I.C.B.M.', rarity: 'legendary' },
-                        { name: 'Hardlight Afterburner', rarity: 'legendary' }
-                    ],
-                    survivability: [
-                        { name: 'Tougher Times', rarity: 'common' },
-                        { name: 'Medkit', rarity: 'common' },
-                        { name: 'Rose Buckler', rarity: 'uncommon' }
-                    ],
-                    mobility: [
-                        { name: 'Paul\'s Goat Hoof', rarity: 'common' },
-                        { name: 'Hopoo Feather', rarity: 'uncommon' },
-                        { name: 'Hardlight Afterburner', rarity: 'legendary' }
-                    ]
-                },
-                unlocks: [
-                    { type: 'Ability', name: 'Sadist (Passive)', description: 'Kill a monster with 20 stacks of Hemorrhage.' },
-                    { type: 'Ability', name: 'Desperado (Secondary)', description: 'Find and kill a Malachite Elite.' },
-                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
-                ]
-            },
-            {
-                name: 'MUL-T',
-                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/6/6f/MUL-T.png',
-                description: 'A heavily armored character with unique weapon-swapping mechanics and high versatility.',
-                skills: {
-                    primary: { name: 'Nailgun', description: 'Fire nails rapidly for 60% damage per nail.' },
-                    secondary: { name: 'Rebar Puncher', description: 'Fire a piercing rebar for 600% damage.' },
-                    utility: { name: 'Transport Mode', description: 'Hunker down and gain armor, but lose movement speed.' },
-                    special: { name: 'Power Mode', description: 'Swap between your two equipped weapons.' }
-                },
-                items: {
-                    damage: [
-                        { name: 'Soldier\'s Syringe', rarity: 'common' },
-                        { name: 'Tri-Tip Dagger', rarity: 'common' },
-                        { name: 'AtG Missile Mk. 1', rarity: 'legendary' },
-                        { name: 'Ukulele', rarity: 'uncommon' },
-                        { name: 'Sticky Bomb', rarity: 'common' }
-                    ],
-                    survivability: [
-                        { name: 'Tougher Times', rarity: 'common' },
-                        { name: 'Repulsion Armor Plate', rarity: 'common' },
-                        { name: 'Medkit', rarity: 'common' },
-                        { name: 'Aegis', rarity: 'legendary' }
-                    ],
-                    mobility: [
-                        { name: 'Paul\'s Goat Hoof', rarity: 'common' },
-                        { name: 'Hopoo Feather', rarity: 'uncommon' },
-                        { name: 'Hardlight Afterburner', rarity: 'legendary' }
-                    ]
-                },
-                unlocks: [
-                    { type: 'Ability', name: 'Power Mode (Special)', description: 'Defeat the teleporter boss on Rallypoint Delta in under 10 minutes.' },
-                    { type: 'Ability', name: 'Scrap Launcher (Secondary)', description: 'Collect and carry 12 Crowbars at once.' },
-                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
-                ]
-            },
-            {
-                name: 'Engineer',
-                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/d/d8/Engineer.png',
-                description: 'A defensive survivor who can deploy turrets that inherit all of his items.',
-                skills: {
-                    primary: { name: 'Auto-Nade', description: 'Fire a grenade for 100% damage that explodes on impact.' },
-                    secondary: { name: 'Pressure Mines', description: 'Place a mine for 300% damage that detonates on enemy proximity.' },
-                    utility: { name: 'Mobile Turret', description: 'Deploy a turret that fires automatically and inherits your items.' },
-                    special: { name: 'Bubble Shield', description: 'Deploy a shield that blocks all incoming projectiles.' }
-                },
-                items: {
-                    damage: [
-                        { name: 'AtG Missile Mk. 1', rarity: 'legendary' },
-                        { name: 'Brilliant Behemoth', rarity: 'legendary' },
-                        { name: 'N\'kuhana\'s Opinion', rarity: 'legendary' },
-                        { name: 'Sentient Meat Hook', rarity: 'legendary' }
-                    ],
-                    survivability: [
-                        { name: 'Bustling Fungus', rarity: 'common' },
-                        { name: 'Aegis', rarity: 'legendary' },
-                        { name: 'Tougher Times', rarity: 'common' },
-                        { name: 'Dio\'s Best Friend', rarity: 'legendary' }
-                    ],
-                    mobility: [
-                        { name: 'Paul\'s Goat Hoof', rarity: 'common' },
-                        { name: 'Hopoo Feather', rarity: 'uncommon' },
-                        { name: 'Hardlight Afterburner', rarity: 'legendary' }
-                    ]
-                },
-                unlocks: [
-                    { type: 'Ability', name: 'Mobile Turrets (Special)', description: 'Complete 30 stages in a single run.' },
-                    { type: 'Ability', name: 'Thermal Harpoons (Secondary)', description: 'Kill a teleporter boss within 5 seconds of it spawning.' },
-                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
-                ]
-            },
-            {
-                name: 'Artificer',
-                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/9/98/Artificer.png',
-                description: 'An elemental mage with powerful, high-impact abilities and a strong focus on burst damage.',
-                skills: {
-                    primary: { name: 'Nano-Spear', description: 'Fire a barrage of electric bolts for 80% damage each.' },
-                    secondary: { name: 'Spiked Bomb', description: 'Launch an ice spear for 400% damage that freezes enemies.' },
-                    utility: { name: 'Snap Freeze', description: 'Create a barrier that hurts enemies for 100% damage.' },
-                    special: { name: 'Flamethrower', description: 'Unleash a continuous stream of fire for 300% damage per second.' }
-                },
-                items: {
-                    damage: [
-                        { name: 'Kjaro\'s Band', rarity: 'legendary' },
-                        { name: 'Runald\'s Band', rarity: 'legendary' },
-                        { name: 'Crowbar', rarity: 'common' },
-                        { name: 'Ignition Tank', rarity: 'legendary' },
-                        { name: 'Brilliant Behemoth', rarity: 'legendary' }
-                    ],
-                    survivability: [
-                        { name: 'Tougher Times', rarity: 'common' },
-                        { name: 'Medkit', rarity: 'common' },
-                        { name: 'Rose Buckler', rarity: 'uncommon' }
-                    ],
-                    mobility: [
-                        { name: 'Hopoo Feather', rarity: 'uncommon' },
-                        { name: 'Hardlight Afterburner', rarity: 'legendary' },
-                        { name: 'Paul\'s Goat Hoof', rarity: 'common' }
-                    ]
-                },
-                unlocks: [
-                    { type: 'Ability', name: 'Charged Nano-Bomb (Primary)', description: 'Kill 20 enemies at once with a single attack.' },
-                    { type: 'Ability', name: 'Ion Surge', description: 'killing 15 enemies before touching the ground.' },
-                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
-                ]
-            },
-            {
-                name: 'Mercenary',
-                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/0/00/Mercenary.png',
-                description: 'A melee survivor with exceptional mobility and invincibility frames.',
-                skills: {
-                    primary: { name: 'Whirlwind', description: 'Perform a spinning slash, dealing 150% damage.' },
-                    secondary: { name: 'Slicing Winds', description: 'Launch a series of slicing blades for 100% damage each.' },
-                    utility: { name: 'Blinding Assault', description: 'Dash forward, stunning enemies and dealing 300% damage.' },
-                    special: { name: 'Eviscerate', description: 'Lock onto an enemy, dealing 110% damage rapidly. You are invincible during this time.' }
-                },
-                items: {
-                    damage: [
-                        { name: 'Kjaro\'s Band', rarity: 'legendary' },
-                        { name: 'Runald\'s Band', rarity: 'legendary' },
-                        { name: 'Focus Crystal', rarity: 'common' },
-                        { name: 'Shatterspleen', rarity: 'boss' },
-                        { name: 'Tri-Tip Dagger', rarity: 'common' }
-                    ],
-                    survivability: [
-                        { name: 'Tougher Times', rarity: 'common' },
-                        { name: 'Medkit', rarity: 'common' },
-                        { name: 'Rose Buckler', rarity: 'uncommon' }
-                    ],
-                    mobility: [
-                        { name: 'Hardlight Afterburner', rarity: 'legendary' },
-                        { name: 'Hopoo Feather', rarity: 'uncommon' },
-                        { name: 'Purity', rarity: 'lunar' }
-                    ]
-                },
-                unlocks: [
-                    { type: 'Ability', name: 'Slicing Winds (Special)', description: 'Complete a Prismatic Trial without taking any damage.' },
-                    { type: 'Ability', name: 'Expose (Passive)', description: 'Perform a multikill of 20 enemies.' },
-                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
-                ]
-            },
-            {
-                name: 'REX',
-                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/7/74/REX.png',
-                description: 'A biomechanical survivor that uses its own health to cast powerful abilities.',
-                skills: {
-                    primary: { name: 'DIRECTIVE: Inject', description: 'Fire a syringe for 150% damage that heals you for a percentage of damage dealt.' },
-                    secondary: { name: 'DIRECTIVE: Disperse', description: 'Fire an explosive blast that deals 200% damage and heals you.' },
-                    utility: { name: 'TANGLED: Growth', description: 'Launch a bundle of seeds that immobilize enemies.' },
-                    special: { name: 'FOUL: Barrage', description: 'Fire a barrage of seeds, dealing 300% damage and healing you for each hit.' }
-                },
-                items: {
-                    damage: [
-                        { name: 'Kjaro\'s Band', rarity: 'legendary' },
-                        { name: 'Runald\'s Band', rarity: 'legendary' },
-                        { name: 'Tri-Tip Dagger', rarity: 'common' },
-                        { name: 'AtG Missile Mk. 1', rarity: 'legendary' }
-                    ],
-                    survivability: [
-                        { name: 'Rejuvenation Rack', rarity: 'legendary' },
-                        { name: 'Bustling Fungus', rarity: 'common' },
-                        { name: 'Aegis', rarity: 'legendary' },
-                        { name: 'Tougher Times', rarity: 'common' }
-                    ],
-                    mobility: [
-                        { name: 'Hopoo Feather', rarity: 'uncommon' },
-                        { name: 'Paul\'s Goat Hoof', rarity: 'common' },
-                        { name: 'H3AD-5T v2', rarity: 'legendary' }
-                    ]
-                },
-                unlocks: [
-                    { type: 'Ability', name: 'Backlash (Secondary)', description: 'Defeat a boss while at or below 50% health.' },
-                    { type: 'Ability', name: 'Blight (Passive)', description: 'Kill a boss with a single attack.' },
-                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
-                ]
-            },
-            {
-                name: 'Loader',
-                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/2/25/Loader.png',
-                description: 'A tanky survivor who deals massive damage with her charged gauntlets.',
-                skills: {
-                    primary: { name: 'Knuckleboom', description: 'Punch for 200% damage, with the final hit dealing 600%.' },
-                    secondary: { name: 'Charged Gauntlet', description: 'Grapple to enemies and charge a punch for up to 2500% damage.' },
-                    utility: { name: 'M551 Pylon', description: 'Deploy a pylon that fires a stun-locking projectile.' },
-                    special: { name: 'Thunder Gauntlet', description: 'Grapple to a surface and pull yourself forward, dealing 2000% damage on impact.' }
-                },
-                items: {
-                    damage: [
-                        { name: 'Kjaro\'s Band', rarity: 'legendary' },
-                        { name: 'Runald\'s Band', rarity: 'legendary' },
-                        { name: 'Focus Crystal', rarity: 'common' },
-                        { name: 'Crowbar', rarity: 'common' },
-                        { name: 'Shatterspleen', rarity: 'boss' }
-                    ],
-                    survivability: [
-                        { name: 'Repulsion Armor Plate', rarity: 'common' },
-                        { name: 'Tougher Times', rarity: 'common' },
-                        { name: 'Medkit', rarity: 'common' },
-                        { name: 'Aegis', rarity: 'legendary' }
-                    ],
-                    mobility: [
-                        { name: 'Hopoo Feather', rarity: 'uncommon' },
-                        { name: 'Paul\'s Goat Hoof', rarity: 'common' },
-                        { name: 'H3AD-5T v2', rarity: 'legendary' }
-                    ]
-                },
-                unlocks: [
-                    { type: 'Ability', name: 'Mjolnir (Primary)', description: 'Kill 3 other Loaders in the Bulwark’s Ambry.' },
-                    { type: 'Ability', name: 'Charged Gauntlet (Secondary)', description: 'Deal 1,000 damage or more with a single hit.' },
-                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
-                ]
-            },
-            {
-                name: 'Acrid',
-                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/8/8e/Acrid.png',
-                description: 'A poison-based melee/ranged hybrid who specializes in damage over time.',
-                skills: {
-                    passive: { name: 'Blight', description: 'Poison enemies, dealing 10% damage per second for 5s.' },
-                    primary: { name: 'Vicious Wounds', description: 'Bite an enemy for 300% damage and apply Blight.' },
-                    secondary: { name: 'Ravenous Bite', description: 'Leap forward, stunning enemies and dealing 250% damage.' },
-                    utility: { name: 'Caustic Leap', description: 'Leap into the air, landing to deal 300% damage.' },
-                    special: { name: 'Epidemic', description: 'Fire a projectile that infects enemies, causing them to spread Blight.' }
-                },
-                items: {
-                    damage: [
-                        { name: 'Death Mark', rarity: 'legendary' },
-                        { name: 'Tri-Tip Dagger', rarity: 'common' },
-                        { name: 'Gasoline', rarity: 'common' },
-                        { name: 'Will-o\'-the-wisp', rarity: 'uncommon' },
-                        { name: 'Ignition Tank', rarity: 'legendary' },
-                        { name: 'Shatterspleen', rarity: 'boss' }
-                    ],
-                    survivability: [
-                        { name: 'Tougher Times', rarity: 'common' },
-                        { name: 'Medkit', rarity: 'common' },
-                        { name: 'Repulsion Armor Plate', rarity: 'common' }
-                    ],
-                    mobility: [
-                        { name: 'Hopoo Feather', rarity: 'uncommon' },
-                        { name: 'Paul\'s Goat Hoof', rarity: 'common' },
-                        { name: 'Old War Stealthkit', rarity: 'uncommon' }
-                    ]
-                },
-                unlocks: [
-                    { type: 'Ability', name: 'Vicious Wounds (Primary)', description: 'Complete the Void Fields event and defeat all bosses.' },
-                    { type: 'Ability', name: 'Acidic Touch (Secondary)', description: 'Kill a teleporter boss without taking damage.' },
-                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
-                ]
-            },
-            {
-                name: 'Captain',
-                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/a/a9/Captain.png',
-                description: 'A support-focused survivor with incredible utility and powerful orbital strikes.',
-                skills: {
-                    primary: { name: 'Vulcan Shotgun', description: 'Fire a shotgun blast for 120% damage per pellet.' },
-                    secondary: { name: 'Shocking Beacon', description: 'Call down a beacon that stuns and shocks enemies in an area.' },
-                    utility: { name: 'OGM-72 \'DIABLO\' Strike', description: 'Call down a powerful orbital strike that deals 3000% damage.' },
-                    special: { name: 'Deflecting Microbots', description: 'A swarm of microbots that deflects incoming projectiles.' }
-                },
-                items: {
-                    damage: [
-                        { name: 'AtG Missile Mk. 1', rarity: 'legendary' },
-                        { name: 'Kjaro\'s Band', rarity: 'legendary' },
-                        { name: 'Runald\'s Band', rarity: 'legendary' },
-                        { name: 'Ukulele', rarity: 'uncommon' },
-                        { name: 'Armor-Piercing Rounds', rarity: 'common' }
-                    ],
-                    survivability: [
-                        { name: 'Tougher Times', rarity: 'common' },
-                        { name: 'Repulsion Armor Plate', rarity: 'common' },
-                        { name: 'Aegis', rarity: 'legendary' },
-                        { name: 'Dio\'s Best Friend', rarity: 'legendary' }
-                    ],
-                    mobility: [
-                        { name: 'Paul\'s Goat Hoof', rarity: 'common' },
-                        { name: 'Hopoo Feather', rarity: 'uncommon' },
-                        { name: 'Hardlight Afterburner', rarity: 'legendary' }
-                    ]
-                },
-                unlocks: [
-                    { type: 'Ability', name: 'Diablo Strike (Utility)', description: 'Beat the game by killing the final boss.' },
-                    { type: 'Ability', name: 'Defense Protocol (Special)', description: 'Kill the final boss with a Supply Beacon.' },
-                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
-                ]
-            },
-            {
-                name: 'Railgunner',
-                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/f/fe/Railgunner.png',
-                description: 'A long-range sniper with a guaranteed critical hit mechanic on her weakpoint shots.',
-                skills: {
-                    primary: { name: 'M99 Sniper', description: 'Charge a shot to deal massive damage. Hitting a weakpoint guarantees a crit.' },
-                    secondary: { name: 'XON Commando', description: 'Fire a powerful, single-target shot for 400% damage.' },
-                    utility: { name: 'Polar Field Device', description: 'Deploy a field that slows enemies and blocks projectiles.' },
-                    special: { name: 'Cryo Chamber', description: 'Launch a grenade that deals 1000% damage and freezes enemies.' }
-                },
-                items: {
-                    damage: [
-                        { name: 'Crowbar', rarity: 'common' },
-                        { name: 'Focus Crystal', rarity: 'common' },
-                        { name: 'Old Guillotine', rarity: 'uncommon' },
-                        { name: 'Shatterspleen', rarity: 'boss' },
-                        { name: 'Harvester\'s Scythe', rarity: 'uncommon' }
-                    ],
-                    survivability: [
-                        { name: 'Tougher Times', rarity: 'common' },
-                        { name: 'Medkit', rarity: 'common' },
-                        { name: 'Rose Buckler', rarity: 'uncommon' }
-                    ],
-                    mobility: [
-                        { name: 'H3AD-5T v2', rarity: 'legendary' },
-                        { name: 'Hopoo Feather', rarity: 'uncommon' },
-                        { name: 'Paul\'s Goat Hoof', rarity: 'common' }
-                    ]
-                },
-                unlocks: [
-                    { type: 'Ability', name: 'Cryo Chamber (Special)', description: 'Defeat the final boss in under 30 minutes.' },
-                    { type: 'Ability', name: 'XON Commando (Secondary)', description: 'Hit a monster 5 times in a single second with your primary.' },
-                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
-                ]
-            },
-            {
-                name: 'Void Fiend',
-                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/5/5b/Void_Fiend.png',
-                description: 'A survivor who swaps between two forms, one for healing and one for pure destruction.',
-                skills: {
-                    primary: { name: 'Corrupt: Purify', description: 'Fire a burst of projectiles for 60% damage each.' },
-                    secondary: { name: 'Corrupt: Suppress', description: 'Unleash a powerful burst of energy for 1000% damage.' },
-                    utility: { name: 'Corrupt: Transport', description: 'Dash forward, dealing 200% damage on impact.' },
-                    special: { name: 'Corrupt: Trespass', description: 'Unleash a powerful blast of energy, dealing 1000% damage.' }
-                },
-                items: {
-                    damage: [
-                        { name: 'Kjaro\'s Band', rarity: 'legendary' },
-                        { name: 'Runald\'s Band', rarity: 'legendary' },
-                        { name: 'Tri-Tip Dagger', rarity: 'common' },
-                        { name: 'AtG Missile Mk. 1', rarity: 'legendary' }
-                    ],
-                    survivability: [
-                        { name: 'Weeping Fungus', rarity: 'lunar' },
-                        { name: 'Cautious Slug', rarity: 'common' },
-                        { name: 'Tougher Times', rarity: 'common' },
-                        { name: 'Medkit', rarity: 'common' }
-                    ],
-                    mobility: [
-                        { name: 'Hardlight Afterburner', rarity: 'legendary' },
-                        { name: 'Hopoo Feather', rarity: 'uncommon' },
-                        { name: 'Paul\'s Goat Hoof', rarity: 'common' }
-                    ]
-                },
-                unlocks: [
-                    { type: 'Ability', name: 'Suppress (Secondary)', description: 'Kill a Voidling with a fully corrupted attack.' },
-                    { type: 'Ability', name: 'Trespass (Special)', description: 'Reach 100% Corruption in a single run.' },
-                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
-                ]
-            },
-            {
-                name: 'Seeker',
-                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/5/54/Seeker.png',
-                description: 'A unique survivor who can create a destructive aura and bank powerful energy spheres.',
-                skills: {
-                    primary: { name: 'Luminous Bolt', description: 'Fire a bolt of light that stuns enemies and deals 200% damage.' },
-                    secondary: { name: 'Sojourn', description: 'Unleash a powerful orb of energy that deals 300% damage per hit.' },
-                    utility: { name: 'Stasis Orb', description: 'Throw an orb that slows and stuns enemies in a large area.' },
-                    special: { name: 'Astral Form', description: 'Enter a meditative state, gaining invincibility and healing.' }
-                },
-                items: {
-                    damage: [
-                        { name: 'Razorwire', rarity: 'common' },
-                        { name: 'Will-o\'-the-wisp', rarity: 'uncommon' },
-                        { name: 'Gasoline', rarity: 'common' },
-                        { name: 'Brilliant Behemoth', rarity: 'legendary' }
-                    ],
-                    survivability: [
-                        { name: 'Repulsion Armor Plate', rarity: 'common' },
-                        { name: 'Topaz Brooch', rarity: 'common' },
-                        { name: 'Aegis', rarity: 'legendary' },
-                        { name: 'Planula', rarity: 'boss' }
-                    ],
-                    mobility: [
-                        { name: 'Hopoo Feather', rarity: 'uncommon' },
-                        { name: 'Paul\'s Goat Hoof', rarity: 'common' },
-                        { name: 'H3AD-5T v2', rarity: 'legendary' }
-                    ]
-                },
-                unlocks: [
-                    { type: 'Ability', name: 'Luminous Bolt (Primary)', description: 'Hit a single enemy with all three of your primary attacks.' },
-                    { type: 'Ability', name: 'Astral Form (Special)', description: 'Defeat the False Son boss with a fully charged Astral Form.' },
-                    { type: 'Skin', name: 'Grand Mastery', description: 'Obliterate on Monsoon difficulty or higher.' }
-                ]
-            },
-            {
-                name: 'Heretic',
-                image: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/8/81/Heretic.png',
-                description: 'A transformation of any survivor, she is not a standalone character but a temporary powerful form.',
-                skills: {
-                    primary: { name: 'Foul: Miasma', description: 'Launch a miasma orb that explodes into a blight field.' },
-                    secondary: { name: 'Foul: Eclipse', description: 'Summon a beam of darkness that deals 1000% damage per second.' },
-                    utility: { name: 'Foul: Tempest', description: 'Teleport and deal 200% damage on impact.' },
-                    special: { name: 'Foul: Impending Doom', description: 'Summon an orb that deals 1000% damage when enemies are near.' }
-                },
-                items: {
-                    damage: [
-                        { name: 'Visions of Heresy', rarity: 'lunar' },
-                        { name: 'Hooks of Heresy', rarity: 'lunar' },
-                        { name: 'Essence of Heresy', rarity: 'lunar' },
-                        { name: 'Strides of Heresy', rarity: 'lunar' }
-                    ],
-                    survivability: [
-                        { name: 'Tougher Times', rarity: 'common' },
-                        { name: 'Medkit', rarity: 'common' },
-                        { name: 'Repulsion Armor Plate', rarity: 'common' }
-                    ],
-                    mobility: [
-                        { name: 'Hopoo Feather', rarity: 'uncommon' },
-                        { name: 'Paul\'s Goat Hoof', rarity: 'common' },
-                        { name: 'Hardlight Afterburner', rarity: 'legendary' }
-                    ]
-                },
-                unlocks: [
-                    { type: 'Transformation', name: 'Heretic', description: 'Acquire one of each Heresy lunar item in a single run.' }
-                ]
-            }
-        ];
-
-        const itemData = {
-            'Soldier\'s Syringe': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/f/f2/Soldier%27s_Syringe.png', description: 'Increases attack speed by 15%.', rarity: 'common' },
-            'Tri-Tip Dagger': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/1/17/Tri-Tip_Dagger.png', description: '10% chance to bleed enemies for 240% base damage.', rarity: 'common' },
-            'AtG Missile Mk. 1': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/6/6a/AtG_Missile_Mk._1.png', description: '3% chance to fire a missile for 300% TOTAL damage.', rarity: 'legendary' },
-            'Ukulele': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/9/98/Ukulele.png', description: '25% chance to fire chain lightning for 80% damage.', rarity: 'uncommon' },
-            'Predatory Instincts': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/3/39/Predatory_Instincts.png', description: 'Gain 5% attack speed on crit, stacking up to 30%.', rarity: 'uncommon' },
-            'Lens-Maker\'s Glasses': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/2/23/Lens-Maker%27s_Glasses.png', description: 'Adds 10% critical strike chance.', rarity: 'common' },
-            'Kjaro\'s Band': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/e/eb/Kjaro%27s_Band.png', description: 'Hitting an enemy with a high damage attack ignites them.', rarity: 'legendary' },
-            'Runald\'s Band': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/0/05/Runald%27s_Band.png', description: 'Hitting an enemy with a high damage attack slows them.', rarity: 'legendary' },
-            'Sticky Bomb': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/7/74/Sticky_Bomb.png', description: '5% chance to stick a bomb to enemies for 180% damage.', rarity: 'common' },
-            'Gasoline': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/6/6e/Gasoline.png', description: 'Killing an enemy creates a fire pool that burns enemies for 150% damage.', rarity: 'common' },
-            'Will-o\'-the-wisp': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/c/c4/Will-o%27-the-wisp.png', description: 'Killing an enemy creates a lava pillar, dealing 350% damage to nearby enemies.', rarity: 'uncommon' },
-            'Hardlight Afterburner': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/2/20/Hardlight_Afterburner.png', description: 'Adds 2 charges to your Utility skill.', rarity: 'legendary' },
-            'Brilliant Behemoth': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/f/fa/Brilliant_Behemoth.png', description: 'Adds an explosion to all projectiles, dealing 60% total damage.', rarity: 'legendary' },
-            'Harvester\'s Scythe': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/e/e1/Harvester%27s_Scythe.png', description: 'Crit strikes heal you for 8 HP.', rarity: 'uncommon' },
-            'Shatterspleen': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/c/cd/Shatterspleen.png', description: 'Crit strikes explode, dealing 400% damage and applying bleed.', rarity: 'boss' },
-            'Ceremonial Dagger': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/7/76/Ceremonial_Dagger.png', description: 'Killing an enemy fires three homing daggers for 150% damage.', rarity: 'legendary' },
-            'Focus Crystal': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/5/59/Focus_Crystal.png', description: 'Deal +20% damage to enemies within 13m.', rarity: 'common' },
-            'Soulbound Catalyst': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/f/f1/Soulbound_Catalyst.png', description: 'Killing an enemy reduces all skill cooldowns by 1s.', rarity: 'legendary' },
-            'Ignition Tank': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/e/ed/Ignition_Tank.png', description: 'Adds an ignition effect to fire damage sources, burning enemies for 300% damage.', rarity: 'legendary' },
-            'Crowbar': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/c/c0/Crowbar.png', description: 'Deal +75% damage to enemies above 90% health.', rarity: 'common' },
-            'Lysate Cell': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/5/53/Lysate_Cell.png', description: 'Adds an additional charge to your Special skill.', rarity: 'lunar' },
-            'Pocket I.C.B.M.': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/f/ff/Pocket_I.C.B.M..png', description: 'Missiles from AtG Missile have a 25% chance to be replaced by a micro-missile.', rarity: 'legendary' },
-            'Bandolier': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/6/62/Bandolier.png', description: '18% chance for enemies to drop an ammo pack on death, resetting all cooldowns.', rarity: 'uncommon' },
-            'Purity': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/a/a2/Purity.png', description: 'Reduces skill cooldowns by 2s per stack. Reduces random effects by 33%.', rarity: 'lunar' },
-            'Strides of Heresy': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/1/1a/Strides_of_Heresy.png', description: 'Replaces your utility skill with an ability that grants invincibility and heals.', rarity: 'lunar' },
-            'Fuel Cell': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/4/4d/Fuel_Cell.png', description: 'Adds 1 charge to your equipment and reduces equipment cooldown.', rarity: 'uncommon' },
-            'Backup Magazine': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/f/f3/Backup_Magazine.png', description: 'Adds an additional charge to your secondary skill.', rarity: 'common' },
-            'N\'kuhana\'s Opinion': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/c/c9/N%27kuhana%27s_Opinion.png', description: 'Store 10% of healing as Soul Energy. Fire 5 skulls for 250% damage when energy is full.', rarity: 'legendary' },
-            'Bustling Fungus': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/3/33/Bustling_Fungus.png', description: 'After standing still for 1s, a healing aura appears and heals for 4.5% of your max HP/s.', rarity: 'common' },
-            'Sentient Meat Hook': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/e/e7/Sentient_Meat_Hook.png', description: '10% chance to fire a seeking hook that pulls enemies in.', rarity: 'legendary' },
-            '57 Leaf Clover': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/e/e5/57_Leaf_Clover.png', description: 'Rerolls all random effects that are not a chance on hit.', rarity: 'legendary' },
-            'Brainstalks': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/c/c0/Brainstalks.png', description: 'Killing an elite monster resets all your skill cooldowns for 4s.', rarity: 'legendary' },
-            'Royal Capacitor': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/e/ef/Royal_Capacitor.png', description: 'Calls down a lightning strike on a target, dealing 2000% damage.', rarity: 'legendary' },
-            'Medkit': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/0/0f/Medkit.png', description: 'Heals for 10 HP after taking damage.', rarity: 'common' },
-            'Planula': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/a/a9/Planula.png', description: 'Heals you for 15 HP after blocking damage.', rarity: 'boss' },
-            'Weeping Fungus': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/e/e1/Weeping_Fungus.png', description: 'After sprinting for 1s, creates a healing aura.', rarity: 'lunar' },
-            'Alien Head': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/2/25/Alien_Head.png', description: 'Reduces skill cooldowns by 25%.', rarity: 'legendary' },
-            'Aegis': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/e/e5/Aegis.png', description: 'Heal for more than your max health to gain a temporary barrier.', rarity: 'legendary' },
-            'Rejuvenation Rack': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/b/be/Rejuvenation_Rack.png', description: 'Doubles all healing received.', rarity: 'legendary' },
-            'Plasma Shrimp': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/c/cf/Plasma_Shrimp.png', description: 'Gain 1 Plasma Shrimp. After 30s, it grants you a second life.', rarity: 'legendary' },
-            'Tougher Times': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/3/39/Tougher_Times.png', description: '15% chance to block all incoming damage.', rarity: 'common' },
-            'Happiest Mask': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/d/d4/Happiest_Mask.png', description: 'Killing an enemy has a 10% chance to summon a ghost.', rarity: 'legendary' },
-            'Death Mark': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/3/34/Death_Mark.png', description: 'Applying 4 unique debuffs to an enemy marks them for death, increasing damage dealt by 50% for 7s.', rarity: 'legendary' },
-            'Primordial Cube': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/d/d9/Primordial_Cube.png', description: 'Sucks enemies into a point, allowing for easy AoE damage.', rarity: 'uncommon' },
-            'Armor-Piercing Rounds': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/f/f0/Armor-Piercing_Rounds.png', description: 'Increases damage to bosses by 20%.', rarity: 'common' },
-            'Disposable Missile Launcher': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/7/78/Disposable_Missile_Launcher.png', description: 'Fires a burst of missiles for 300% total damage.', rarity: 'legendary' },
-            'Cautious Slug': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/c/c6/Cautious_Slug.png', description: 'Gain 3 HP/s while standing still.', rarity: 'common' },
-            'Transcendence': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/8/85/Transcendence.png', description: 'Replaces all HP with shields, which are doubled. Healing converts to shields.', rarity: 'lunar' },
-            'Repulsion Armor Plate': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/a/aa/Repulsion_Armor_Plate.png', description: 'Reduces all incoming damage by 5.', rarity: 'common' },
-            'Razorwire': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/a/ac/Razorwire.png', description: 'Taking damage launches two razorwire projectiles, dealing 160% damage.', rarity: 'common' },
-            'Topaz Brooch': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/c/c5/Topaz_Brooch.png', description: 'Killing an enemy grants you a temporary barrier.', rarity: 'common' },
-            'Dio\'s Best Friend': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/c/c7/Dio%27s_Best_Friend.png', description: 'Grants a second life.', rarity: 'legendary' },
-            'Interstellar Desk Plant': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/d/d1/Interstellar_Desk_Plant.png', description: 'On killing an enemy, a plant grows that heals all allies inside its radius.', rarity: 'uncommon' },
-            'Unstable Tesla Coil': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/e/e4/Unstable_Tesla_Coil.png', description: 'Shock enemies every 0.5s for 200% damage.', rarity: 'legendary' },
-            'Old War Stealthkit': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/2/2c/Old_War_Stealthkit.png', description: 'Taking damage grants 3 seconds of invisibility and 40% move speed.', rarity: 'uncommon' },
-            'H3AD-5T v2': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/9/91/H3AD-5T_v2.png', description: 'Increases jump height. Falling from high up creates a powerful explosion.', rarity: 'legendary' },
-            'Rose Buckler': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/1/1b/Rose_Buckler.png', description: 'Gain +30 armor while sprinting.', rarity: 'uncommon' },
-            'Chronobauble': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/3/30/Chronobauble.png', description: 'Hitting an enemy slows them for 2s.', rarity: 'uncommon' },
-            'Shaped Glass': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/8/88/Shaped_Glass.png', description: 'Increases base damage by 100%, but reduces max health by 50%.', rarity: 'lunar' },
-            'Rejuvenation Rack': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/b/be/Rejuvenation_Rack.png', description: 'Doubles all healing received.', rarity: 'legendary' },
-            'Foreign Fruit': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/7/74/Foreign_Fruit.png', description: 'Heals you for 50% of your max health.', rarity: 'uncommon' },
-            'Visions of Heresy': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/3/31/Visions_of_Heresy.png', description: 'Replaces your primary skill with a powerful but slow projectile.', rarity: 'lunar' },
-            'Hooks of Heresy': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/6/66/Hooks_of_Heresy.png', description: 'Replaces your secondary skill with a powerful hook that deals damage and pulls enemies in.', rarity: 'lunar' },
-            'Essence of Heresy': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/3/3e/Essence_of_Heresy.png', description: 'Replaces your special skill with an ability that spawns a healing beacon.', rarity: 'lunar' },
-            'Gesture of the Drowned': { icon: 'https://static.wikia.nocookie.net/riskofrain2_gamepedia_en/images/c/c9/Gesture_of_the_Drowned.png', description: 'Automatically activates your equipment when its cooldown is ready.', rarity: 'lunar' }
+        const appContent = document.getElementById('app-content');
+        const alertIcon = document.getElementById('alert-icon');
+        const alertButton = document.getElementById('btn-alert');
+        const phaseButtons = {
+            1: document.getElementById('btn-phase1'),
+            2: document.getElementById('btn-phase2'),
+            3: document.getElementById('btn-phase3')
         };
 
-        const survivorTableContainer = document.getElementById('survivorTableContainer');
-        const characterCardContainer = document.getElementById('characterCardContainer');
-        const survivorTableBody = document.getElementById('survivorTableBody');
-        const backButtonTop = document.getElementById('backButtonTop');
-        const backButtonBottom = document.getElementById('backButtonBottom');
-        const characterCard = document.getElementById('characterCard');
-        const themeToggle = document.getElementById('themeToggle');
-        const moonIcon = document.getElementById('moonIcon');
-        const sunIcon = document.getElementById('sunIcon');
+        let currentPhase = 1;
+        let currentScreen = 'home';
+        let isAlertActive = false; // New global state for alert simulation
 
-        // Function to create and render a single character card
-        function renderCharacterCard(character) {
-            function getItemDetails(itemName) {
-                return itemData[itemName] || { icon: 'https://placehold.co/40x40/808080/FFFFFF?text=NA', description: 'No description available.', rarity: 'N/A' };
-            }
+        // --- Helper Functions ---
 
-            function createItemList(items) {
-                return items.map(item => `
-                    <li class="relative group">
-                        <div class="flex items-center gap-2">
-                            <img src="${getItemDetails(item.name).icon}" alt="${item.name} icon" class="w-10 h-10 object-cover rounded-md item-icon-with-border rarity-${getItemDetails(item.name).rarity}">
-                            <span>${item.name}</span>
-                        </div>
-                        <div class="absolute z-10 w-64 p-3 left-1/2 -ml-32 mt-2 bg-gray-800 text-white text-sm rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                            <span class="font-bold">${item.name}:</span> ${getItemDetails(item.name).description}
-                        </div>
-                    </li>
-                `).join('');
-            }
+        const getCard = (title, content, bgColor = 'bg-white', textColor = 'text-ccjpa-navy', extraClass = '') => `
+            <div class="p-4 rounded-xl shadow-md mb-4 ${bgColor} ${textColor} transition duration-300 ${extraClass}">
+                <h3 class="font-bold text-lg mb-2 border-b border-gray-100 pb-1">${title}</h3>
+                <p class="text-sm">${content}</p>
+            </div>
+        `;
 
-            characterCard.innerHTML = `
-                <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4 mb-4">
-                    <img src="${character.image}" alt="${character.name} icon" class="w-24 h-24 object-cover rounded-lg">
+        const getFeatureCard = (icon, title, phase, buttonText = 'Go', buttonAction = '', buttonClass = 'ccjpa-primary') => `
+            <div class="bg-white p-4 rounded-xl shadow-md mb-3 flex items-center justify-between">
+                <div class="flex items-center">
+                    <i class="fas fa-${icon} text-xl w-8 text-ccjpa-gold"></i>
                     <div>
-                        <h2 class="text-xl font-bold text-white mb-1">${character.name}</h2>
-                        <p class="text-gray-400 text-sm">${character.description}</p>
+                        <h4 class="font-semibold text-ccjpa-navy">${title}</h4>
+                        <span class="text-xs text-gray-500">Phase ${phase} Feature</span>
                     </div>
                 </div>
-                <div class="mb-4">
-                    <h3 class="text-lg font-semibold text-white mb-2">Recommended Skills</h3>
-                    <ul class="list-disc list-inside text-gray-400">
-                        ${Object.entries(character.skills).map(([key, value]) => `
-                            <li><strong class="capitalize">${key}:</strong> ${value.name} - ${value.description}</li>
-                        `).join('')}
-                    </ul>
-                </div>
-                <div>
-                    <h3 class="text-lg font-semibold text-white mb-2">Item Priority</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="mb-4 md:mb-0">
-                            <h4 class="item-category text-[#f7b731]">Damage</h4>
-                            <ul class="item-list text-gray-400">
-                                ${createItemList(character.items.damage)}
-                            </ul>
-                        </div>
-                        <div class="mb-4 md:mb-0">
-                            <h4 class="item-category text-[#4cd137]">Survivability</h4>
-                            <ul class="item-list text-gray-400">
-                                ${createItemList(character.items.survivability)}
-                            </ul>
-                        </div>
-                        <div>
-                            <h4 class="item-category text-[#9c88ff]">Mobility/Utility</h4>
-                            <ul class="item-list text-gray-400">
-                                ${createItemList(character.items.mobility)}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-                <div class="mt-4">
-                    <h3 class="text-lg font-semibold text-white mb-2">How to Unlock Abilities and Skins</h3>
-                    <ul class="list-disc list-inside text-gray-400">
-                        ${character.unlocks.map(unlock => `
-                            <li><strong>${unlock.name}:</strong> ${unlock.description}</li>
-                        `).join('')}
-                    </ul>
-                </div>
-            `;
+                <button onclick="${buttonAction}" class="text-sm px-3 py-1 rounded-full text-white ${buttonClass} hover:opacity-90 transition duration-200">${buttonText}</button>
+            </div>
+        `;
+
+        const getBackButton = (targetScreen = 'home') => `
+            <button onclick="setScreen('${targetScreen}')" class="text-ccjpa-navy font-semibold text-sm flex items-center mb-4 hover:opacity-70">
+                <i class="fas fa-arrow-left mr-2"></i> Back
+            </button>
+        `;
+
+        // --- Simulation Functions ---
+
+        function toggleAlert() {
+            isAlertActive = !isAlertActive;
+            
+            // Update the external button state
+            alertButton.textContent = isAlertActive ? 'Simulate Major Alert: ON' : 'Simulate Major Alert: OFF';
+            alertButton.classList.toggle('bg-red-600', isAlertActive);
+            alertButton.classList.toggle('bg-green-500', !isAlertActive);
+            alertButton.classList.toggle('hover:bg-red-700', isAlertActive);
+            alertButton.classList.toggle('hover:bg-green-600', !isAlertActive);
+
+            // Update the in-app bell icon
+            alertIcon.classList.toggle('text-red-500', isAlertActive);
+            alertIcon.classList.toggle('text-white', !isAlertActive);
+            
+            // Re-render the current screen to show the alert change
+            renderScreen();
         }
 
-        // Function to render the table of survivors
-        function renderSurvivorTable() {
-            survivorTableBody.innerHTML = ''; // Clear existing rows
-            characters.forEach(character => {
-                const row = document.createElement('tr');
-                row.classList.add('table-row');
-                row.onclick = () => showCharacterCard(character.name);
-                row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center gap-3">
-                            <img class="w-12 h-12 rounded-full" src="${character.image}" alt="${character.name} icon">
-                            <span class="text-white font-medium">${character.name}</span>
+        // --- Screen Definitions ---
+
+        // 1. Home Screen (Dashboard)
+        const getHomeScreen = (phase) => {
+            let dashboardContent = ``;
+            let liveRouteCard = '';
+            let liveAlerts = '';
+
+            // Live Route Card Styling changes based on alert state
+            if (isAlertActive) {
+                liveRouteCard = `
+                    <div class="bg-red-600/90 p-4 rounded-xl shadow-xl text-white mb-6 border-l-4 border-ccjpa-gold animate-pulse">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-bold text-xl">My Commute (ALERT)</h3>
+                            <i class="fas fa-exclamation-triangle text-ccjpa-gold text-2xl"></i>
                         </div>
-                    </td>
-                    <td class="px-6 py-4 text-sm text-gray-400">
-                        ${character.description}
-                    </td>
+                        <p class="text-sm font-light mb-1">Train 729: Sacramento → Emeryville</p>
+                        <div class="text-3xl font-extrabold text-ccjpa-gold flex justify-between items-end mt-3">
+                            <span>DELAYED: 10:45 AM</span>
+                            <span class="text-lg">40 MIN LATE</span>
+                        </div>
+                        <p class="text-xs mt-1 text-gray-200">Reason: Signal failure near Davis. Check map for updated route.</p>
+                    </div>
                 `;
-                survivorTableBody.appendChild(row);
+                liveAlerts = getCard('Major Travel Alert', 'Train 729 is experiencing a major delay. Please check station screens for latest updates.', 'bg-red-100', 'text-red-700', 'border-l-4 border-red-500');
+            } else {
+                liveRouteCard = `
+                    <div class="bg-white p-4 rounded-xl shadow-xl text-ccjpa-navy mb-6 border-l-4 border-ccjpa-primary">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-bold text-xl">My Commute (Live)</h3>
+                            <i class="fas fa-star text-ccjpa-gold"></i>
+                        </div>
+                        <p class="text-sm font-light mb-1">Train 729: Sacramento → Emeryville</p>
+                        <div class="text-3xl font-extrabold text-ccjpa-primary flex justify-between items-end mt-3">
+                            <span>ETA: 10:05 AM</span>
+                            <span class="text-lg text-green-600 font-bold">ON TIME</span>
+                        </div>
+                        <p class="text-xs mt-1 text-gray-500">Next stop: Martinez (Estimated 9:51 AM)</p>
+                    </div>
+                `;
+                liveAlerts = getCard('Live Travel Alerts', 'All services running on schedule. Enjoy your ride!', 'bg-green-100', 'text-green-700', 'border-l-4 border-green-500');
+            }
+
+            // Phase 1 MVP Content
+            dashboardContent += liveRouteCard;
+            dashboardContent += liveAlerts;
+            dashboardContent += getFeatureCard('clock', 'Search Schedule', 1, 'Search', "setScreen('map')"); // Using map screen for schedule logic simulation
+
+            // Phase 2 Additions
+            if (phase >= 2) {
+                dashboardContent += `
+                    <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-2 border-b pb-1 border-ccjpa-navy/20">Support & Account</h3>
+                    ${getFeatureCard('money-bill-wave', 'Tap2Ride Review & Refunds', 2, 'Manage', "setScreen('tap2ride')", 'bg-ccjpa-gold/90 text-ccjpa-navy')}
+                    ${getFeatureCard('headset', 'Raise a Concern (Zoho CRM)', 2, 'Report', "setScreen('zoho')")}
+                `;
+            }
+
+            // Phase 3 Additions
+            if (phase === 3) {
+                dashboardContent += `
+                    <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-2 border-b pb-1 border-ccjpa-navy/20">Enhanced Services</h3>
+                    ${getFeatureCard('mug-hot', 'OBS Cafe In-Seat Ordering', 3, 'Order Now', "setScreen('cafe_order')", 'bg-green-600')}
+                    ${getFeatureCard('trophy', 'Rewards & Loyalty Program', 3, 'View Status', "setScreen('account')")}
+                `;
+            }
+
+            return `
+                <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">Dashboard</h2>
+                ${dashboardContent}
+                <a href="#" class="block text-center text-sm text-ccjpa-navy/70 mt-4 underline">View All Alerts & Updates</a>
+            `;
+        };
+        
+        // 2. Live Map Screen (Simplified) - Stays largely the same
+        const getMapScreen = () => `
+            <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">Live Route Map</h2>
+            <div class="bg-gray-200 border-2 border-ccjpa-navy/50 h-64 rounded-xl flex items-center justify-center mb-4 relative">
+                <p class="text-ccjpa-navy/60 font-semibold">Interactive Real-Time Map (Google/Mapbox Integration)</p>
+                <div class="absolute top-2 left-2 bg-white px-2 py-1 rounded-full text-sm shadow-md">
+                    <i class="fas fa-train text-ccjpa-gold"></i> Train 729 Location
+                </div>
+                <div class="absolute bottom-4 right-4 bg-ccjpa-navy text-white text-xs px-2 py-1 rounded-lg">
+                    <i class="fas fa-location-dot"></i> Approx. 10 minutes to Richmond
+                </div>
+            </div>
+            ${getFeatureCard('route', 'Detailed Route Planner', 1, 'Plan Trip')}
+            ${getFeatureCard('map-pin', 'Station Amenities & Connections', 2, 'Explore')}
+        `;
+
+        // 3. Tickets/Purchasing Screen (Varies slightly by phase)
+        const getTicketsScreen = (phase) => {
+            let content;
+            if (phase === 1) {
+                content = `
+                    <div class="bg-ccjpa-light p-4 rounded-xl shadow-lg border-l-4 border-ccjpa-gold mb-6">
+                        <p class="font-semibold text-lg text-ccjpa-navy">External Ticketing Link (Phase 1)</p>
+                        <p class="text-sm text-gray-600 mt-1">All purchases are directed to the secure Amtrak ticketing portal for immediate MVP launch.</p>
+                    </div>
+                    <a href="#" class="w-full inline-block ccjpa-accent text-ccjpa-navy font-bold py-3 text-center rounded-xl shadow-lg hover:opacity-90">
+                        <i class="fas fa-external-link-alt mr-2"></i> Purchase Tickets Now
+                    </a>
+                `;
+            } else { // Phase 2 and 3
+                content = `
+                    <div class="bg-white p-4 rounded-xl shadow-lg border-l-4 border-ccjpa-primary mb-6">
+                        <p class="font-semibold text-lg text-ccjpa-navy">In-App Ticket Wallet (Phase 2+)</p>
+                        <p class="text-sm text-gray-600 mt-1">Manage, activate, and show tickets directly inside the app using the integrated secure mobile wallet.</p>
+                    </div>
+                    <div class="space-y-3">
+                        ${getFeatureCard('qrcode', 'Show My Active Ticket', 2, 'View QR Code', 'bg-green-600')}
+                        ${getFeatureCard('plus-circle', 'Buy New Ticket (In-App)', 2, 'Buy Now', 'ccjpa-primary')}
+                        ${getFeatureCard('receipt', 'Review Ticket History', 2, 'History')}
+                    </div>
+                `;
+            }
+
+            return `
+                <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">Tickets & Fares</h2>
+                ${content}
+            `;
+        };
+        
+        // 4. Account Screen (Most dynamic screen for Phase 2/3 features)
+        const getAccountScreen = (phase) => {
+            let accountFeatures = `
+                <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-2 border-b pb-1 border-ccjpa-navy/20">Basic Account (Phase 1)</h3>
+                ${getFeatureCard('route', 'Manage Favorite Routes', 1, 'Edit')}
+                ${getFeatureCard('key', 'Change Password', 1, 'Go')}
+            `;
+
+            if (phase >= 2) {
+                accountFeatures += `
+                    <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-2 border-b pb-1 border-ccjpa-navy/20">Enhanced Services (Phase 2)</h3>
+                    ${getFeatureCard('money-bill-wave', 'Tap2Ride Account & Refunds', 2, 'Manage', "setScreen('tap2ride')", 'bg-ccjpa-gold/90 text-ccjpa-navy')}
+                    ${getFeatureCard('comment-dots', 'Customer Support & Zoho', 2, 'Report Issue', "setScreen('zoho')")}
+                `;
+            }
+
+            if (phase === 3) {
+                accountFeatures += `
+                    <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-2 border-b pb-1 border-ccjpa-navy/20">Engagement (Phase 3)</h3>
+                    ${getFeatureCard('gift', 'My Rewards & Loyalty Status', 3, 'Redeem', 'bg-green-600')}
+                    ${getFeatureCard('utensils', 'Cafe Pre-Order History', 3, 'History')}
+                `;
+            }
+
+            return `
+                <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">My CCJPA Account</h2>
+                <div class="bg-ccjpa-navy text-white p-4 rounded-xl text-center mb-6 shadow-md">
+                    <p class="text-sm">Welcome Back,</p>
+                    <p class="text-xl font-bold">CCJPA Commuter</p>
+                </div>
+                ${accountFeatures}
+            `;
+        };
+        
+        // 5. Tap2Ride Dedicated Screen (Phase 2)
+        const getTap2RideScreen = () => `
+            ${getBackButton('account')}
+            <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">Tap2Ride Account</h2>
+            <div class="ccjpa-accent p-4 rounded-xl text-center mb-6 shadow-md">
+                <p class="text-sm font-semibold">Current Balance:</p>
+                <p class="text-3xl font-extrabold text-ccjpa-navy">$124.50</p>
+            </div>
+            
+            <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-3 border-b pb-1">Recent Trips</h3>
+            ${getCard('Trip 1: Sacramento to Emeryville', 'Date: Nov 15 | Cost: $34.00 | <span class="text-green-600">Status: Completed</span>', 'bg-white', 'text-ccjpa-navy')}
+            ${getCard('Trip 2: Davis to Richmond', 'Date: Nov 14 | Cost: $22.50 | <span class="text-red-600">Status: Auto-Correction Pending</span> <button class="text-sm text-ccjpa-primary underline ml-2">Request Refund</button>', 'bg-white', 'text-ccjpa-navy')}
+            
+            <button class="w-full ccjpa-primary text-white font-bold py-3 mt-4 rounded-xl shadow-lg hover:opacity-90">View All Transactions</button>
+        `;
+        
+        // 6. Zoho CRM Dedicated Screen (Phase 2)
+        const getZohoCrmScreen = () => `
+            ${getBackButton('account')}
+            <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">Raise a Concern</h2>
+            <div class="bg-white p-4 rounded-xl shadow-md mb-6">
+                <p class="text-sm mb-3">Submit a complaint, lost item report, or general feedback. We'll track it using Zoho CRM.</p>
+                
+                <label class="block text-sm font-medium text-gray-700 mb-1" for="concern-type">Type of Issue:</label>
+                <select id="concern-type" class="w-full p-2 border border-gray-300 rounded-md mb-3 focus:ring-ccjpa-primary focus:border-ccjpa-primary">
+                    <option>Select...</option>
+                    <option>Delay / Service Complaint</option>
+                    <option>Staff Feedback</option>
+                    <option>Lost & Found</option>
+                    <option>Facility Issue</option>
+                </select>
+
+                <label class="block text-sm font-medium text-gray-700 mb-1" for="concern-details">Details:</label>
+                <textarea id="concern-details" rows="4" placeholder="Briefly describe your concern..." class="w-full p-2 border border-gray-300 rounded-md mb-4 focus:ring-ccjpa-primary focus:border-ccjpa-primary"></textarea>
+                
+                <button class="w-full ccjpa-primary text-white font-bold py-3 rounded-xl shadow-lg hover:opacity-90">Submit Report</button>
+            </div>
+            
+            <div class="text-center text-sm text-gray-500">
+                Your case ID will be sent via email for tracking.
+            </div>
+        `;
+
+        // 7. OBS Cafe Ordering Dedicated Screen (Phase 3)
+        const getCafeOrderingScreen = () => `
+            ${getBackButton('home')}
+            <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">OBS Cafe: Order from Seat</h2>
+            
+            <div class="bg-green-100 p-3 rounded-xl shadow-md mb-6 flex items-center justify-between border-l-4 border-green-600">
+                <p class="text-green-800 font-semibold">Your order will be ready for pickup at the Cafe Car in 5-8 minutes.</p>
+                <i class="fas fa-check-circle text-2xl text-green-600"></i>
+            </div>
+            
+            <h3 class="font-bold text-ccjpa-navy text-lg mb-3">Menu Highlights</h3>
+            
+            <!-- Menu Item Card -->
+            <div class="bg-white p-4 rounded-xl shadow-md mb-3 flex justify-between items-center">
+                <div>
+                    <p class="font-semibold text-ccjpa-navy">Capitol Coffee Blend</p>
+                    <p class="text-sm text-gray-500">$3.50 | Hot/Iced</p>
+                </div>
+                <button class="bg-ccjpa-gold text-ccjpa-navy px-3 py-1 rounded-full font-bold text-sm hover:opacity-80">Add +</button>
+            </div>
+            
+            <!-- Menu Item Card -->
+            <div class="bg-white p-4 rounded-xl shadow-md mb-3 flex justify-between items-center">
+                <div>
+                    <p class="font-semibold text-ccjpa-navy">Bay Area Bagel</p>
+                    <p class="text-sm text-gray-500">$4.00 | Cream Cheese Option</p>
+                </div>
+                <button class="bg-ccjpa-gold text-ccjpa-navy px-3 py-1 rounded-full font-bold text-sm hover:opacity-80">Add +</button>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl shadow-md mt-6">
+                <p class="font-bold text-lg text-ccjpa-navy mb-2">Order Summary</p>
+                <div class="flex justify-between text-sm text-gray-600">
+                    <span>Subtotal:</span>
+                    <span>$7.50</span>
+                </div>
+                <div class="flex justify-between text-base font-bold text-ccjpa-navy mt-1">
+                    <span>Total:</span>
+                    <span>$7.50</span>
+                </div>
+                <button class="w-full ccjpa-primary text-white font-bold py-3 mt-3 rounded-xl shadow-lg hover:opacity-90">Complete Order</button>
+            </div>
+        `;
+        
+
+        // --- Controller Logic ---
+
+        function renderScreen() {
+            let html = '';
+            const phase = currentPhase;
+            
+            appContent.innerHTML = '';
+            
+            // Render the specific screen based on current state
+            switch (currentScreen) {
+                case 'home':
+                    html = getHomeScreen(phase);
+                    break;
+                case 'map':
+                    html = getMapScreen(phase);
+                    break;
+                case 'tickets':
+                    html = getTicketsScreen(phase);
+                    break;
+                case 'account':
+                    html = getAccountScreen(phase);
+                    break;
+                case 'tap2ride':
+                    html = getTap2RideScreen();
+                    break;
+                case 'zoho':
+                    html = getZohoCrmScreen();
+                    break;
+                case 'cafe_order':
+                    html = getCafeOrderingScreen();
+                    break;
+                default:
+                    html = getHomeScreen(phase);
+                    break;
+            }
+
+            appContent.innerHTML = html;
+            updateNavBar();
+        }
+
+        function setScreen(screenName) {
+            currentScreen = screenName;
+            // Hide the navigation bar for deep-dive utility screens, show for main screens
+            const navBar = document.getElementById('nav-bar');
+            if (['home', 'map', 'tickets', 'account'].includes(screenName)) {
+                navBar.style.display = 'flex';
+            } else {
+                navBar.style.display = 'none';
+            }
+            renderScreen();
+        }
+
+        function setPhase(phase) {
+            currentPhase = phase;
+            currentScreen = 'home'; 
+            renderScreen();
+            updatePhaseButtons();
+        }
+
+        function updatePhaseButtons() {
+            Object.keys(phaseButtons).forEach(key => {
+                const btn = phaseButtons[key];
+                if (parseInt(key) === currentPhase) {
+                    btn.classList.add('ccjpa-accent');
+                    btn.classList.remove('bg-ccjpa-light', 'text-ccjpa-navy');
+                } else {
+                    btn.classList.add('bg-ccjpa-light', 'text-ccjpa-navy');
+                    btn.classList.remove('ccjpa-accent');
+                }
             });
         }
 
-        // Function to show the character card and hide the table
-        function showCharacterCard(characterName) {
-            const character = characters.find(c => c.name === characterName);
-            if (character) {
-                renderCharacterCard(character);
-                survivorTableContainer.classList.add('hidden');
-                characterCardContainer.classList.remove('hidden');
-            }
+        function updateNavBar() {
+            document.querySelectorAll('.nav-icon').forEach(iconButton => {
+                const isMainScreen = ['home', 'map', 'tickets', 'account'].includes(currentScreen);
+                
+                // Only apply active state if on a main navigation screen
+                if (isMainScreen && iconButton.getAttribute('data-screen') === currentScreen) {
+                    iconButton.classList.add('text-ccjpa-gold');
+                    iconButton.classList.remove('text-gray-400', 'hover:text-white');
+                } else {
+                    iconButton.classList.add('text-gray-400');
+                    iconButton.classList.remove('text-ccjpa-gold');
+                }
+            });
         }
 
-        // Function to show the table and hide the character card
-        function showSurvivorTable() {
-            characterCardContainer.classList.add('hidden');
-            survivorTableContainer.classList.remove('hidden');
-        }
-
-        // Dark/Light mode toggle functionality
-        function toggleTheme() {
-            const isLight = document.body.classList.toggle('light');
-            if (isLight) {
-                moonIcon.classList.add('hidden');
-                sunIcon.classList.remove('hidden');
-            } else {
-                moonIcon.classList.remove('hidden');
-                sunIcon.classList.add('hidden');
-            }
-        }
-
-        // Event listener for the back buttons
-        backButtonTop.addEventListener('click', showSurvivorTable);
-        backButtonBottom.addEventListener('click', showSurvivorTable);
-        themeToggle.addEventListener('click', toggleTheme);
-
-        // Initial render on page load
-        window.onload = function() {
-            renderSurvivorTable();
+        // Initialize the app when the page loads
+        window.onload = () => {
+            setPhase(1); // Start with Phase 1 MVP
         };
+
     </script>
 </body>
 </html>

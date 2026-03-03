@@ -373,7 +373,8 @@
             // Find the very first stop for trip A and B
             const firstStopA = tripStops[a].sort((x,y) => parseInt(x.stop_sequence) - parseInt(y.stop_sequence))[0];
             const firstStopB = tripStops[b].sort((x,y) => parseInt(x.stop_sequence) - parseInt(y.stop_sequence))[0];
-            return firstStopA.departure_time.localeCompare(firstStopB.departure_time);
+            // Compare numerically instead of alphabetically
+            return timeStrToSeconds(firstStopA.departure_time) - timeStrToSeconds(firstStopB.departure_time);
         });
 
         // 6. Build the HTML Table String
@@ -430,12 +431,38 @@
         showMessage("Schedule generated successfully!", "success");
     }
 
+    // Helper to convert GTFS "HH:MM:SS" to total seconds for accurate numerical sorting
+    function timeStrToSeconds(timeStr) {
+        if (!timeStr) return 0;
+        const parts = timeStr.split(':');
+        let seconds = 0;
+        if (parts.length >= 2) {
+            seconds += parseInt(parts[0], 10) * 3600; // Hours
+            seconds += parseInt(parts[1], 10) * 60;   // Minutes
+            if (parts[2]) seconds += parseInt(parts[2], 10); // Seconds
+        }
+        return seconds;
+    }
+
     // Helper to format GTFS "HH:MM:SS" strictly for display if needed
     function formatTime(timeStr) {
         if (!timeStr) return '--';
         const parts = timeStr.split(':');
         if (parts.length >= 2) {
-            return `${parts[0]}:${parts[1]}`; // strips seconds
+            let hours = parseInt(parts[0], 10);
+            const minutes = parts[1];
+            
+            // Handle GTFS times past midnight (e.g., 25:30:00 becomes 1:30)
+            hours = hours % 24;
+            
+            // Determine AM or PM ('a' or 'p')
+            const period = hours >= 12 ? 'p' : 'a';
+            
+            // Convert to 12-hour format
+            hours = hours % 12;
+            hours = hours ? hours : 12; // the hour '0' should be '12'
+            
+            return `${hours}:${minutes}${period}`;
         }
         return timeStr;
     }

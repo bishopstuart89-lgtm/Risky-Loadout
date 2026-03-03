@@ -3,719 +3,450 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CCJPA Passenger App Prototype</title>
-    <!-- Load Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <title>CCJPA Schedule Validator</title>
+    <!-- PapaParse for parsing CSV/TXT files in the browser without a backend -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
-        /* Define CCJPA Colors (Based on Onboard Portal Style) */
-        .ccjpa-primary { background-color: #26315b; } /* Dark Blue/Main */
-        .ccjpa-accent { background-color: #fee129; color: #26315b; } /* Bright Yellow/Secondary Highlight */
-        .ccjpa-action-button { background-color: #eeb111; color: #000000; } /* Action Gold for primary buttons */
-        .ccjpa-text-accent { color: #fee129; }
-        .ccjpa-border-accent { border-color: #fee129; }
-        .ccjpa-list-shadow { box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03); }
+        :root {
+            --cc-navy: #1D1B4D;
+            --cc-yellow: #FFC709;
+            --cc-gray: #f1f3f5;
+        }
 
-        /* Mobile Frame Styling */
-        #app-frame {
-            height: 700px; /* Fixed height for mobile simulation */
-            width: 380px; /* Fixed width for mobile simulation */
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
-            border-radius: 2rem;
-            border: 10px solid #333;
-            overflow: hidden;
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+
+        header {
+            background-color: var(--cc-navy);
+            color: white;
+            padding: 20px 40px;
+            border-bottom: 5px solid var(--cc-yellow);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        /* FAQ Section */
+        .faq-section {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            border-left: 4px solid var(--cc-yellow);
+        }
+
+        .faq-section h2 {
+            margin-top: 0;
+            color: var(--cc-navy);
+        }
+
+        .faq-item {
+            margin-bottom: 15px;
+        }
+
+        .faq-item strong {
+            display: block;
+            margin-bottom: 5px;
+            color: #444;
+        }
+
+        /* Controls Section */
+        .controls {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            align-items: end;
+        }
+
+        .form-group {
             display: flex;
             flex-direction: column;
-            position: relative;
         }
 
-        /* Custom scrollbar for content */
-        .scrollable-content::-webkit-scrollbar {
-            width: 4px;
+        .form-group label {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: var(--cc-navy);
         }
-        .scrollable-content::-webkit-scrollbar-thumb {
-            background-color: rgba(254, 225, 41, 0.5); /* Yellow/Gold semi-transparent */
-            border-radius: 2px;
+
+        select, input[type="file"] {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
         }
-        .scrollable-content::-webkit-scrollbar-track {
-            background: #26315b;
+
+        button.primary {
+            background-color: var(--cc-yellow);
+            color: var(--cc-navy);
+            font-weight: bold;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s;
+        }
+
+        button.primary:hover {
+            background-color: #e6b300;
+        }
+
+        /* Message Box */
+        #message-box {
+            display: none;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .error { background-color: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+        .success { background-color: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+
+        /* The Generated Schedule CSS */
+        .table-container {
+            overflow-x: auto;
+            width: 100%;
+            margin: 20px 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            background: white;
+        }
+        
+        .ccjpa-schedule {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            text-align: center;
+            font-size: 14px;
+            background-color: #ffffff;
+            min-width: 800px;
+        }
+
+        .ccjpa-schedule th, .ccjpa-schedule td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e0e0e0;
+            border-right: 1px solid #e0e0e0;
+            white-space: nowrap;
+        }
+
+        .ccjpa-schedule thead th {
+            background-color: var(--cc-navy);
+            color: #ffffff;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            border-bottom: 4px solid var(--cc-yellow);
+            z-index: 2;
+        }
+
+        .ccjpa-schedule tbody th {
+            text-align: right;
+            font-weight: bold;
+            color: #333333;
+            background-color: #f8f9fa;
+            position: sticky;
+            left: 0;
+            z-index: 1;
+            border-right: 2px solid var(--cc-navy);
+        }
+
+        .ccjpa-schedule tbody tr:nth-child(even) th,
+        .ccjpa-schedule tbody tr:nth-child(even) td {
+            background-color: var(--cc-gray);
+        }
+        
+        .ccjpa-schedule tbody tr:hover td,
+        .ccjpa-schedule tbody tr:hover th {
+            background-color: #e2e6ea;
+        }
+
+        #raw-html-container {
+            margin-top: 20px;
+            display: none;
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            font-family: monospace;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
         }
     </style>
-    <script>
-        // Set up custom Tailwind colors for the prototype
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'ccjpa-navy': '#26315b',
-                        'ccjpa-gold': '#fee129',
-                        'ccjpa-action': '#eeb111',
-                        'ccjpa-light': '#F5F5F5',
-                    },
-                }
+</head>
+<body>
+
+<header>
+    <h1>CCJPA Web Schedule Validator</h1>
+</header>
+
+<div class="container">
+    
+    <!-- FAQ Section -->
+    <div class="faq-section">
+        <h2>How to use this tool</h2>
+        <div class="faq-item">
+            <strong>What is this tool?</strong>
+            This application allows the CCJPA team to upload raw GTFS transit data and instantly generate responsive, accessible HTML tables matching the Capitol Corridor brand. You can use this to visually validate schedules before sending data to the mobile app, or to generate the HTML needed for the public website.
+        </div>
+        <div class="faq-item">
+            <strong>Which files do I need to upload?</strong>
+            You must select three specific files extracted from your GTFS Zip folder: <code>stops.txt</code>, <code>trips.txt</code>, and <code>stop_times.txt</code>.
+        </div>
+        <div class="faq-item">
+            <strong>How do I put this on the website?</strong>
+            Once generated, click "Copy HTML Code" at the bottom of the page. You can paste that code directly into your CMS (like WordPress) to update the live schedule page.
+        </div>
+    </div>
+
+    <div id="message-box"></div>
+
+    <!-- Controls -->
+    <div class="controls">
+        <div class="form-group">
+            <label for="gtfs-files">1. Upload GTFS Files (Select stops, trips, and stop_times)</label>
+            <input type="file" id="gtfs-files" multiple accept=".txt">
+        </div>
+        <div class="form-group">
+            <label for="service-id">2. Select Service Period</label>
+            <select id="service-id">
+                <option value="Weekday">Weekday</option>
+                <option value="Weekend">Weekend</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="direction-id">3. Select Direction</label>
+            <select id="direction-id">
+                <option value="1">Westbound / Southbound (To San Jose)</option>
+                <option value="0">Eastbound / Northbound (To Auburn)</option>
+            </select>
+        </div>
+        <button class="primary" onclick="processGTFS()">Generate Schedule</button>
+    </div>
+
+    <!-- Output Area -->
+    <div id="output-container"></div>
+    
+    <div id="raw-html-container">
+        <h3>Generated HTML Code</h3>
+        <p>Copy this code and paste it into the HTML editor of your website CMS.</p>
+        <textarea id="raw-html" readonly></textarea>
+        <button class="primary" style="margin-top: 10px;" onclick="copyHTML()">Copy to Clipboard</button>
+    </div>
+
+</div>
+
+<script>
+    // Global objects to hold our parsed GTFS data
+    let gtfsData = {
+        stops: null,
+        trips: null,
+        stop_times: null
+    };
+
+    function showMessage(msg, type) {
+        const box = document.getElementById('message-box');
+        box.textContent = msg;
+        box.className = type;
+        box.style.display = 'block';
+        setTimeout(() => box.style.display = 'none', 6000);
+    }
+
+    // Process files on Generate click
+    async function processGTFS() {
+        const fileInput = document.getElementById('gtfs-files');
+        const files = fileInput.files;
+
+        if (files.length === 0 && !gtfsData.stops) {
+            showMessage("Please select the GTFS .txt files first.", "error");
+            return;
+        }
+
+        // Only parse files if new ones are uploaded
+        if (files.length > 0) {
+            gtfsData = { stops: null, trips: null, stop_times: null };
+            let parsedCount = 0;
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const name = file.name.toLowerCase();
+                
+                if (name === 'stops.txt') await parseCSV(file, 'stops');
+                else if (name === 'trips.txt') await parseCSV(file, 'trips');
+                else if (name === 'stop_times.txt') await parseCSV(file, 'stop_times');
+            }
+
+            if (!gtfsData.stops || !gtfsData.trips || !gtfsData.stop_times) {
+                showMessage("Missing required files. Please ensure stops.txt, trips.txt, and stop_times.txt are all selected.", "error");
+                return;
             }
         }
-    </script>
-</head>
-<body class="bg-gray-100 flex flex-col items-center justify-start min-h-screen p-4 font-sans">
 
-    <h1 class="text-2xl font-bold mb-4 text-ccjpa-navy">CCJPA App Release Prototype</h1>
-    
-    <!-- External Controls -->
-    <div class="mb-6 flex flex-col space-y-2 p-3 bg-ccjpa-navy rounded-xl shadow-lg">
-        <div class="flex space-x-2">
-            <button id="btn-phase1" onclick="setPhase(1)" class="px-3 py-1 text-sm font-semibold rounded-lg transition duration-200 text-ccjpa-navy bg-ccjpa-light">Phase 1: MVP</button>
-            <button id="btn-phase2" onclick="setPhase(2)" class="px-3 py-1 text-sm font-semibold rounded-lg transition duration-200 text-ccjpa-navy bg-ccjpa-light">Phase 2: Enhancement</button>
-            <button id="btn-phase3" onclick="setPhase(3)" class="px-3 py-1 text-sm font-semibold rounded-lg transition duration-200 text-ccjpa-navy bg-ccjpa-light">Phase 3: Future Vision</button>
-        </div>
+        generateTable();
+    }
+
+    // Promisified PapaParse for cleaner async flow
+    function parseCSV(file, key) {
+        return new Promise((resolve) => {
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    gtfsData[key] = results.data;
+                    resolve();
+                }
+            });
+        });
+    }
+
+    function generateTable() {
+        const service = document.getElementById('service-id').value;
+        const direction = document.getElementById('direction-id').value;
         
-        <!-- ALERT SIMULATION BUTTON -->
-        <button id="btn-alert" onclick="toggleAlert()" class="px-4 py-2 text-sm font-bold rounded-lg transition duration-300 shadow-md bg-green-500 text-white hover:bg-green-600">
-            Simulate Major Alert: OFF
-        </button>
-    </div>
+        // 1. Map Stop IDs to Names
+        const stopsMap = {};
+        gtfsData.stops.forEach(s => stopsMap[s.stop_id] = s.stop_name);
 
-    <!-- Mobile App Frame -->
-    <div id="app-frame" class="bg-ccjpa-light">
-        
-        <!-- Header (Universal) -->
-        <div id="app-header" class="ccjpa-primary text-white p-4 flex justify-between items-center shadow-md">
-            <h2 class="text-xl font-bold">CAPITOL CORRIDOR</h2>
-            <i id="alert-icon" class="fas fa-bell text-white text-xl transition-colors duration-300" title="Alerts"></i>
-        </div>
+        // 2. Filter Trips (Capitol Corridor route_id is 'CC')
+        const relevantTrips = gtfsData.trips.filter(t => 
+            t.route_id === 'CC' && 
+            t.service_id === service && 
+            t.direction_id === direction
+        );
 
-        <!-- Content Area -->
-        <div id="app-content" class="flex-grow scrollable-content overflow-y-auto p-4">
-            <!-- Content for the active phase/screen will be inserted here -->
-        </div>
-        
-        <!-- Navigation Bar (Universal) -->
-        <div id="nav-bar" class="ccjpa-primary h-14 w-full flex justify-around items-center border-t border-ccjpa-gold shadow-2xl">
-            <!-- Icons will be dynamically colored based on the 'active' screen -->
-            <button onclick="setScreen('home')" class="nav-icon text-gray-400 hover:text-white transition duration-200" data-screen="home">
-                <i class="fas fa-home text-2xl"></i>
-                <span class="text-xs block">Home</span>
-            </button>
-            <button onclick="setScreen('map')" class="nav-icon text-gray-400 hover:text-white transition duration-200" data-screen="map">
-                <i class="fas fa-map-marked-alt text-2xl"></i>
-                <span class="text-xs block">Map</span>
-            </button>
-            <button onclick="setScreen('tickets')" class="nav-icon text-gray-400 hover:text-white transition duration-200" data-screen="tickets">
-                <i class="fas fa-ticket-alt text-2xl"></i>
-                <span class="text-xs block">Tickets</span>
-            </button>
-            <button onclick="setScreen('support')" class="nav-icon text-gray-400 hover:text-white transition duration-200" data-screen="support">
-                <i class="fas fa-headset text-2xl"></i>
-                <span class="text-xs block">Support</span>
-            </button>
-        </div>
-    </div>
+        if (relevantTrips.length === 0) {
+            showMessage(`No trips found for Capitol Corridor ${service} in Direction ${direction}.`, "error");
+            document.getElementById('output-container').innerHTML = '';
+            document.getElementById('raw-html-container').style.display = 'none';
+            return;
+        }
 
-    <script>
-        (function() {
-            const appContent = document.getElementById('app-content');
-            const alertIcon = document.getElementById('alert-icon');
-            const alertButton = document.getElementById('btn-alert');
-            const phaseButtons = {
-                1: document.getElementById('btn-phase1'),
-                2: document.getElementById('btn-phase2'),
-                3: document.getElementById('btn-phase3')
-            };
+        const tripIds = new Set(relevantTrips.map(t => t.trip_id));
 
-            let currentPhase = 1;
-            let currentScreen = 'home';
-            let isAlertActive = false; // New global state for alert simulation
+        // 3. Filter Stop Times
+        const relevantStopTimes = gtfsData.stop_times.filter(st => tripIds.has(st.trip_id));
 
-            // --- Helper Functions ---
+        // Group stop times by trip
+        const tripStops = {};
+        relevantStopTimes.forEach(st => {
+            if (!tripStops[st.trip_id]) tripStops[st.trip_id] = [];
+            tripStops[st.trip_id].push(st);
+        });
 
-            const getCard = (title, content, bgColor = 'bg-white', textColor = 'text-ccjpa-navy', extraClass = '') => `
-                <div class="p-4 rounded-xl shadow-md mb-4 ${bgColor} ${textColor} transition duration-300 ${extraClass}">
-                    <h3 class="font-bold text-lg mb-2 border-b border-gray-100 pb-1">${title}</h3>
-                    <p class="text-sm">${content}</p>
-                </div>
-            `;
-            
-            // NEW LIGHTWEIGHT LIST ITEM STYLE
-            const getListItemLink = (title, description, icon, buttonAction) => `
-                <div onclick="${buttonAction}" class="bg-white p-4 flex items-center justify-between ccjpa-list-shadow rounded-lg transition duration-200 hover:bg-gray-50 cursor-pointer">
-                    <div class="flex items-center">
-                        <div class="w-8 h-8 flex items-center justify-center bg-ccjpa-gold rounded-full mr-3 flex-shrink-0">
-                            <i class="fas fa-${icon} text-ccjpa-navy text-sm"></i>
-                        </div>
-                        <div>
-                            <p class="font-semibold text-ccjpa-navy text-sm">${title}</p>
-                            <p class="text-xs text-gray-500">${description}</p>
-                        </div>
-                    </div>
-                    <i class="fas fa-chevron-right text-ccjpa-gold text-xs ml-4"></i>
-                </div>
-            `;
-
-
-            const getBackButton = (targetScreen = 'home') => `
-                <button onclick="setScreen('${targetScreen}')" class="text-ccjpa-navy font-semibold text-sm flex items-center mb-4 hover:opacity-70">
-                    <i class="fas fa-arrow-left mr-2"></i> Back
-                </button>
-            `;
-
-            // --- Simulation Functions ---
-
-            window.toggleAlert = function() {
-                isAlertActive = !isAlertActive;
-                
-                // Update the external button state
-                alertButton.textContent = isAlertActive ? 'Simulate Major Alert: ON' : 'Simulate Major Alert: OFF';
-                alertButton.classList.toggle('bg-red-600', isAlertActive);
-                alertButton.classList.toggle('bg-green-500', !isAlertActive);
-                alertButton.classList.toggle('hover:bg-red-700', isAlertActive);
-                alertButton.classList.toggle('hover:bg-green-600', !isAlertActive);
-
-                // Update the in-app bell icon
-                alertIcon.classList.toggle('text-ccjpa-gold', isAlertActive);
-                alertIcon.classList.toggle('text-white', !isAlertActive);
-                
-                // Re-render the current screen to show the alert change
-                renderScreen();
+        // 4. Determine Geographical Station Order (Find the longest trip)
+        let maxStops = 0;
+        let longestTripId = null;
+        for (const [tId, stops] of Object.entries(tripStops)) {
+            if (stops.length > maxStops) {
+                maxStops = stops.length;
+                longestTripId = tId;
             }
+        }
 
-            // --- Screen Definitions ---
+        const masterStops = tripStops[longestTripId]
+            .sort((a, b) => parseInt(a.stop_sequence) - parseInt(b.stop_sequence))
+            .map(st => ({ id: st.stop_id, name: stopsMap[st.stop_id] }));
 
-            // 1. Home Screen (Dashboard)
-            const getHomeScreen = (phase) => {
-                let dashboardContent = ``;
-                let liveRouteCard = '';
-                let liveAlerts = '';
+        // 5. Determine Chronological Train Order (Left to Right)
+        const sortedTripIds = Object.keys(tripStops).sort((a, b) => {
+            // Find the very first stop for trip A and B
+            const firstStopA = tripStops[a].sort((x,y) => parseInt(x.stop_sequence) - parseInt(y.stop_sequence))[0];
+            const firstStopB = tripStops[b].sort((x,y) => parseInt(x.stop_sequence) - parseInt(y.stop_sequence))[0];
+            return firstStopA.departure_time.localeCompare(firstStopB.departure_time);
+        });
 
-                // Live Route Card Styling changes based on alert state
-                if (isAlertActive) {
-                    // Using primary navy background for alert for contrast, yellow text
-                    liveRouteCard = `
-                        <div class="ccjpa-primary p-4 rounded-xl shadow-xl text-white mb-6 border-l-4 border-ccjpa-gold animate-pulse">
-                            <div class="flex justify-between items-center mb-2">
-                                <h3 class="font-bold text-xl">My Commute (ALERT)</h3>
-                                <i class="fas fa-exclamation-triangle text-ccjpa-gold text-2xl"></i>
-                            </div>
-                            <p class="text-sm font-light mb-1 text-ccjpa-text-accent">Train 729: Sacramento → Emeryville</p>
-                            <div class="text-3xl font-extrabold text-ccjpa-gold flex justify-between items-end mt-3">
-                                <span>DELAYED: 10:45 AM</span>
-                                <span class="text-lg">40 MIN LATE</span>
-                            </div>
-                            <p class="text-xs mt-1 text-gray-200">Reason: Signal failure near Davis. Check map for updated route.</p>
-                        </div>
-                    `;
-                    liveAlerts = getCard('Major Travel Alert', 'Train 729 is experiencing a major delay. Please check station screens for latest updates.', 'bg-red-100', 'text-red-700', 'border-l-4 border-red-500');
+        // 6. Build the HTML Table String
+        let tableHTML = `
+<div class="table-container">
+  <table class="ccjpa-schedule" aria-label="${service} Train Schedule">
+    <thead>
+      <tr>
+        <th scope="col">Station</th>`;
+        
+        // Add headers for each train
+        sortedTripIds.forEach(tId => {
+            // Strip any internal characters to just get the base train number if desired
+            let displayId = tId;
+            tableHTML += `<th scope="col">Train ${displayId}</th>`;
+        });
+        
+        tableHTML += `
+      </tr>
+    </thead>
+    <tbody>`;
+
+        // Add rows for each station in geographical order
+        masterStops.forEach(station => {
+            tableHTML += `\n      <tr>\n        <th scope="row">${station.name}</th>`;
+            
+            sortedTripIds.forEach(tId => {
+                // Find if this train stops at this station
+                const stopData = tripStops[tId].find(st => st.stop_id === station.id);
+                if (stopData) {
+                    // Convert 24h format (e.g. 14:30:00) to 12h format if desired, or keep raw.
+                    // Keeping raw GTFS time string for simplicity and direct match validation.
+                    tableHTML += `\n        <td>${formatTime(stopData.departure_time)}</td>`;
                 } else {
-                    liveRouteCard = `
-                        <div class="bg-white p-4 rounded-xl shadow-xl text-ccjpa-navy mb-6 border-l-4 border-ccjpa-primary">
-                            <div class="flex justify-between items-center mb-2">
-                                <h3 class="font-bold text-xl">My Commute (Live)</h3>
-                                <i class="fas fa-star text-ccjpa-gold"></i>
-                            </div>
-                            <p class="text-sm font-light mb-1">Train 729: Sacramento → Emeryville</p>
-                            <div class="text-3xl font-extrabold text-ccjpa-primary flex justify-between items-end mt-3">
-                                <span>ETA: 10:05 AM</span>
-                                <span class="text-lg text-green-600 font-bold">ON TIME</span>
-                            </div>
-                            <p class="text-xs mt-1 text-gray-500">Next stop: Martinez (Estimated 9:51 AM)</p>
-                        </div>
-                    `;
-                    liveAlerts = getCard('Live Travel Alerts', 'All services running on schedule. Enjoy your ride!', 'bg-green-100', 'text-green-700', 'border-l-4 border-green-500');
+                    tableHTML += `\n        <td>--</td>`; // Skip representation
                 }
+            });
+            tableHTML += `\n      </tr>`;
+        });
 
-                // Phase 1 MVP Content
-                dashboardContent += liveRouteCard;
-                dashboardContent += liveAlerts;
-                
-                dashboardContent += `<h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-3 border-b pb-1 border-ccjpa-navy/20">Quick Access</h3>`;
-                dashboardContent += `<div class="space-y-3">`;
+        tableHTML += `
+    </tbody>
+  </table>
+</div>`;
 
-                // Core MVP Feature: Schedule/Map (Phase 1)
-                dashboardContent += getListItemLink(
-                    'Live Map & Schedule',
-                    'Track your train and check real-time routing.',
-                    'map-marked-alt',
-                    "setScreen('map')"
-                ); 
-                
-                // New Feature: Seat Availability (Phase 2)
-                if (phase >= 2) {
-                    dashboardContent += getListItemLink(
-                        'Carriage Availability',
-                        'View real-time crowding and seating by car.',
-                        'chair',
-                        "setScreen('seats')"
-                    );
-                }
+        // Render to screen
+        document.getElementById('output-container').innerHTML = tableHTML;
+        
+        // Show raw HTML code for copying
+        const rawContainer = document.getElementById('raw-html-container');
+        rawContainer.style.display = 'block';
+        document.getElementById('raw-html').value = tableHTML.trim();
+        
+        showMessage("Schedule generated successfully!", "success");
+    }
 
-                /* TICKET PURCHASING REMOVED FROM HOME, KEPT ONLY IN 'TICKETS' TAB
-                // Core MVP Feature: Tickets (Phase 1)
-                dashboardContent += getListItemLink(
-                    'Buy Tickets',
-                    'Access the secure portal to purchase fares.',
-                    'ticket-alt',
-                    "setScreen('tickets')"
-                ); 
-                */
-                
-                // Phase 3 Additions: OBS Ordering (High Visibility)
-                if (phase === 3) {
-                    dashboardContent += getListItemLink(
-                        'OBS Cafe Ordering',
-                        'Pre-order food and beverages from your seat.',
-                        'mug-hot',
-                        "setScreen('cafe_order')"
-                    ); 
-                }
-                
-                dashboardContent += `</div>`; // Close space-y-3
+    // Helper to format GTFS "HH:MM:SS" strictly for display if needed
+    function formatTime(timeStr) {
+        if (!timeStr) return '--';
+        const parts = timeStr.split(':');
+        if (parts.length >= 2) {
+            return `${parts[0]}:${parts[1]}`; // strips seconds
+        }
+        return timeStr;
+    }
 
-                return `
-                    <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">Dashboard</h2>
-                    ${dashboardContent}
-                    <a href="#" class="block text-center text-sm text-ccjpa-navy/70 mt-6 underline">View All Alerts & Updates</a>
-                `;
-            };
-            
-            // 2. Live Map Screen (Simplified) - UPDATED with Real-Time Transfers
-            const getMapScreen = (phase) => {
-                let mapTools = `
-                    ${getListItemLink(
-                        'Route Planner',
-                        'Search schedules and plan connections for your trip.',
-                        'route',
-                        'javascript:void(0)'
-                    )}
-                    ${getListItemLink(
-                        'Station Info',
-                        'View amenities, parking, and transit connections.',
-                        'map-pin',
-                        'javascript:void(0)'
-                    )}
-                `;
+    function copyHTML() {
+        const textarea = document.getElementById('raw-html');
+        textarea.select();
+        document.execCommand('copy');
+        showMessage("HTML copied to clipboard!", "success");
+    }
+</script>
 
-                let connectionCard = '';
-                if (phase >= 2) {
-                    connectionCard = `
-                        <div class="bg-white p-4 rounded-xl shadow-lg mt-4 border-l-4 border-ccjpa-accent">
-                            <h3 class="font-bold text-lg text-ccjpa-navy flex justify-between items-center">
-                                Real-Time Transfers <i class="fas fa-arrows-alt-h text-ccjpa-gold"></i>
-                            </h3>
-                            <p class="text-xs text-gray-600 mb-2">Richmond Station Connections (Live Data):</p>
-                            <ul class="list-disc ml-4 text-sm space-y-1">
-                                <li class="text-ccjpa-navy">BART to SFO: <span class="font-bold text-green-600">3 min</span></li>
-                                <li class="text-ccjpa-navy">AC Transit Line 72: <span class="font-bold text-yellow-600">12 min (Delayed)</span></li>
-                            </ul>
-                        </div>
-                    `;
-                }
-
-                return `
-                    <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">Live Route Map</h2>
-                    <div class="bg-gray-200 border-2 border-ccjpa-navy/50 h-64 rounded-xl flex items-center justify-center mb-4 relative">
-                        <p class="text-ccjpa-navy/60 font-semibold">Interactive Real-Time Map (Google/Mapbox Integration)</p>
-                        <div class="absolute top-2 left-2 bg-white px-2 py-1 rounded-full text-sm shadow-md">
-                            <i class="fas fa-train text-ccjpa-gold"></i> Train 729 Location
-                        </div>
-                        <div class="absolute bottom-4 right-4 ccjpa-primary text-white text-xs px-2 py-1 rounded-lg">
-                            <i class="fas fa-location-dot"></i> Approx. 10 minutes to Richmond
-                        </div>
-                    </div>
-                    
-                    ${connectionCard}
-
-                    <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-3 border-b pb-1 border-ccjpa-navy/20">Map Tools</h3>
-                    <div class="space-y-3">
-                        ${mapTools}
-                    </div>
-                `;
-            };
-
-            // 3. Tickets/Purchasing Screen (Varies slightly by phase)
-            const getTicketsScreen = (phase) => {
-                let content;
-                // Note: Now that the Home button is removed, the primary call to action remains high-priority.
-                if (phase === 1) {
-                    content = `
-                        <div class="bg-white p-4 rounded-xl shadow-lg border-l-4 border-ccjpa-gold mb-6">
-                            <p class="font-semibold text-lg text-ccjpa-navy">External Ticketing Link (Phase 1)</p>
-                            <p class="text-sm text-gray-600 mt-1">All purchases are directed to the secure Amtrak ticketing portal for immediate MVP launch.</p>
-                        </div>
-                        <button onclick="javascript:void(0)" class="w-full inline-block ccjpa-action-button text-black font-bold py-3 text-center rounded-xl shadow-lg hover:opacity-90">
-                            <i class="fas fa-external-link-alt mr-2"></i> Purchase Tickets Now
-                        </button>
-                    `;
-                } else { // Phase 2 and 3
-                    content = `
-                        <div class="bg-white p-4 rounded-xl shadow-lg border-l-4 border-ccjpa-primary mb-6">
-                            <p class="font-semibold text-lg text-ccjpa-navy">In-App Ticket Wallet (Phase 2+)</p>
-                            <p class="text-sm text-gray-600 mt-1">Manage, activate, and show tickets directly inside the app using the integrated secure mobile wallet.</p>
-                        </div>
-                        <div class="space-y-3">
-                            ${getListItemLink(
-                                'Active Ticket',
-                                'Show your QR code for boarding and inspection.',
-                                'qrcode',
-                                'javascript:void(0)'
-                            )}
-                            ${getListItemLink(
-                                'Buy New',
-                                'Purchase and load new tickets directly in the app.',
-                                'plus-circle',
-                                'javascript:void(0)'
-                            )}
-                            ${getListItemLink(
-                                'History',
-                                'Review past trips and expense reports.',
-                                'receipt',
-                                'javascript:void(0)'
-                            )}
-                        </div>
-                    `;
-                }
-
-                return `
-                    <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">Tickets & Fares</h2>
-                    ${content}
-                `;
-            };
-            
-            // 4. Support Screen (New centralized hub for CRM, Ratings, Tap2Ride, Loyalty)
-            const getSupportScreen = (phase) => {
-                let supportFeatures = `
-                    <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">Support Hub</h2>
-                    <div class="ccjpa-primary text-white p-4 rounded-xl text-center mb-6 shadow-md">
-                        <p class="text-sm">Welcome to your central account and support area.</p>
-                        <p class="text-xl font-bold">CCJPA Commuter</p>
-                    </div>
-                    
-                    <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-3 border-b pb-1 border-ccjpa-navy/20">Account & Settings</h3>
-                    <div class="space-y-3">
-                        ${getListItemLink(
-                            'Favorite Routes',
-                            'Set and manage your saved commute itineraries.',
-                            'route',
-                            'javascript:void(0)'
-                        )}
-                        ${getListItemLink(
-                            'Password & Security',
-                            'Update your password and login credentials.',
-                            'key',
-                            'javascript:void(0)'
-                        )}
-                    </div>
-
-                    <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-3 border-b pb-1 border-ccjpa-navy/20">Customer Service</h3>
-                    <div class="space-y-3">
-                        ${getListItemLink(
-                            'Raise a Concern',
-                            'Submit feedback, complaints, or lost items (Zoho CRM).',
-                            'headset',
-                            "setScreen('zoho')"
-                        )}
-                        ${getListItemLink(
-                            'Rate Onboard Comfort',
-                            'Give real-time feedback on cleanliness and Wi-Fi.',
-                            'star',
-                            "setScreen('rating')"
-                        )}
-                    </div>
-                `;
-
-                if (phase >= 2) {
-                    supportFeatures += `
-                        <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-3 border-b pb-1 border-ccjpa-navy/20">Fare Management (Phase 2)</h3>
-                        <div class="space-y-3">
-                            ${getListItemLink(
-                                'Tap2Ride Account',
-                                'Manage balance, transactions, and request refunds.',
-                                'credit-card',
-                                "setScreen('tap2ride')"
-                            )}
-                        </div>
-                    `;
-                }
-                
-                if (phase === 3) {
-                    supportFeatures += `
-                        <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-3 border-b pb-1 border-ccjpa-navy/20">Loyalty Program (Phase 3)</h3>
-                        <div class="space-y-3">
-                            ${getListItemLink(
-                                'Rewards Status',
-                                'View your loyalty points and claim rewards.',
-                                'trophy',
-                                'javascript:void(0)'
-                            )}
-                        </div>
-                    `;
-                }
-
-                return supportFeatures;
-            };
-            
-            // 5. Tap2Ride Dedicated Screen (Phase 2)
-            const getTap2RideScreen = () => `
-                ${getBackButton('support')}
-                <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">Tap2Ride Account</h2>
-                <div class="ccjpa-accent p-4 rounded-xl text-center mb-6 shadow-md">
-                    <p class="text-sm font-semibold">Current Balance:</p>
-                    <p class="text-3xl font-extrabold text-ccjpa-navy">$124.50</p>
-                </div>
-                
-                <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-3 border-b pb-1">Recent Trips</h3>
-                ${getCard('Trip 1: Sacramento to Emeryville', 'Date: Nov 15 | Cost: $34.00 | <span class="text-green-600">Status: Completed</span>', 'bg-white', 'text-ccjpa-navy')}
-                ${getCard('Trip 2: Davis to Richmond', 'Date: Nov 14 | Cost: $22.50 | <span class="text-red-600">Status: Auto-Correction Pending</span> <button class="text-sm text-ccjpa-primary underline ml-2">Request Refund</button>', 'bg-white', 'text-ccjpa-navy')}
-                
-                <button onclick="javascript:void(0)" class="w-full ccjpa-action-button text-black font-bold py-3 mt-4 rounded-xl shadow-lg hover:opacity-90">View All Transactions</button>
-            `;
-            
-            // 6. Zoho CRM Dedicated Screen (Phase 2)
-            const getZohoCrmScreen = () => `
-                ${getBackButton('support')}
-                <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">Raise a Concern</h2>
-                <div class="bg-white p-4 rounded-xl shadow-md mb-6">
-                    <p class="text-sm mb-3">Submit a complaint, lost item report, or general feedback. We'll track it using Zoho CRM.</p>
-                    
-                    <label class="block text-sm font-medium text-gray-700 mb-1" for="concern-type">Type of Issue:</label>
-                    <select id="concern-type" class="w-full p-2 border border-gray-300 rounded-md mb-3 focus:ring-ccjpa-primary focus:border-ccjpa-primary">
-                        <option>Select...</option>
-                        <option>Delay / Service Complaint</option>
-                        <option>Staff Feedback</option>
-                        <option>Lost & Found</option>
-                        <option>Facility Issue</option>
-                    </select>
-
-                    <label class="block text-sm font-medium text-gray-700 mb-1" for="concern-details">Details:</label>
-                    <textarea id="concern-details" rows="4" placeholder="Briefly describe your concern..." class="w-full p-2 border border-gray-300 rounded-md mb-4 focus:ring-ccjpa-primary focus:border-ccjpa-primary"></textarea>
-                    
-                    <button onclick="javascript:void(0)" class="w-full ccjpa-action-button text-black font-bold py-3 rounded-xl shadow-lg hover:opacity-90">Submit Report</button>
-                </div>
-                
-                <div class="text-center text-sm text-gray-500">
-                    Your case ID will be sent via email for tracking.
-                </div>
-            `;
-            
-            // 7. OBS Cafe Ordering Dedicated Screen (Phase 3)
-            const getCafeOrderingScreen = () => `
-                ${getBackButton('home')}
-                <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">OBS Cafe: Order from Seat</h2>
-                
-                <div class="bg-green-100 p-3 rounded-xl shadow-md mb-6 flex items-center justify-between border-l-4 border-green-600">
-                    <p class="text-green-800 font-semibold">Your order will be ready for pickup at the Cafe Car in 5-8 minutes.</p>
-                    <i class="fas fa-check-circle text-2xl text-green-600"></i>
-                </div>
-                
-                <h3 class="font-bold text-ccjpa-navy text-lg mb-3">Menu Highlights</h3>
-                
-                <!-- Menu Item Card -->
-                <div class="bg-white p-4 rounded-xl shadow-md mb-3 flex justify-between items-center">
-                    <div>
-                        <p class="font-semibold text-ccjpa-navy">Capitol Coffee Blend</p>
-                        <p class="text-sm text-gray-500">$3.50 | Hot/Iced</p>
-                    </div>
-                    <button onclick="javascript:void(0)" class="ccjpa-action-button text-black px-3 py-1 rounded-full font-bold text-sm hover:opacity-80">Add +</button>
-                </div>
-                
-                <!-- Menu Item Card -->
-                <div class="bg-white p-4 rounded-xl shadow-md mb-3 flex justify-between items-center">
-                    <div>
-                        <p class="font-semibold text-ccjpa-navy">Bay Area Bagel</p>
-                        <p class="text-sm text-gray-500">$4.00 | Cream Cheese Option</p>
-                    </div>
-                    <button onclick="javascript:void(0)" class="ccjpa-action-button text-black px-3 py-1 rounded-full font-bold text-sm hover:opacity-80">Add +</button>
-                </div>
-
-                <div class="bg-white p-4 rounded-xl shadow-md mt-6">
-                    <p class="font-bold text-lg text-ccjpa-navy mb-2">Order Summary</p>
-                    <div class="flex justify-between text-sm text-gray-600">
-                        <span>Subtotal:</span>
-                        <span>$7.50</span>
-                    </div>
-                    <div class="flex justify-between text-base font-bold text-ccjpa-navy mt-1">
-                        <span>Total:</span>
-                        <span>$7.50</span>
-                    </div>
-                    <button onclick="javascript:void(0)" class="w-full ccjpa-action-button text-black font-bold py-3 mt-3 rounded-xl shadow-lg hover:opacity-90">Complete Order</button>
-                </div>
-            `;
-            
-            // 8. Seat Availability Screen (Phase 2)
-            const getSeatsScreen = () => `
-                ${getBackButton('home')}
-                <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">Carriage Availability</h2>
-                <p class="text-sm text-gray-600 mb-6">Real-time occupancy data is estimated based on boarding/alighting counts.</p>
-
-                <!-- Carriage List -->
-                <div class="space-y-4">
-                    <div class="bg-white p-4 rounded-xl shadow-md border-l-4 border-green-500">
-                        <h3 class="font-bold text-ccjpa-navy flex justify-between items-center">
-                            Carriage 1 (Cafe Car)
-                            <span class="text-green-500 text-sm font-semibold">Low Occupancy (25%)</span>
-                        </h3>
-                        <p class="text-xs text-gray-500 mt-1">Status: Best Seating Available</p>
-                    </div>
-                    <div class="bg-white p-4 rounded-xl shadow-md border-l-4 border-yellow-500">
-                        <h3 class="font-bold text-ccjpa-navy flex justify-between items-center">
-                            Carriage 2 (Quiet Car)
-                            <span class="text-yellow-500 text-sm font-semibold">Moderate Occupancy (55%)</span>
-                        </h3>
-                        <p class="text-xs text-gray-500 mt-1">Status: Some Empty Rows</p>
-                    </div>
-                    <div class="bg-white p-4 rounded-xl shadow-md border-l-4 border-red-500">
-                        <h3 class="font-bold text-ccjpa-navy flex justify-between items-center">
-                            Carriage 3 (Standard)
-                            <span class="text-red-500 text-sm font-semibold">High Occupancy (85%)</span>
-                        </h3>
-                        <p class="text-xs text-gray-500 mt-1">Status: Standing Room Only</p>
-                    </div>
-                </div>
-                
-                <button onclick="javascript:void(0)" class="w-full ccjpa-action-button text-black font-bold py-3 mt-6 rounded-xl shadow-lg hover:opacity-90">View Detailed Floor Plans</button>
-            `;
-            
-            // 9. Onboard Comfort Rating Screen (Phase 2)
-            const getRatingScreen = () => `
-                ${getBackButton('support')}
-                <h2 class="text-2xl font-extrabold text-ccjpa-navy mb-4">Rate Onboard Comfort</h2>
-                <div class="bg-white p-4 rounded-xl shadow-md mb-6 text-center">
-                    <p class="text-lg font-bold text-ccjpa-navy mb-2">You are currently in Carriage 2</p>
-                    <div class="flex justify-center space-x-4 mb-4">
-                        <i class="fas fa-train text-ccjpa-primary text-3xl"></i>
-                        <i class="fas fa-arrow-right text-gray-400 text-xl self-center"></i>
-                        <i class="fas fa-chair text-ccjpa-primary text-3xl"></i>
-                    </div>
-                    
-                    <h3 class="font-bold text-ccjpa-navy text-lg mt-4 mb-3">How was your experience?</h3>
-
-                    <!-- Rating Items -->
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm text-gray-600 mb-1">Carriage Cleanliness</label>
-                            <div class="text-3xl text-ccjpa-gold space-x-2">
-                                <i class="far fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-sm text-gray-600 mb-1">Temperature / HVAC</label>
-                            <div class="text-3xl text-ccjpa-gold space-x-2">
-                                <i class="far fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-sm text-gray-600 mb-1">Wi-Fi Quality</label>
-                            <div class="text-3xl text-ccjpa-gold space-x-2">
-                                <i class="far fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i><i class="far fa-star"></i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <textarea rows="2" placeholder="Optional comments..." class="w-full p-2 border border-gray-300 rounded-md mt-4 text-sm focus:ring-ccjpa-primary focus:border-ccjpa-primary"></textarea>
-                </div>
-                
-                <button onclick="javascript:void(0)" class="w-full ccjpa-action-button text-black font-bold py-3 rounded-xl shadow-lg hover:opacity-90">Submit Rating</button>
-            `;
-            
-
-            // --- Controller Logic ---
-
-            function renderScreen() {
-                let html = '';
-                const phase = currentPhase;
-                
-                appContent.innerHTML = '';
-                
-                // Render the specific screen based on current state
-                switch (currentScreen) {
-                    case 'home':
-                        html = getHomeScreen(phase);
-                        break;
-                    case 'map':
-                        html = getMapScreen(phase);
-                        break;
-                    case 'tickets':
-                        html = getTicketsScreen(phase);
-                        break;
-                    case 'support':
-                        html = getSupportScreen(phase);
-                        break;
-                    case 'tap2ride':
-                        html = getTap2RideScreen();
-                        break;
-                    case 'zoho':
-                        html = getZohoCrmScreen();
-                        break;
-                    case 'cafe_order':
-                        html = getCafeOrderingScreen();
-                        break;
-                    case 'seats':
-                        html = getSeatsScreen();
-                        break;
-                    case 'rating':
-                        html = getRatingScreen();
-                        break;
-                    default:
-                        html = getHomeScreen(phase);
-                        break;
-                }
-
-                appContent.innerHTML = html;
-                updateNavBar();
-            }
-
-            window.setScreen = function(screenName) {
-                currentScreen = screenName;
-                // Hide the navigation bar for deep-dive utility screens, show for main screens
-                const navBar = document.getElementById('nav-bar');
-                if (['home', 'map', 'tickets', 'support'].includes(screenName)) {
-                    navBar.style.display = 'flex';
-                } else {
-                    navBar.style.display = 'none';
-                }
-                renderScreen();
-            }
-
-            window.setPhase = function(phase) {
-                currentPhase = phase;
-                currentScreen = 'home'; 
-                renderScreen();
-                updatePhaseButtons();
-            }
-
-            function updatePhaseButtons() {
-                Object.keys(phaseButtons).forEach(key => {
-                    const btn = phaseButtons[key];
-                    // Match the portal style: Active button uses the accent/action color
-                    if (parseInt(key) === currentPhase) {
-                        btn.classList.add('ccjpa-action-button');
-                        btn.classList.remove('bg-ccjpa-light', 'text-ccjpa-navy');
-                    } else {
-                        btn.classList.add('bg-ccjpa-light', 'text-ccjpa-navy');
-                        btn.classList.remove('ccjpa-action-button');
-                    }
-                });
-            }
-
-            function updateNavBar() {
-                document.querySelectorAll('.nav-icon').forEach(iconButton => {
-                    const isMainScreen = ['home', 'map', 'tickets', 'support'].includes(currentScreen);
-                    
-                    // Active nav icon should use the bright yellow accent
-                    if (isMainScreen && iconButton.getAttribute('data-screen') === currentScreen) {
-                        iconButton.classList.add('text-ccjpa-gold');
-                        iconButton.classList.remove('text-gray-400', 'hover:text-white');
-                    } else {
-                        iconButton.classList.add('text-gray-400');
-                        iconButton.classList.remove('text-ccjpa-gold');
-                    }
-                });
-            }
-
-            // Initialize the app when the page loads
-            window.onload = () => {
-                window.setPhase(1); // Start with Phase 1 MVP
-            };
-        })();
-
-    </script>
 </body>
 </html>

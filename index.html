@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CCJPA Schedule Validator</title>
-    <!-- PapaParse for parsing CSV/TXT files in the browser without a backend -->
+    <title>CCJPA Bulk CMS Schedule Generator</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
         :root {
@@ -39,7 +38,6 @@
             padding: 0 20px;
         }
 
-        /* FAQ Section */
         .faq-section {
             background: white;
             padding: 20px 30px;
@@ -49,22 +47,6 @@
             border-left: 4px solid var(--cc-yellow);
         }
 
-        .faq-section h2 {
-            margin-top: 0;
-            color: var(--cc-navy);
-        }
-
-        .faq-item {
-            margin-bottom: 15px;
-        }
-
-        .faq-item strong {
-            display: block;
-            margin-bottom: 5px;
-            color: #444;
-        }
-
-        /* Controls Section */
         .controls {
             background: white;
             padding: 30px;
@@ -72,7 +54,7 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             margin-bottom: 30px;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: 1fr auto;
             gap: 20px;
             align-items: end;
         }
@@ -88,7 +70,7 @@
             color: var(--cc-navy);
         }
 
-        select, input[type="file"] {
+        input[type="file"] {
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
@@ -111,7 +93,6 @@
             background-color: #e6b300;
         }
 
-        /* Message Box */
         #message-box {
             display: none;
             padding: 15px;
@@ -122,63 +103,6 @@
         .error { background-color: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
         .success { background-color: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
 
-        /* The Generated Schedule CSS */
-        .table-container {
-            overflow-x: auto;
-            width: 100%;
-            margin: 20px 0;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            background: white;
-        }
-        
-        .ccjpa-schedule {
-            width: 100%;
-            border-collapse: collapse;
-            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-            text-align: center;
-            font-size: 14px;
-            background-color: #ffffff;
-            min-width: 800px;
-        }
-
-        .ccjpa-schedule th, .ccjpa-schedule td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #e0e0e0;
-            border-right: 1px solid #e0e0e0;
-            white-space: nowrap;
-        }
-
-        .ccjpa-schedule thead th {
-            background-color: var(--cc-navy);
-            color: #ffffff;
-            font-weight: 600;
-            position: sticky;
-            top: 0;
-            border-bottom: 4px solid var(--cc-yellow);
-            z-index: 2;
-        }
-
-        .ccjpa-schedule tbody th {
-            text-align: right;
-            font-weight: bold;
-            color: #333333;
-            background-color: #f8f9fa;
-            position: sticky;
-            left: 0;
-            z-index: 1;
-            border-right: 2px solid var(--cc-navy);
-        }
-
-        .ccjpa-schedule tbody tr:nth-child(even) th,
-        .ccjpa-schedule tbody tr:nth-child(even) td {
-            background-color: var(--cc-gray);
-        }
-        
-        .ccjpa-schedule tbody tr:hover td,
-        .ccjpa-schedule tbody tr:hover th {
-            background-color: #e2e6ea;
-        }
-
         #raw-html-container {
             margin-top: 20px;
             display: none;
@@ -186,84 +110,70 @@
 
         textarea {
             width: 100%;
-            height: 150px;
+            height: 300px;
             font-family: monospace;
-            padding: 10px;
-            border: 1px solid #ccc;
+            padding: 15px;
+            border: 2px solid var(--cc-navy);
             border-radius: 4px;
             resize: vertical;
+            background: #f8f9fa;
+        }
+
+        .preview-header {
+            margin-top: 40px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ccc;
+            color: var(--cc-navy);
         }
     </style>
 </head>
 <body>
 
 <header>
-    <h1>CCJPA Web Schedule Validator</h1>
+    <h1>CCJPA Bulk CMS Schedule Generator</h1>
 </header>
 
 <div class="container">
     
-    <!-- FAQ Section -->
     <div class="faq-section">
-        <h2>How to use this tool</h2>
-        <div class="faq-item">
-            <strong>What is this tool?</strong>
-            This application allows the CCJPA team to upload raw GTFS transit data and instantly generate responsive, accessible HTML tables matching the Capitol Corridor brand. You can use this to visually validate schedules before sending data to the mobile app, or to generate the HTML needed for the public website.
-        </div>
-        <div class="faq-item">
-            <strong>Which files do I need to upload?</strong>
-            You must select three specific files extracted from your GTFS Zip folder: <code>stops.txt</code>, <code>trips.txt</code>, and <code>stop_times.txt</code>.
-        </div>
-        <div class="faq-item">
-            <strong>How do I put this on the website?</strong>
-            Once generated, click "Copy HTML Code" at the bottom of the page. You can paste that code directly into your CMS (like WordPress) to update the live schedule page.
-        </div>
+        <h2>How to update the website</h2>
+        <p>Upload your 3 GTFS files (<strong>stops.txt, trips.txt, stop_times.txt</strong>). This tool will automatically process all 4 schedule variations (Weekday/Weekend, Eastbound/Westbound) and combine them into a single, tabbed HTML block. Click "Copy HTML Code" and paste it into the HTML/Code editor on your WordPress page.</p>
     </div>
 
     <div id="message-box"></div>
 
-    <!-- Controls -->
     <div class="controls">
         <div class="form-group">
-            <label for="gtfs-files">1. Upload GTFS Files (Select stops, trips, and stop_times)</label>
+            <label for="gtfs-files">Upload GTFS Files (Select stops, trips, and stop_times)</label>
             <input type="file" id="gtfs-files" multiple accept=".txt">
         </div>
-        <div class="form-group">
-            <label for="service-id">2. Select Service Period</label>
-            <select id="service-id">
-                <option value="Weekday">Weekday</option>
-                <option value="Weekend">Weekend</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="direction-id">3. Select Direction</label>
-            <select id="direction-id">
-                <option value="1">Westbound / Southbound (To San Jose)</option>
-                <option value="0">Eastbound / Northbound (To Auburn)</option>
-            </select>
-        </div>
-        <button class="primary" onclick="processGTFS()">Generate Schedule</button>
+        <button class="primary" onclick="processGTFS()">Generate Complete CMS Block</button>
     </div>
 
-    <!-- Output Area -->
-    <div id="output-container"></div>
-    
+    <!-- The code to copy goes here -->
     <div id="raw-html-container">
-        <h3>Generated HTML Code</h3>
-        <p>Copy this code and paste it into the HTML editor of your website CMS.</p>
+        <h3 style="color: #1D1B4D;">Final CMS Code</h3>
+        <p>Copy this entire block and paste it into the website page.</p>
         <textarea id="raw-html" readonly></textarea>
-        <button class="primary" style="margin-top: 10px;" onclick="copyHTML()">Copy to Clipboard</button>
+        <button class="primary" style="margin-top: 15px;" onclick="copyHTML()">Copy HTML to Clipboard</button>
     </div>
+
+    <h2 class="preview-header" id="preview-title" style="display:none;">Live Preview (How it will look on the site)</h2>
+    <!-- The visual preview goes here -->
+    <div id="output-container"></div>
 
 </div>
 
 <script>
-    // Global objects to hold our parsed GTFS data
-    let gtfsData = {
-        stops: null,
-        trips: null,
-        stop_times: null
-    };
+    let gtfsData = { stops: null, trips: null, stop_times: null };
+
+    // The 4 schedule configurations we need to build
+    const schedulesToBuild = [
+        { id: 'tab-wk-wb', service: 'Weekday', dir: '1', title: 'Weekday Westbound (To San Jose)' },
+        { id: 'tab-wk-eb', service: 'Weekday', dir: '0', title: 'Weekday Eastbound (To Auburn)' },
+        { id: 'tab-we-wb', service: 'Weekend', dir: '1', title: 'Weekend Westbound (To San Jose)' },
+        { id: 'tab-we-eb', service: 'Weekend', dir: '0', title: 'Weekend Eastbound (To Auburn)' }
+    ];
 
     function showMessage(msg, type) {
         const box = document.getElementById('message-box');
@@ -273,7 +183,6 @@
         setTimeout(() => box.style.display = 'none', 6000);
     }
 
-    // Process files on Generate click
     async function processGTFS() {
         const fileInput = document.getElementById('gtfs-files');
         const files = fileInput.files;
@@ -283,15 +192,11 @@
             return;
         }
 
-        // Only parse files if new ones are uploaded
         if (files.length > 0) {
             gtfsData = { stops: null, trips: null, stop_times: null };
-            let parsedCount = 0;
-
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 const name = file.name.toLowerCase();
-                
                 if (name === 'stops.txt') await parseCSV(file, 'stops');
                 else if (name === 'trips.txt') await parseCSV(file, 'trips');
                 else if (name === 'stop_times.txt') await parseCSV(file, 'stop_times');
@@ -303,10 +208,9 @@
             }
         }
 
-        generateTable();
+        generateAllSchedules();
     }
 
-    // Promisified PapaParse for cleaner async flow
     function parseCSV(file, key) {
         return new Promise((resolve) => {
             Papa.parse(file, {
@@ -320,148 +224,171 @@
         });
     }
 
-    function generateTable() {
-        const service = document.getElementById('service-id').value;
-        const direction = document.getElementById('direction-id').value;
-        
-        // 1. Map Stop IDs to Names
+    function generateAllSchedules() {
         const stopsMap = {};
         gtfsData.stops.forEach(s => stopsMap[s.stop_id] = s.stop_name);
 
-        // 2. Filter Trips (Capitol Corridor route_id is 'CC')
-        const relevantTrips = gtfsData.trips.filter(t => 
-            t.route_id === 'CC' && 
-            t.service_id === service && 
-            t.direction_id === direction
-        );
+        // This string will hold the COMPLETE HTML to be copy-pasted into the CMS
+        let finalCMSHTML = `
+<!-- ========================================== -->
+<!-- CCJPA DYNAMIC SCHEDULE BLOCK               -->
+<!-- ========================================== -->
+<style>
+  .ccjpa-schedules-wrapper { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; }
+  
+  /* Tabs Styling */
+  .ccjpa-tabs { display: flex; flex-wrap: wrap; border-bottom: 3px solid #1D1B4D; margin-bottom: 20px; }
+  .ccjpa-tab { background: #f1f3f5; color: #1D1B4D; border: none; padding: 12px 20px; font-weight: bold; cursor: pointer; font-size: 15px; border-radius: 8px 8px 0 0; margin-right: 5px; transition: background 0.2s; }
+  .ccjpa-tab:hover { background: #e2e6ea; }
+  .ccjpa-tab.active { background: #1D1B4D; color: #FFC709; }
 
-        if (relevantTrips.length === 0) {
-            showMessage(`No trips found for Capitol Corridor ${service} in Direction ${direction}.`, "error");
-            document.getElementById('output-container').innerHTML = '';
-            document.getElementById('raw-html-container').style.display = 'none';
-            return;
-        }
+  /* Table Container Styling */
+  .ccjpa-tab-content { display: none; }
+  .ccjpa-tab-content.active { display: block; animation: fadeIn 0.4s; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        const tripIds = new Set(relevantTrips.map(t => t.trip_id));
+  .cc-table-container { overflow-x: auto; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); background: white; margin-bottom: 30px; }
+  .ccjpa-schedule { width: 100%; border-collapse: collapse; text-align: center; font-size: 14px; min-width: 800px; }
+  .ccjpa-schedule th, .ccjpa-schedule td { padding: 10px 12px; border-bottom: 1px solid #e0e0e0; border-right: 1px solid #e0e0e0; white-space: nowrap; }
+  
+  /* Sticky Headers & Columns */
+  .ccjpa-schedule thead th { background-color: #1D1B4D; color: #ffffff; font-weight: 600; position: sticky; top: 0; border-bottom: 4px solid #FFC709; z-index: 2; }
+  .ccjpa-schedule tbody th { text-align: right; font-weight: bold; color: #333333; background-color: #f8f9fa; position: sticky; left: 0; z-index: 1; border-right: 2px solid #1D1B4D; }
+  
+  /* Striping and Hover */
+  .ccjpa-schedule tbody tr:nth-child(even) th, .ccjpa-schedule tbody tr:nth-child(even) td { background-color: #f1f3f5; }
+  .ccjpa-schedule tbody tr:hover td, .ccjpa-schedule tbody tr:hover th { background-color: #e2e6ea; }
+</style>
 
-        // 3. Filter Stop Times
-        const relevantStopTimes = gtfsData.stop_times.filter(st => tripIds.has(st.trip_id));
+<div class="ccjpa-schedules-wrapper">
+  <!-- Navigation Tabs -->
+  <div class="ccjpa-tabs">`;
 
-        // Group stop times by trip
-        const tripStops = {};
-        relevantStopTimes.forEach(st => {
-            if (!tripStops[st.trip_id]) tripStops[st.trip_id] = [];
-            tripStops[st.trip_id].push(st);
-        });
-
-        // 4. Determine Geographical Station Order (Find the longest trip)
-        let maxStops = 0;
-        let longestTripId = null;
-        for (const [tId, stops] of Object.entries(tripStops)) {
-            if (stops.length > maxStops) {
-                maxStops = stops.length;
-                longestTripId = tId;
-            }
-        }
-
-        const masterStops = tripStops[longestTripId]
-            .sort((a, b) => parseInt(a.stop_sequence) - parseInt(b.stop_sequence))
-            .map(st => ({ id: st.stop_id, name: stopsMap[st.stop_id] }));
-
-        // 5. Determine Chronological Train Order (Left to Right)
-        const sortedTripIds = Object.keys(tripStops).sort((a, b) => {
-            // Find the very first stop for trip A and B
-            const firstStopA = tripStops[a].sort((x,y) => parseInt(x.stop_sequence) - parseInt(y.stop_sequence))[0];
-            const firstStopB = tripStops[b].sort((x,y) => parseInt(x.stop_sequence) - parseInt(y.stop_sequence))[0];
-            // Compare numerically instead of alphabetically
-            return timeStrToSeconds(firstStopA.departure_time) - timeStrToSeconds(firstStopB.departure_time);
-        });
-
-        // 6. Build the HTML Table String
-        let tableHTML = `
-<div class="table-container">
-  <table class="ccjpa-schedule" aria-label="${service} Train Schedule">
-    <thead>
-      <tr>
-        <th scope="col">Station</th>`;
-        
-        // Add headers for each train
-        sortedTripIds.forEach(tId => {
-            // Strip any internal characters to just get the base train number if desired
-            let displayId = tId;
-            tableHTML += `<th scope="col">Train ${displayId}</th>`;
+        // Generate Tab Buttons
+        schedulesToBuild.forEach((config, index) => {
+            const activeClass = index === 0 ? 'active' : '';
+            finalCMSHTML += `\n    <button class="ccjpa-tab ${activeClass}" onclick="openCcjpaTab(event, '${config.id}')">${config.title}</button>`;
         });
         
-        tableHTML += `
-      </tr>
-    </thead>
-    <tbody>`;
+        finalCMSHTML += `\n  </div>\n\n  <!-- Tab Contents -->`;
 
-        // Add rows for each station in geographical order
-        masterStops.forEach(station => {
-            tableHTML += `\n      <tr>\n        <th scope="row">${station.name}</th>`;
-            
-            sortedTripIds.forEach(tId => {
-                // Find if this train stops at this station
-                const stopData = tripStops[tId].find(st => st.stop_id === station.id);
-                if (stopData) {
-                    // Convert 24h format (e.g. 14:30:00) to 12h format if desired, or keep raw.
-                    // Keeping raw GTFS time string for simplicity and direct match validation.
-                    tableHTML += `\n        <td>${formatTime(stopData.departure_time)}</td>`;
-                } else {
-                    tableHTML += `\n        <td>--</td>`; // Skip representation
-                }
+        // Generate Tables for each tab
+        schedulesToBuild.forEach((config, index) => {
+            const activeClass = index === 0 ? 'active' : '';
+            finalCMSHTML += `\n  <div id="${config.id}" class="ccjpa-tab-content ${activeClass}">\n    <div class="cc-table-container">\n      <table class="ccjpa-schedule" aria-label="${config.title}">\n        <thead>\n          <tr>\n            <th scope="col">Station</th>`;
+
+            // Filter Trips
+            const relevantTrips = gtfsData.trips.filter(t => t.route_id === 'CC' && t.service_id === config.service && t.direction_id == config.dir);
+            const tripIds = new Set(relevantTrips.map(t => t.trip_id));
+
+            // Filter Stop Times
+            const relevantStopTimes = gtfsData.stop_times.filter(st => tripIds.has(st.trip_id));
+            const tripStops = {};
+            relevantStopTimes.forEach(st => {
+                if (!tripStops[st.trip_id]) tripStops[st.trip_id] = [];
+                tripStops[st.trip_id].push(st);
             });
-            tableHTML += `\n      </tr>`;
+
+            // Master Stop Sequence
+            let maxStops = 0;
+            let longestTripId = null;
+            for (const [tId, stops] of Object.entries(tripStops)) {
+                if (stops.length > maxStops) { maxStops = stops.length; longestTripId = tId; }
+            }
+
+            if(longestTripId) {
+                const masterStops = tripStops[longestTripId]
+                    .sort((a, b) => parseInt(a.stop_sequence) - parseInt(b.stop_sequence))
+                    .map(st => ({ id: st.stop_id, name: stopsMap[st.stop_id] }));
+
+                // Chronological sorting left to right
+                const sortedTripIds = Object.keys(tripStops).sort((a, b) => {
+                    const firstStopA = tripStops[a].sort((x,y) => parseInt(x.stop_sequence) - parseInt(y.stop_sequence))[0];
+                    const firstStopB = tripStops[b].sort((x,y) => parseInt(x.stop_sequence) - parseInt(y.stop_sequence))[0];
+                    return timeStrToSeconds(firstStopA.departure_time) - timeStrToSeconds(firstStopB.departure_time);
+                });
+
+                // Write Train Headers
+                sortedTripIds.forEach(tId => {
+                    // Extract just digits if trip ID is complex
+                    let displayNum = tId.replace(/\D/g,'');
+                    finalCMSHTML += `<th scope="col">Train ${displayNum || tId}</th>`;
+                });
+                finalCMSHTML += `\n          </tr>\n        </thead>\n        <tbody>`;
+
+                // Write Rows (Stations)
+                masterStops.forEach(station => {
+                    finalCMSHTML += `\n          <tr>\n            <th scope="row">${station.name}</th>`;
+                    sortedTripIds.forEach(tId => {
+                        const stopData = tripStops[tId].find(st => st.stop_id === station.id);
+                        if (stopData) {
+                            finalCMSHTML += `<td>${formatTime(stopData.departure_time)}</td>`;
+                        } else {
+                            finalCMSHTML += `<td>--</td>`;
+                        }
+                    });
+                    finalCMSHTML += `\n          </tr>`;
+                });
+            } else {
+                 finalCMSHTML += `\n          </tr>\n        </thead>\n        <tbody><tr><td colspan="10">No data available for this schedule.</td></tr>`;
+            }
+
+            finalCMSHTML += `\n        </tbody>\n      </table>\n    </div>\n  </div>`;
         });
 
-        tableHTML += `
-    </tbody>
-  </table>
-</div>`;
+        // Add the tiny JS script needed for the tabs to function on the WordPress site
+        finalCMSHTML += `
+</div>
 
-        // Render to screen
-        document.getElementById('output-container').innerHTML = tableHTML;
+<script>
+  function openCcjpaTab(evt, tabName) {
+    var i, tabcontent, tablinks;
+    tabcontent = document.getElementsByClassName("ccjpa-tab-content");
+    for (i = 0; i < tabcontent.length; i++) { tabcontent[i].style.display = "none"; tabcontent[i].className = tabcontent[i].className.replace(" active", ""); }
+    tablinks = document.getElementsByClassName("ccjpa-tab");
+    for (i = 0; i < tablinks.length; i++) { tablinks[i].className = tablinks[i].className.replace(" active", ""); }
+    document.getElementById(tabName).style.display = "block";
+    document.getElementById(tabName).className += " active";
+    evt.currentTarget.className += " active";
+  }
+<\/script>
+<!-- ========================================== -->
+<!-- END CCJPA SCHEDULE BLOCK                   -->
+<!-- ========================================== -->`;
+
+        // Render Outputs
+        document.getElementById('preview-title').style.display = 'block';
+        document.getElementById('output-container').innerHTML = finalCMSHTML;
         
-        // Show raw HTML code for copying
         const rawContainer = document.getElementById('raw-html-container');
         rawContainer.style.display = 'block';
-        document.getElementById('raw-html').value = tableHTML.trim();
+        document.getElementById('raw-html').value = finalCMSHTML.trim();
         
-        showMessage("Schedule generated successfully!", "success");
+        showMessage("Complete HTML block generated successfully!", "success");
     }
 
-    // Helper to convert GTFS "HH:MM:SS" to total seconds for accurate numerical sorting
     function timeStrToSeconds(timeStr) {
         if (!timeStr) return 0;
         const parts = timeStr.split(':');
         let seconds = 0;
         if (parts.length >= 2) {
-            seconds += parseInt(parts[0], 10) * 3600; // Hours
-            seconds += parseInt(parts[1], 10) * 60;   // Minutes
-            if (parts[2]) seconds += parseInt(parts[2], 10); // Seconds
+            seconds += parseInt(parts[0], 10) * 3600;
+            seconds += parseInt(parts[1], 10) * 60;
+            if (parts[2]) seconds += parseInt(parts[2], 10);
         }
         return seconds;
     }
 
-    // Helper to format GTFS "HH:MM:SS" strictly for display if needed
     function formatTime(timeStr) {
         if (!timeStr) return '--';
         const parts = timeStr.split(':');
         if (parts.length >= 2) {
             let hours = parseInt(parts[0], 10);
             const minutes = parts[1];
-            
-            // Handle GTFS times past midnight (e.g., 25:30:00 becomes 1:30)
             hours = hours % 24;
-            
-            // Determine AM or PM ('a' or 'p')
             const period = hours >= 12 ? 'p' : 'a';
-            
-            // Convert to 12-hour format
             hours = hours % 12;
-            hours = hours ? hours : 12; // the hour '0' should be '12'
-            
+            hours = hours ? hours : 12;
             return `${hours}:${minutes}${period}`;
         }
         return timeStr;
@@ -471,7 +398,7 @@
         const textarea = document.getElementById('raw-html');
         textarea.select();
         document.execCommand('copy');
-        showMessage("HTML copied to clipboard!", "success");
+        showMessage("HTML copied to clipboard! You can now paste it into your website.", "success");
     }
 </script>
 

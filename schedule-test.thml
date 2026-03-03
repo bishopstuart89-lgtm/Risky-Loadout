@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCJPA Bulk CMS Schedule Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        :root {
+            --cc-navy: #1D1B4D;
+            --cc-yellow: #FFC709;
+            --cc-gray: #f1f3f5;
+        }
+
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+
+        header {
+            background-color: var(--cc-navy);
+            color: white;
+            padding: 20px 40px;
+            border-bottom: 5px solid var(--cc-yellow);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .faq-section {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            border-left: 4px solid var(--cc-yellow);
+        }
+
+        .controls {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 20px;
+            align-items: end;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: var(--cc-navy);
+        }
+
+        input[type="file"] {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        button.primary {
+            background-color: var(--cc-yellow);
+            color: var(--cc-navy);
+            font-weight: bold;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s;
+        }
+
+        button.primary:hover {
+            background-color: #e6b300;
+        }
+
+        #message-box {
+            display: none;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .error { background-color: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+        .success { background-color: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+
+        #raw-html-container {
+            margin-top: 20px;
+            display: none;
+        }
+
+        textarea {
+            width: 100%;
+            height: 300px;
+            font-family: monospace;
+            padding: 15px;
+            border: 2px solid var(--cc-navy);
+            border-radius: 4px;
+            resize: vertical;
+            background: #f8f9fa;
+        }
+
+        .preview-header {
+            margin-top: 40px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ccc;
+            color: var(--cc-navy);
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>CCJPA Bulk CMS Schedule Generator</h1>
+</header>
+
+<div class="container">
+    
+    <div class="faq-section">
+        <h2>How to update the website</h2>
+        <p>Upload your 3 GTFS files (<strong>stops.txt, trips.txt, stop_times.txt</strong>). This tool will automatically process all 4 schedule variations (Weekday/Weekend, Eastbound/Westbound) and combine them into a single, tabbed HTML block formatted specifically for WordPress. Click "Copy HTML Code" and paste it into the HTML/Code editor on your page.</p>
+    </div>
+
+    <div id="message-box"></div>
+
+    <div class="controls">
+        <div class="form-group">
+            <label for="gtfs-files">Upload GTFS Files (Select stops, trips, and stop_times)</label>
+            <input type="file" id="gtfs-files" multiple accept=".txt">
+        </div>
+        <button class="primary" onclick="processGTFS()">Generate Complete CMS Block</button>
+    </div>
+
+    <!-- The code to copy goes here -->
+    <div id="raw-html-container">
+        <h3 style="color: #1D1B4D;">Final CMS Code</h3>
+        <p>Copy this entire block and paste it into the website page.</p>
+        <textarea id="raw-html" readonly></textarea>
+        <button class="primary" style="margin-top: 15px;" onclick="copyHTML()">Copy HTML to Clipboard</button>
+    </div>
+
+    <h2 class="preview-header" id="preview-title" style="display:none;">Live Preview (How it will look on the site)</h2>
+    <!-- The visual preview goes here -->
+    <div id="output-container"></div>
+
+</div>
+
+<script>
+    let gtfsData = { stops: null, trips: null, stop_times: null };
+
+    // The 4 schedule configurations we need to build
+    const schedulesToBuild = [
+        { id: 'tab-wk-wb', service: 'Weekday', dir: '1', title: 'Weekday Westbound (To San Jose)' },
+        { id: 'tab-wk-eb', service: 'Weekday', dir: '0', title: 'Weekday Eastbound (To Auburn)' },
+        { id: 'tab-we-wb', service: 'Weekend', dir: '1', title: 'Weekend Westbound (To San Jose)' },
+        { id: 'tab-we-eb', service: 'Weekend', dir: '0', title: 'Weekend Eastbound (To Auburn)' }
+    ];
+
+    function showMessage(msg, type) {
+        const box = document.getElementById('message-box');
+        box.textContent = msg;
+        box.className = type;
+        box.style.display = 'block';
+        setTimeout(() => box.style.display = 'none', 6000);
+    }
+
+    async function processGTFS() {
+        const fileInput = document.getElementById('gtfs-files');
+        const files = fileInput.files;
+
+        if (files.length === 0 && !gtfsData.stops) {
+            showMessage("Please select the GTFS .txt files first.", "error");
+            return;
+        }
+
+        if (files.length > 0) {
+            gtfsData = { stops: null, trips: null, stop_times: null };
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const name = file.name.toLowerCase();
+                if (name === 'stops.txt') await parseCSV(file, 'stops');
+                else if (name === 'trips.txt') await parseCSV(file, 'trips');
+                else if (name === 'stop_times.txt') await parseCSV(file, 'stop_times');
+            }
+
+            if (!gtfsData.stops || !gtfsData.trips || !gtfsData.stop_times) {
+                showMessage("Missing required files. Please ensure stops.txt, trips.txt, and stop_times.txt are all selected.", "error");
+                return;
+            }
+        }
+
+        generateAllSchedules();
+    }
+
+    function parseCSV(file, key) {
+        return new Promise((resolve) => {
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    gtfsData[key] = results.data;
+                    resolve();
+                }
+            });
+        });
+    }
+
+    function generateAllSchedules() {
+        const stopsMap = {};
+        gtfsData.stops.forEach(s => stopsMap[s.stop_id] = s.stop_name);
+
+        // This string will hold the COMPLETE HTML to be copy-pasted into the CMS
+        // Adjusted to match the exact table structures found in common WordPress setups 
+        // (like TablePress) to inherit existing site formatting where applicable.
+        let finalCMSHTML = `
+<!-- ========================================== -->
+<!-- CCJPA DYNAMIC SCHEDULE BLOCK               -->
+<!-- ========================================== -->
+<style>
+  .ccjpa-schedules-wrapper { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; clear: both; }
+  
+  /* Tabs Styling */
+  .ccjpa-tabs { display: flex; flex-wrap: wrap; border-bottom: 3px solid #1D1B4D; margin-bottom: 20px; padding: 0; list-style: none; }
+  .ccjpa-tab { background: #f1f3f5; color: #1D1B4D; border: none; padding: 12px 20px; font-weight: bold; cursor: pointer; font-size: 15px; border-radius: 8px 8px 0 0; margin-right: 5px; transition: background 0.2s; }
+  .ccjpa-tab:hover { background: #e2e6ea; }
+  .ccjpa-tab.active { background: #1D1B4D; color: #FFC709; }
+
+  /* Table Container Styling */
+  .ccjpa-tab-content { display: none; }
+  .ccjpa-tab-content.active { display: block; animation: fadeIn 0.4s; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .cc-table-container { overflow-x: auto; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); background: white; margin-bottom: 30px; }
+  .tablepress.ccjpa-schedule { width: 100%; border-collapse: collapse; text-align: center; font-size: 14px; min-width: 800px; margin: 0; }
+  .tablepress.ccjpa-schedule th, .tablepress.ccjpa-schedule td { padding: 10px 12px; border-bottom: 1px solid #e0e0e0; border-right: 1px solid #e0e0e0; white-space: nowrap; }
+  
+  /* Sticky Headers & Columns matching live site's look */
+  .tablepress.ccjpa-schedule thead th { background-color: #1D1B4D; color: #ffffff; font-weight: bold; position: sticky; top: 0; border-bottom: 4px solid #FFC709; z-index: 2; text-align: center; }
+  .tablepress.ccjpa-schedule tbody td.column-1 { text-align: left; font-weight: bold; color: #333333; background-color: #f8f9fa; position: sticky; left: 0; z-index: 1; border-right: 2px solid #1D1B4D; }
+  
+  /* Striping and Hover */
+  .tablepress.ccjpa-schedule tbody tr:nth-child(even) td { background-color: #f1f3f5; }
+  .tablepress.ccjpa-schedule tbody tr:nth-child(even) td.column-1 { background-color: #e9ecef; }
+  .tablepress.ccjpa-schedule tbody tr:hover td { background-color: #e2e6ea; }
+</style>
+
+<div class="ccjpa-schedules-wrapper">
+  <!-- Navigation Tabs -->
+  <div class="ccjpa-tabs">`;
+
+        // Generate Tab Buttons
+        schedulesToBuild.forEach((config, index) => {
+            const activeClass = index === 0 ? 'active' : '';
+            finalCMSHTML += `\n    <button class="ccjpa-tab ${activeClass}" onclick="openCcjpaTab(event, '${config.id}')">${config.title}</button>`;
+        });
+        
+        finalCMSHTML += `\n  </div>\n\n  <!-- Tab Contents -->`;
+
+        // Generate Tables for each tab
+        schedulesToBuild.forEach((config, index) => {
+            const activeClass = index === 0 ? 'active' : '';
+            
+            // Note the addition of standard WordPress table classes like 'tablepress'
+            finalCMSHTML += `\n  <div id="${config.id}" class="ccjpa-tab-content ${activeClass}">\n    <div class="cc-table-container">\n      <table class="tablepress ccjpa-schedule" aria-label="${config.title}">\n        <thead>\n          <tr class="row-1">\n            <th class="column-1">Station</th>`;
+
+            // Filter Trips
+            const relevantTrips = gtfsData.trips.filter(t => t.route_id === 'CC' && t.service_id === config.service && t.direction_id == config.dir);
+            const tripIds = new Set(relevantTrips.map(t => t.trip_id));
+
+            // Filter Stop Times
+            const relevantStopTimes = gtfsData.stop_times.filter(st => tripIds.has(st.trip_id));
+            const tripStops = {};
+            relevantStopTimes.forEach(st => {
+                if (!tripStops[st.trip_id]) tripStops[st.trip_id] = [];
+                tripStops[st.trip_id].push(st);
+            });
+
+            // Master Stop Sequence
+            let maxStops = 0;
+            let longestTripId = null;
+            for (const [tId, stops] of Object.entries(tripStops)) {
+                if (stops.length > maxStops) { maxStops = stops.length; longestTripId = tId; }
+            }
+
+            if(longestTripId) {
+                const masterStops = tripStops[longestTripId]
+                    .sort((a, b) => parseInt(a.stop_sequence) - parseInt(b.stop_sequence))
+                    .map(st => ({ id: st.stop_id, name: stopsMap[st.stop_id] }));
+
+                // Chronological sorting left to right
+                const sortedTripIds = Object.keys(tripStops).sort((a, b) => {
+                    const firstStopA = tripStops[a].sort((x,y) => parseInt(x.stop_sequence) - parseInt(y.stop_sequence))[0];
+                    const firstStopB = tripStops[b].sort((x,y) => parseInt(x.stop_sequence) - parseInt(y.stop_sequence))[0];
+                    return timeStrToSeconds(firstStopA.departure_time) - timeStrToSeconds(firstStopB.departure_time);
+                });
+
+                // Write Train Headers (Train Number)
+                sortedTripIds.forEach((tId, colIdx) => {
+                    let displayNum = tId.replace(/\D/g,'');
+                    finalCMSHTML += `<th class="column-${colIdx + 2}">Train ${displayNum || tId}</th>`;
+                });
+                finalCMSHTML += `\n          </tr>\n        </thead>\n        <tbody>`;
+
+                // Write Rows (Stations)
+                masterStops.forEach((station, rowIdx) => {
+                    finalCMSHTML += `\n          <tr class="row-${rowIdx + 2}">\n            <td class="column-1">${station.name}</td>`;
+                    sortedTripIds.forEach((tId, colIdx) => {
+                        const stopData = tripStops[tId].find(st => st.stop_id === station.id);
+                        if (stopData) {
+                            finalCMSHTML += `<td class="column-${colIdx + 2}">${formatTime(stopData.departure_time)}</td>`;
+                        } else {
+                            finalCMSHTML += `<td class="column-${colIdx + 2}">--</td>`;
+                        }
+                    });
+                    finalCMSHTML += `\n          </tr>`;
+                });
+            } else {
+                 finalCMSHTML += `\n          </tr>\n        </thead>\n        <tbody><tr><td colspan="10">No schedule data available for this route.</td></tr>`;
+            }
+
+            finalCMSHTML += `\n        </tbody>\n      </table>\n    </div>\n  </div>`;
+        });
+
+        // Add the tiny JS script needed for the tabs to function on the WordPress site
+        finalCMSHTML += `
+</div>
+
+<script>
+  function openCcjpaTab(evt, tabName) {
+    var i, tabcontent, tablinks;
+    tabcontent = document.getElementsByClassName("ccjpa-tab-content");
+    for (i = 0; i < tabcontent.length; i++) { tabcontent[i].style.display = "none"; tabcontent[i].className = tabcontent[i].className.replace(" active", ""); }
+    tablinks = document.getElementsByClassName("ccjpa-tab");
+    for (i = 0; i < tablinks.length; i++) { tablinks[i].className = tablinks[i].className.replace(" active", ""); }
+    document.getElementById(tabName).style.display = "block";
+    document.getElementById(tabName).className += " active";
+    evt.currentTarget.className += " active";
+  }
+<\/script>
+<!-- ========================================== -->
+<!-- END CCJPA SCHEDULE BLOCK                   -->
+<!-- ========================================== -->`;
+
+        // Render Outputs
+        document.getElementById('preview-title').style.display = 'block';
+        document.getElementById('output-container').innerHTML = finalCMSHTML;
+        
+        const rawContainer = document.getElementById('raw-html-container');
+        rawContainer.style.display = 'block';
+        document.getElementById('raw-html').value = finalCMSHTML.trim();
+        
+        showMessage("Complete HTML block generated successfully!", "success");
+    }
+
+    function timeStrToSeconds(timeStr) {
+        if (!timeStr) return 0;
+        const parts = timeStr.split(':');
+        let seconds = 0;
+        if (parts.length >= 2) {
+            seconds += parseInt(parts[0], 10) * 3600;
+            seconds += parseInt(parts[1], 10) * 60;
+            if (parts[2]) seconds += parseInt(parts[2], 10);
+        }
+        return seconds;
+    }
+
+    function formatTime(timeStr) {
+        if (!timeStr) return '--';
+        const parts = timeStr.split(':');
+        if (parts.length >= 2) {
+            let hours = parseInt(parts[0], 10);
+            const minutes = parts[1];
+            hours = hours % 24;
+            const period = hours >= 12 ? 'p' : 'a';
+            hours = hours % 12;
+            hours = hours ? hours : 12;
+            return `${hours}:${minutes}${period}`;
+        }
+        return timeStr;
+    }
+
+    function copyHTML() {
+        const textarea = document.getElementById('raw-html');
+        textarea.select();
+        document.execCommand('copy');
+        showMessage("HTML copied to clipboard! You can now paste it into your website.", "success");
+    }
+</script>
+
+</body>
+</html>

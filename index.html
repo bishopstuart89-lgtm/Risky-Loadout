@@ -224,7 +224,7 @@
         <div class="faq-item">
             <strong>NEW: Excel Comparison Feature</strong>
             You can optionally upload the Master Schedule Excel file. The tool will cross-reference the GTFS timetable against the Excel sheet. Any times that don't match, or stops that exist in one but not the other, will be highlighted in <span style="color:#c62828; font-weight:bold;">red</span>. Hover over a red cell to see the time the Excel document expected.<br>
-            <i>Note: To successfully ignore bus times highlighted in grey, you <b>must</b> upload the actual <code>.xlsx</code> file, not a `.csv` export.</i>
+            <i>Note: The tool uses Geographical Boundaries to automatically ignore bus connections on the ends of a train's route.</i>
         </div>
         <div class="faq-item">
             <strong>Which files do I need to upload?</strong>
@@ -351,12 +351,10 @@
             let file = files[i];
             const data = await file.arrayBuffer();
             
-            // Enabled cellStyles to capture the grey backgrounds indicating buses
+            // Enabled cellStyles to capture the grey backgrounds indicating buses (Fallback)
             const workbook = XLSX.read(data, { cellStyles: true });
             
             workbook.SheetNames.forEach(sheetName => {
-                // Combine filename and sheetname to detect the correct service route 
-                // (handles both multi-sheet .xlsx and individual .csv exports)
                 let nameToParse = (file.name + " " + sheetName).toLowerCase();
                 
                 let service = "", direction = "";
@@ -367,14 +365,11 @@
                 
                 if (service && direction) {
                     const sheet = workbook.Sheets[sheetName];
-                    
-                    // We use blankrows: true to ensure the json index precisely matches the row index in the sheet object
                     const json = XLSX.utils.sheet_to_json(sheet, {header: 1, raw: false, blankrows: true});
                     
                     let key = `${service}_${direction}`;
                     if (!excelComparisonData[key]) excelComparisonData[key] = {};
                     
-                    // Find the true header row containing Train IDs
                     let headerRowIdx = -1;
                     let trains = [];
                     for (let j = 0; j < json.length; j++) {
@@ -382,7 +377,6 @@
                         if (!row) continue;
                         let rowStr = row.join(" ").toLowerCase();
                         
-                        // Look for indicators of the Train Number header row to start parsing
                         if (rowStr.includes("connecting train") || rowStr.includes("train:") || (row[0] && String(row[0]).toUpperCase() === "STATION CODE")) {
                             headerRowIdx = j;
                             trains = row;
@@ -392,9 +386,8 @@
                     
                     if (headerRowIdx > -1) {
                         let currentStationCode = "";
-                        let isTrainSection = true; // We start assuming we are in the train schedule section
+                        let isTrainSection = true; 
                         
-                        // Parse rows below the header
                         for (let j = headerRowIdx + 1; j < json.length; j++) {
                             let row = json[j];
                             if (!row || row.length === 0) continue;
@@ -409,51 +402,42 @@
                                 isTrainSection = true;
                             }
                             
-                            // If we are currently in a bus section, completely skip parsing these times
                             if (!isTrainSection) continue;
                             
-                            // Keep track of the station code, even if a row leaves it blank
                             if (row[0] && row[0].trim() !== "") currentStationCode = row[0].trim();
                             
-                            // Loop through the train columns
                             for (let col = 3; col < trains.length; col++) {
                                 let trainIdRaw = trains[col];
                                 if (!trainIdRaw) continue;
                                 
-                                // Strip out letters to match GTFS base train IDs (e.g. "521" instead of "521W")
                                 let trainId = String(trainIdRaw).trim().replace(/\D/g, ''); 
                                 if (!trainId) continue;
                                 
                                 let timeVal = row[col];
                                 if (timeVal && String(timeVal).trim().toLowerCase() !== "no stop") {
                                     
-                                    // IGNORING BUS CONNECTIONS BY GREY HIGHLIGHT:
-                                    // Identify the original cell from the workbook to check styles
+                                    // Fallback: Check for grey cell background
                                     let cellAddress = XLSX.utils.encode_cell({r: j, c: col});
                                     let cell = sheet[cellAddress];
                                     let isGreyHighlighted = false;
                                     
                                     if (cell && cell.s && cell.s.fgColor) {
                                         let rgb = cell.s.fgColor.rgb;
-                                        // If cell has a background color that isn't purely white/transparent, assume it's a grey bus highlight
                                         if (rgb && rgb !== 'FFFFFFFF' && rgb !== '00000000' && rgb !== 'FFFFFF') {
                                             isGreyHighlighted = true;
                                         }
                                     }
                                     
-                                    // Skip storing this time if it's highlighted grey
                                     if (isGreyHighlighted) continue;
                                     
                                     if (!excelComparisonData[key][trainId]) excelComparisonData[key][trainId] = {};
                                     
-                                    // Store all valid times for this station in an array
                                     if (!excelComparisonData[key][trainId][currentStationCode]) {
                                         excelComparisonData[key][trainId][currentStationCode] = [];
                                     }
                                     
                                     let seconds = normalizeToSeconds(timeVal);
                                     if (seconds !== null) {
-                                        // Push if it's not a duplicate
                                         if (!excelComparisonData[key][trainId][currentStationCode].includes(seconds)) {
                                             excelComparisonData[key][trainId][currentStationCode].push(seconds);
                                         }
@@ -475,7 +459,7 @@
         const stopsMap = {};
         gtfsData.stops.forEach(s => stopsMap[s.stop_id] = s.stop_name);
 
-        // 2. Filter Trips (Capitol Corridor route_id is 'CC')
+        // 2. Filter Trips
         const relevantTrips = gtfsData.trips.filter(t => 
             t.route_id === 'CC' && 
             t.service_id === service && 
@@ -494,14 +478,13 @@
         // 3. Filter Stop Times
         const relevantStopTimes = gtfsData.stop_times.filter(st => tripIds.has(st.trip_id));
 
-        // Group stop times by trip
         const tripStops = {};
         relevantStopTimes.forEach(st => {
             if (!tripStops[st.trip_id]) tripStops[st.trip_id] = [];
             tripStops[st.trip_id].push(st);
         });
 
-        // 4. Determine Geographical Station Order (Find the longest trip)
+        // 4. Determine Master Geographical Station Order
         let maxStops = 0;
         let longestTripId = null;
         for (const [tId, stops] of Object.entries(tripStops)) {
@@ -515,14 +498,36 @@
             .sort((a, b) => parseInt(a.stop_sequence) - parseInt(b.stop_sequence))
             .map(st => ({ id: st.stop_id, name: stopsMap[st.stop_id] }));
 
-        // 5. Determine Chronological Train Order (Left to Right)
+        // 5. Sort Trains Chronologically
         const sortedTripIds = Object.keys(tripStops).sort((a, b) => {
             const firstStopA = tripStops[a].sort((x,y) => parseInt(x.stop_sequence) - parseInt(y.stop_sequence))[0];
             const firstStopB = tripStops[b].sort((x,y) => parseInt(x.stop_sequence) - parseInt(y.stop_sequence))[0];
             return timeStrToSeconds(firstStopA.departure_time) - timeStrToSeconds(firstStopB.departure_time);
         });
 
-        // Setup the Comparison Key
+        // =======================================================================
+        // NEW FEATURE: Pre-calculate Geographical Bounds for Bus Detection
+        // Finds where each train officially starts and ends in GTFS.
+        // We use this to safely ignore any Excel times that fall entirely outside
+        // the train's route (e.g., bus connections at the ends of the line).
+        // =======================================================================
+        const trainBounds = {};
+        sortedTripIds.forEach(tId => {
+            let tStops = [...tripStops[tId]].sort((a,b) => parseInt(a.stop_sequence) - parseInt(b.stop_sequence));
+            if (tStops.length > 0) {
+                let firstId = tStops[0].stop_id;
+                let lastId = tStops[tStops.length - 1].stop_id;
+                let idx1 = masterStops.findIndex(ms => ms.id === firstId);
+                let idx2 = masterStops.findIndex(ms => ms.id === lastId);
+                if (idx1 > -1 && idx2 > -1) {
+                    trainBounds[tId] = {
+                        min: Math.min(idx1, idx2),
+                        max: Math.max(idx1, idx2)
+                    };
+                }
+            }
+        });
+
         let comparisonKey = `${service}_${direction}`;
         let hasExcelData = excelComparisonData[comparisonKey] !== undefined;
 
@@ -534,9 +539,8 @@
       <tr>
         <th scope="col">Station</th>`;
         
-        // Add headers for each train
         sortedTripIds.forEach(tId => {
-            let displayId = tId.replace(/\D/g, ''); // Standardize header
+            let displayId = tId.replace(/\D/g, ''); 
             tableHTML += `<th scope="col">Train ${displayId || tId}</th>`;
         });
         
@@ -545,11 +549,9 @@
     </thead>
     <tbody>`;
 
-        // We also want a clean version without the red highlight classes to put in the textbox
         let cleanTableHTML = tableHTML; 
 
-        // Add rows for each station
-        masterStops.forEach(station => {
+        masterStops.forEach((station, stationIndex) => {
             let rowHTML = `\n      <tr>\n        <th scope="row">${station.name}</th>`;
             let cleanRowHTML = `\n      <tr>\n        <th scope="row">${station.name}</th>`;
             
@@ -567,7 +569,15 @@
                 let baseTrainId = tId.replace(/\D/g, '');
                 let excelSecsArray = null;
                 
-                // Compare with Excel Data if available
+                // Determine if this cell falls OUTSIDE the physical bounds of this train
+                let isOutsideTrainRoute = false;
+                if (trainBounds[tId]) {
+                    if (stationIndex < trainBounds[tId].min || stationIndex > trainBounds[tId].max) {
+                        isOutsideTrainRoute = true;
+                    }
+                }
+
+                // Check Excel Data
                 if (hasExcelData && excelComparisonData[comparisonKey][baseTrainId]) {
                     excelSecsArray = excelComparisonData[comparisonKey][baseTrainId][station.id];
                 }
@@ -576,7 +586,6 @@
                     cellContent = formatTime(gtfsTimeRaw);
                     if (hasExcelData) {
                         if (excelSecsArray && excelSecsArray.length > 0) {
-                            // Check if GTFS matches ANY of the Excel times (train Arrive or Depart)
                             let matched = false;
                             for (let eSecs of excelSecsArray) {
                                 if (Math.abs(gtfsSecs - eSecs) <= 60) { 
@@ -591,18 +600,24 @@
                                 cellTitle = `Anomaly! Excel Document Expected: ${expectedStr}`;
                             }
                         } else {
-                            // GTFS has a stop, but Excel does not list one
+                            // Missing in Excel
                             cellClass = 'mismatch';
                             cellTitle = `Anomaly! Excel Document does NOT list a stop here.`;
                         }
                     }
                 } else {
-                    // GTFS does NOT have a stop, but Excel expected one
+                    // GTFS DOES NOT have a stop here
                     if (hasExcelData && excelSecsArray && excelSecsArray.length > 0) {
-                        cellContent = '--';
-                        cellClass = 'mismatch';
-                        let expectedStr = excelSecsArray.map(formatSeconds).join(" or ");
-                        cellTitle = `Anomaly! Excel Document expected a stop at: ${expectedStr}`;
+                        if (isOutsideTrainRoute) {
+                            // This is a bus extension! Ignore safely without throwing an error.
+                            cellContent = '--';
+                        } else {
+                            // It's inside the route bounds. GTFS missed a middle stop!
+                            cellContent = '--';
+                            cellClass = 'mismatch';
+                            let expectedStr = excelSecsArray.map(formatSeconds).join(" or ");
+                            cellTitle = `Anomaly! Excel Document expected a train stop at: ${expectedStr}`;
+                        }
                     }
                 }
 
@@ -617,10 +632,8 @@
         tableHTML += `\n    </tbody>\n  </table>\n</div>`;
         cleanTableHTML += `\n    </tbody>\n  </table>\n</div>`;
 
-        // Render to screen
         document.getElementById('output-container').innerHTML = tableHTML;
         
-        // Show raw HTML code for copying (Using the clean version without the red classes)
         const rawContainer = document.getElementById('raw-html-container');
         rawContainer.style.display = 'block';
         document.getElementById('raw-html').value = cleanTableHTML.trim();
@@ -632,7 +645,6 @@
 
     // --- Time Normalization Utilities ---
     
-    // Converts GTFS time string to seconds past midnight. Handles overflow (e.g. 25:00:00).
     function timeStrToSeconds(timeStr) {
         if (!timeStr) return null;
         const parts = timeStr.split(':');
@@ -642,10 +654,9 @@
             seconds += parseInt(parts[1], 10) * 60;   
             if (parts[2]) seconds += parseInt(parts[2], 10); 
         }
-        return seconds % 86400; // Modulo 24 hours to match standard 12/24hr formats safely
+        return seconds % 86400;
     }
 
-    // Converts messy Excel time strings ("L10:15a", "14:23:00", "2:20 PM") to pure seconds
     function normalizeToSeconds(timeStr) {
         if (!timeStr) return null;
         timeStr = String(timeStr).trim().toLowerCase();
@@ -654,7 +665,7 @@
         let isPM = timeStr.includes('p');
         let isAM = timeStr.includes('a');
         
-        // REMOVED "L" PREFIX ISSUE: Strip all non-numeric characters (like 'L', 'Ar') leaving only the time
+        // Strip out non-numeric/time characters (removes "L", "Ar", "Lv" prefixes)
         let cleanTime = timeStr.replace(/[^0-9:]/g, '');
         let parts = cleanTime.split(':');
         
@@ -673,7 +684,6 @@
         return null;
     }
 
-    // Converts pure seconds back to a readable "8:15a" format for the tooltip
     function formatSeconds(secs) {
         let h = Math.floor(secs / 3600);
         let m = Math.floor((secs % 3600) / 60);
@@ -683,7 +693,6 @@
         return `${h}:${m.toString().padStart(2, '0')}${period}`;
     }
 
-    // Helper to format GTFS "HH:MM:SS" strictly for display
     function formatTime(timeStr) {
         if (!timeStr) return '--';
         const parts = timeStr.split(':');

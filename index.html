@@ -369,23 +369,44 @@
                     let key = `${service}_${direction}`;
                     if (!excelComparisonData[key]) excelComparisonData[key] = {};
                     
-                    // Find the header row containing Train IDs
+                    // Find the true header row containing Train IDs
                     let headerRowIdx = -1;
+                    let trains = [];
                     for (let j = 0; j < json.length; j++) {
-                        if (json[j] && (json[j][0] === "STATION CODE" || json[j][0] === "Station Code")) {
+                        let row = json[j];
+                        if (!row) continue;
+                        let rowStr = row.join(" ").toLowerCase();
+                        
+                        // Look for indicators of the Train Number header row to start parsing
+                        if (rowStr.includes("connecting train") || rowStr.includes("train:") || (row[0] && String(row[0]).toUpperCase() === "STATION CODE")) {
                             headerRowIdx = j;
+                            trains = row;
                             break;
                         }
                     }
                     
                     if (headerRowIdx > -1) {
-                        let trains = json[headerRowIdx];
                         let currentStationCode = "";
+                        let isTrainSection = true; // We start assuming we are in the train schedule section
                         
                         // Parse rows below the header
                         for (let j = headerRowIdx + 1; j < json.length; j++) {
                             let row = json[j];
                             if (!row || row.length === 0) continue;
+                            
+                            let rowStr = row.join(" ").toLowerCase();
+                            
+                            // IGNORING BUS CONNECTIONS:
+                            // Detect if the section has switched to a bus schedule so we don't grab bus times 
+                            if (rowStr.includes("connecting bus") || rowStr.includes("thruway bus") || rowStr.includes("bus connection")) {
+                                isTrainSection = false;
+                            }
+                            if (rowStr.includes("connecting train") || rowStr.includes("train schedule")) {
+                                isTrainSection = true;
+                            }
+                            
+                            // If we are currently in a bus section, completely skip parsing these times
+                            if (!isTrainSection) continue;
                             
                             // Keep track of the station code, even if a row leaves it blank
                             if (row[0] && row[0].trim() !== "") currentStationCode = row[0].trim();
@@ -401,7 +422,7 @@
                                 if (!trainId) continue;
                                 
                                 let timeVal = row[col];
-                                if (timeVal && timeVal !== "No Stop") {
+                                if (timeVal && String(timeVal).trim().toLowerCase() !== "no stop") {
                                     if (!excelComparisonData[key][trainId]) excelComparisonData[key][trainId] = {};
                                     
                                     // Prioritize 'Depart' rows. If no action is specified or it's 'Depart', we log it.

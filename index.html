@@ -425,11 +425,16 @@
                                 if (timeVal && String(timeVal).trim().toLowerCase() !== "no stop") {
                                     if (!excelComparisonData[key][trainId]) excelComparisonData[key][trainId] = {};
                                     
-                                    // Prioritize 'Depart' rows. If no action is specified or it's 'Depart', we log it.
-                                    if (!excelComparisonData[key][trainId][currentStationCode] || action.includes("depart")) {
-                                        let seconds = normalizeToSeconds(timeVal);
-                                        if (seconds !== null) {
-                                            excelComparisonData[key][trainId][currentStationCode] = seconds;
+                                    // NEW LOGIC: Store all times for this station in an array
+                                    if (!excelComparisonData[key][trainId][currentStationCode]) {
+                                        excelComparisonData[key][trainId][currentStationCode] = [];
+                                    }
+                                    
+                                    let seconds = normalizeToSeconds(timeVal);
+                                    if (seconds !== null) {
+                                        // Push if it's not a duplicate
+                                        if (!excelComparisonData[key][trainId][currentStationCode].includes(seconds)) {
+                                            excelComparisonData[key][trainId][currentStationCode].push(seconds);
                                         }
                                     }
                                 }
@@ -539,21 +544,30 @@
                 let gtfsSecs = timeStrToSeconds(gtfsTimeRaw);
                 
                 let baseTrainId = tId.replace(/\D/g, '');
-                let excelSecs = null;
+                let excelSecsArray = null;
                 
                 // Compare with Excel Data if available
                 if (hasExcelData && excelComparisonData[comparisonKey][baseTrainId]) {
-                    excelSecs = excelComparisonData[comparisonKey][baseTrainId][station.id];
+                    excelSecsArray = excelComparisonData[comparisonKey][baseTrainId][station.id];
                 }
 
                 if (hasGtfs) {
                     cellContent = formatTime(gtfsTimeRaw);
                     if (hasExcelData) {
-                        if (excelSecs !== undefined && excelSecs !== null) {
-                            // If difference is more than 60 seconds, mark as anomaly
-                            if (Math.abs(gtfsSecs - excelSecs) > 60) { 
+                        if (excelSecsArray && excelSecsArray.length > 0) {
+                            // Check if GTFS matches ANY of the Excel times (train Arrive or Depart)
+                            let matched = false;
+                            for (let eSecs of excelSecsArray) {
+                                if (Math.abs(gtfsSecs - eSecs) <= 60) { 
+                                    matched = true;
+                                    break;
+                                }
+                            }
+                            
+                            if (!matched) {
                                 cellClass = 'mismatch';
-                                cellTitle = `Anomaly! Excel Document Expected: ${formatSeconds(excelSecs)}`;
+                                let expectedStr = excelSecsArray.map(formatSeconds).join(" or ");
+                                cellTitle = `Anomaly! Excel Document Expected: ${expectedStr}`;
                             }
                         } else {
                             // GTFS has a stop, but Excel does not list one
@@ -563,10 +577,11 @@
                     }
                 } else {
                     // GTFS does NOT have a stop, but Excel expected one
-                    if (hasExcelData && excelSecs !== undefined && excelSecs !== null) {
+                    if (hasExcelData && excelSecsArray && excelSecsArray.length > 0) {
                         cellContent = '--';
                         cellClass = 'mismatch';
-                        cellTitle = `Anomaly! Excel Document expected a stop at: ${formatSeconds(excelSecs)}`;
+                        let expectedStr = excelSecsArray.map(formatSeconds).join(" or ");
+                        cellTitle = `Anomaly! Excel Document expected a stop at: ${expectedStr}`;
                     }
                 }
 

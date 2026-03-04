@@ -223,7 +223,8 @@
         </div>
         <div class="faq-item">
             <strong>NEW: Excel Comparison Feature</strong>
-            You can optionally upload the Master Schedule Excel file (<code>.xlsx</code> or separated <code>.csv</code> sheets). The tool will cross-reference the GTFS timetable against the Excel sheet. Any times that don't match, or stops that exist in one but not the other, will be highlighted in <span style="color:#c62828; font-weight:bold;">red</span>. Hover over a red cell to see the time the Excel document expected.
+            You can optionally upload the Master Schedule Excel file. The tool will cross-reference the GTFS timetable against the Excel sheet. Any times that don't match, or stops that exist in one but not the other, will be highlighted in <span style="color:#c62828; font-weight:bold;">red</span>. Hover over a red cell to see the time the Excel document expected.<br>
+            <i>Note: To successfully ignore bus times highlighted in grey, you <b>must</b> upload the actual <code>.xlsx</code> file, not a `.csv` export.</i>
         </div>
         <div class="faq-item">
             <strong>Which files do I need to upload?</strong>
@@ -281,7 +282,7 @@
         stop_times: null
     };
 
-    // Holds our parsed Excel data. Structure: excelData["Weekday_1"]["521"]["SAC"] = 15600 (seconds)
+    // Holds our parsed Excel data. Structure: excelData["Weekday_1"]["521"]["SAC"] = [15600, 15720] (seconds)
     let excelComparisonData = {};
 
     function showMessage(msg, type) {
@@ -349,7 +350,9 @@
         for (let i = 0; i < files.length; i++) {
             let file = files[i];
             const data = await file.arrayBuffer();
-            const workbook = XLSX.read(data);
+            
+            // Enabled cellStyles to capture the grey backgrounds indicating buses
+            const workbook = XLSX.read(data, { cellStyles: true });
             
             workbook.SheetNames.forEach(sheetName => {
                 // Combine filename and sheetname to detect the correct service route 
@@ -364,7 +367,9 @@
                 
                 if (service && direction) {
                     const sheet = workbook.Sheets[sheetName];
-                    const json = XLSX.utils.sheet_to_json(sheet, {header: 1, raw: false});
+                    
+                    // We use blankrows: true to ensure the json index precisely matches the row index in the sheet object
+                    const json = XLSX.utils.sheet_to_json(sheet, {header: 1, raw: false, blankrows: true});
                     
                     let key = `${service}_${direction}`;
                     if (!excelComparisonData[key]) excelComparisonData[key] = {};
@@ -396,8 +401,7 @@
                             
                             let rowStr = row.join(" ").toLowerCase();
                             
-                            // IGNORING BUS CONNECTIONS:
-                            // Detect if the section has switched to a bus schedule so we don't grab bus times 
+                            // IGNORING BUS CONNECTIONS BY ROW TEXT:
                             if (rowStr.includes("connecting bus") || rowStr.includes("thruway bus") || rowStr.includes("bus connection")) {
                                 isTrainSection = false;
                             }
@@ -410,7 +414,6 @@
                             
                             // Keep track of the station code, even if a row leaves it blank
                             if (row[0] && row[0].trim() !== "") currentStationCode = row[0].trim();
-                            let action = (row[2] || "").toString().toLowerCase();
                             
                             // Loop through the train columns
                             for (let col = 3; col < trains.length; col++) {
@@ -423,9 +426,27 @@
                                 
                                 let timeVal = row[col];
                                 if (timeVal && String(timeVal).trim().toLowerCase() !== "no stop") {
+                                    
+                                    // IGNORING BUS CONNECTIONS BY GREY HIGHLIGHT:
+                                    // Identify the original cell from the workbook to check styles
+                                    let cellAddress = XLSX.utils.encode_cell({r: j, c: col});
+                                    let cell = sheet[cellAddress];
+                                    let isGreyHighlighted = false;
+                                    
+                                    if (cell && cell.s && cell.s.fgColor) {
+                                        let rgb = cell.s.fgColor.rgb;
+                                        // If cell has a background color that isn't purely white/transparent, assume it's a grey bus highlight
+                                        if (rgb && rgb !== 'FFFFFFFF' && rgb !== '00000000' && rgb !== 'FFFFFF') {
+                                            isGreyHighlighted = true;
+                                        }
+                                    }
+                                    
+                                    // Skip storing this time if it's highlighted grey
+                                    if (isGreyHighlighted) continue;
+                                    
                                     if (!excelComparisonData[key][trainId]) excelComparisonData[key][trainId] = {};
                                     
-                                    // NEW LOGIC: Store all times for this station in an array
+                                    // Store all valid times for this station in an array
                                     if (!excelComparisonData[key][trainId][currentStationCode]) {
                                         excelComparisonData[key][trainId][currentStationCode] = [];
                                     }
@@ -624,22 +645,25 @@
         return seconds % 86400; // Modulo 24 hours to match standard 12/24hr formats safely
     }
 
-    // Converts messy Excel time strings ("10:15a", "14:23:00", "2:20 PM") to pure seconds
+    // Converts messy Excel time strings ("L10:15a", "14:23:00", "2:20 PM") to pure seconds
     function normalizeToSeconds(timeStr) {
         if (!timeStr) return null;
         timeStr = String(timeStr).trim().toLowerCase();
-        if (timeStr === "no stop" || timeStr === "--") return null;
+        if (timeStr === "no stop" || timeStr === "--" || timeStr.includes("bus")) return null;
         
         let isPM = timeStr.includes('p');
         let isAM = timeStr.includes('a');
         
-        let cleanTime = timeStr.replace(/[apm\s]/g, '');
+        // REMOVED "L" PREFIX ISSUE: Strip all non-numeric characters (like 'L', 'Ar') leaving only the time
+        let cleanTime = timeStr.replace(/[^0-9:]/g, '');
         let parts = cleanTime.split(':');
         
         if (parts.length >= 2) {
             let hours = parseInt(parts[0], 10);
             let mins = parseInt(parts[1], 10);
             let secs = parts[2] ? parseInt(parts[2], 10) : 0;
+            
+            if (isNaN(hours) || isNaN(mins)) return null;
             
             if (isPM && hours < 12) hours += 12;
             if (isAM && hours === 12) hours = 0;

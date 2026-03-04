@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CCJPA Schedule Validator</title>
-    <!-- PapaParse for parsing CSV/TXT files in the browser without a backend -->
+    <!-- PapaParse for parsing GTFS CSV/TXT files -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- SheetJS for parsing Excel (.xlsx) files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root {
             --cc-navy: #1D1B4D;
@@ -179,6 +181,15 @@
             background-color: #e2e6ea;
         }
 
+        /* Anomaly Highlight Class */
+        .ccjpa-schedule td.mismatch {
+            background-color: #ffebee !important;
+            color: #c62828 !important;
+            font-weight: bold;
+            border: 2px solid #ef9a9a !important;
+            cursor: help;
+        }
+
         #raw-html-container {
             margin-top: 20px;
             display: none;
@@ -208,15 +219,16 @@
         <h2>How to use this tool</h2>
         <div class="faq-item">
             <strong>What is this tool?</strong>
-            This application allows the CCJPA team to upload raw GTFS transit data and instantly generate responsive, accessible HTML tables matching the Capitol Corridor brand. You can use this to visually validate schedules before sending data to the mobile app, or to generate the HTML needed for the public website.
+            This application allows the CCJPA team to upload raw GTFS transit data and instantly generate responsive, accessible HTML tables matching the Capitol Corridor brand.
+        </div>
+        <div class="faq-item">
+            <strong>NEW: Excel Comparison Feature</strong>
+            You can optionally upload the Master Schedule Excel file (<code>.xlsx</code> or separated <code>.csv</code> sheets). The tool will cross-reference the GTFS timetable against the Excel sheet. Any times that don't match, or stops that exist in one but not the other, will be highlighted in <span style="color:#c62828; font-weight:bold;">red</span>. Hover over a red cell to see the time the Excel document expected.
         </div>
         <div class="faq-item">
             <strong>Which files do I need to upload?</strong>
-            You must select three specific files extracted from your GTFS Zip folder: <code>stops.txt</code>, <code>trips.txt</code>, and <code>stop_times.txt</code>.
-        </div>
-        <div class="faq-item">
-            <strong>How do I put this on the website?</strong>
-            Once generated, click "Copy HTML Code" at the bottom of the page. You can paste that code directly into your CMS (like WordPress) to update the live schedule page.
+            1. The GTFS files: <code>stops.txt</code>, <code>trips.txt</code>, and <code>stop_times.txt</code>.<br>
+            2. (Optional) The master Excel schedule file (e.g., <code>Train Schedule_030226_ReturntoFullService.xlsx</code>).
         </div>
     </div>
 
@@ -225,31 +237,35 @@
     <!-- Controls -->
     <div class="controls">
         <div class="form-group">
-            <label for="gtfs-files">1. Upload GTFS Files (Select stops, trips, and stop_times)</label>
+            <label for="gtfs-files">1. Upload GTFS Files (.txt)</label>
             <input type="file" id="gtfs-files" multiple accept=".txt">
         </div>
         <div class="form-group">
-            <label for="service-id">2. Select Service Period</label>
+            <label for="excel-file">2. Upload Excel File (Optional Comparison)</label>
+            <input type="file" id="excel-file" multiple accept=".xlsx,.xls,.csv">
+        </div>
+        <div class="form-group">
+            <label for="service-id">3. Select Service Period</label>
             <select id="service-id">
                 <option value="Weekday">Weekday</option>
                 <option value="Weekend">Weekend</option>
             </select>
         </div>
         <div class="form-group">
-            <label for="direction-id">3. Select Direction</label>
+            <label for="direction-id">4. Select Direction</label>
             <select id="direction-id">
                 <option value="1">Westbound / Southbound (To San Jose)</option>
                 <option value="0">Eastbound / Northbound (To Auburn)</option>
             </select>
         </div>
-        <button class="primary" onclick="processGTFS()">Generate Schedule</button>
+        <button class="primary" onclick="processFiles()">Generate & Compare</button>
     </div>
 
     <!-- Output Area -->
     <div id="output-container"></div>
     
     <div id="raw-html-container">
-        <h3>Generated HTML Code</h3>
+        <h3>Generated HTML Code (Without Error Highlights)</h3>
         <p>Copy this code and paste it into the HTML editor of your website CMS.</p>
         <textarea id="raw-html" readonly></textarea>
         <button class="primary" style="margin-top: 10px;" onclick="copyHTML()">Copy to Clipboard</button>
@@ -265,6 +281,9 @@
         stop_times: null
     };
 
+    // Holds our parsed Excel data. Structure: excelData["Weekday_1"]["521"]["SAC"] = 15600 (seconds)
+    let excelComparisonData = {};
+
     function showMessage(msg, type) {
         const box = document.getElementById('message-box');
         box.textContent = msg;
@@ -274,35 +293,38 @@
     }
 
     // Process files on Generate click
-    async function processGTFS() {
-        const fileInput = document.getElementById('gtfs-files');
-        const files = fileInput.files;
+    async function processFiles() {
+        const gtfsInput = document.getElementById('gtfs-files');
+        const excelInput = document.getElementById('excel-file');
 
-        if (files.length === 0 && !gtfsData.stops) {
+        if (gtfsInput.files.length === 0 && !gtfsData.stops) {
             showMessage("Please select the GTFS .txt files first.", "error");
             return;
         }
 
-        // Only parse files if new ones are uploaded
-        if (files.length > 0) {
+        // 1. Process GTFS Files
+        if (gtfsInput.files.length > 0) {
             gtfsData = { stops: null, trips: null, stop_times: null };
-            let parsedCount = 0;
-
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
+            for (let i = 0; i < gtfsInput.files.length; i++) {
+                const file = gtfsInput.files[i];
                 const name = file.name.toLowerCase();
-                
                 if (name === 'stops.txt') await parseCSV(file, 'stops');
                 else if (name === 'trips.txt') await parseCSV(file, 'trips');
                 else if (name === 'stop_times.txt') await parseCSV(file, 'stop_times');
             }
 
             if (!gtfsData.stops || !gtfsData.trips || !gtfsData.stop_times) {
-                showMessage("Missing required files. Please ensure stops.txt, trips.txt, and stop_times.txt are all selected.", "error");
+                showMessage("Missing required GTFS files. Please ensure stops.txt, trips.txt, and stop_times.txt are all selected.", "error");
                 return;
             }
         }
 
+        // 2. Process Excel Files (if any)
+        if (excelInput.files.length > 0) {
+            await parseExcelFiles(excelInput.files);
+        }
+
+        // 3. Generate the Table
         generateTable();
     }
 
@@ -318,6 +340,84 @@
                 }
             });
         });
+    }
+
+    // Advanced Excel Parser
+    async function parseExcelFiles(files) {
+        excelComparisonData = {}; // reset
+        
+        for (let i = 0; i < files.length; i++) {
+            let file = files[i];
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data);
+            
+            workbook.SheetNames.forEach(sheetName => {
+                // Combine filename and sheetname to detect the correct service route 
+                // (handles both multi-sheet .xlsx and individual .csv exports)
+                let nameToParse = (file.name + " " + sheetName).toLowerCase();
+                
+                let service = "", direction = "";
+                if (nameToParse.includes("weekday")) service = "Weekday";
+                if (nameToParse.includes("weekend")) service = "Weekend";
+                if (nameToParse.includes("westbound")) direction = "1";
+                if (nameToParse.includes("eastbound")) direction = "0";
+                
+                if (service && direction) {
+                    const sheet = workbook.Sheets[sheetName];
+                    const json = XLSX.utils.sheet_to_json(sheet, {header: 1, raw: false});
+                    
+                    let key = `${service}_${direction}`;
+                    if (!excelComparisonData[key]) excelComparisonData[key] = {};
+                    
+                    // Find the header row containing Train IDs
+                    let headerRowIdx = -1;
+                    for (let j = 0; j < json.length; j++) {
+                        if (json[j] && (json[j][0] === "STATION CODE" || json[j][0] === "Station Code")) {
+                            headerRowIdx = j;
+                            break;
+                        }
+                    }
+                    
+                    if (headerRowIdx > -1) {
+                        let trains = json[headerRowIdx];
+                        let currentStationCode = "";
+                        
+                        // Parse rows below the header
+                        for (let j = headerRowIdx + 1; j < json.length; j++) {
+                            let row = json[j];
+                            if (!row || row.length === 0) continue;
+                            
+                            // Keep track of the station code, even if a row leaves it blank
+                            if (row[0] && row[0].trim() !== "") currentStationCode = row[0].trim();
+                            let action = (row[2] || "").toString().toLowerCase();
+                            
+                            // Loop through the train columns
+                            for (let col = 3; col < trains.length; col++) {
+                                let trainIdRaw = trains[col];
+                                if (!trainIdRaw) continue;
+                                
+                                // Strip out letters to match GTFS base train IDs (e.g. "521" instead of "521W")
+                                let trainId = String(trainIdRaw).trim().replace(/\D/g, ''); 
+                                if (!trainId) continue;
+                                
+                                let timeVal = row[col];
+                                if (timeVal && timeVal !== "No Stop") {
+                                    if (!excelComparisonData[key][trainId]) excelComparisonData[key][trainId] = {};
+                                    
+                                    // Prioritize 'Depart' rows. If no action is specified or it's 'Depart', we log it.
+                                    if (!excelComparisonData[key][trainId][currentStationCode] || action.includes("depart")) {
+                                        let seconds = normalizeToSeconds(timeVal);
+                                        if (seconds !== null) {
+                                            excelComparisonData[key][trainId][currentStationCode] = seconds;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
     }
 
     function generateTable() {
@@ -370,12 +470,14 @@
 
         // 5. Determine Chronological Train Order (Left to Right)
         const sortedTripIds = Object.keys(tripStops).sort((a, b) => {
-            // Find the very first stop for trip A and B
             const firstStopA = tripStops[a].sort((x,y) => parseInt(x.stop_sequence) - parseInt(y.stop_sequence))[0];
             const firstStopB = tripStops[b].sort((x,y) => parseInt(x.stop_sequence) - parseInt(y.stop_sequence))[0];
-            // Compare numerically instead of alphabetically
             return timeStrToSeconds(firstStopA.departure_time) - timeStrToSeconds(firstStopB.departure_time);
         });
+
+        // Setup the Comparison Key
+        let comparisonKey = `${service}_${direction}`;
+        let hasExcelData = excelComparisonData[comparisonKey] !== undefined;
 
         // 6. Build the HTML Table String
         let tableHTML = `
@@ -387,9 +489,8 @@
         
         // Add headers for each train
         sortedTripIds.forEach(tId => {
-            // Strip any internal characters to just get the base train number if desired
-            let displayId = tId;
-            tableHTML += `<th scope="col">Train ${displayId}</th>`;
+            let displayId = tId.replace(/\D/g, ''); // Standardize header
+            tableHTML += `<th scope="col">Train ${displayId || tId}</th>`;
         });
         
         tableHTML += `
@@ -397,71 +498,142 @@
     </thead>
     <tbody>`;
 
-        // Add rows for each station in geographical order
+        // We also want a clean version without the red highlight classes to put in the textbox
+        let cleanTableHTML = tableHTML; 
+
+        // Add rows for each station
         masterStops.forEach(station => {
-            tableHTML += `\n      <tr>\n        <th scope="row">${station.name}</th>`;
+            let rowHTML = `\n      <tr>\n        <th scope="row">${station.name}</th>`;
+            let cleanRowHTML = `\n      <tr>\n        <th scope="row">${station.name}</th>`;
             
             sortedTripIds.forEach(tId => {
-                // Find if this train stops at this station
                 const stopData = tripStops[tId].find(st => st.stop_id === station.id);
-                if (stopData) {
-                    // Convert 24h format (e.g. 14:30:00) to 12h format if desired, or keep raw.
-                    // Keeping raw GTFS time string for simplicity and direct match validation.
-                    tableHTML += `\n        <td>${formatTime(stopData.departure_time)}</td>`;
-                } else {
-                    tableHTML += `\n        <td>--</td>`; // Skip representation
+                
+                let cellContent = '--';
+                let cellClass = '';
+                let cellTitle = '';
+                
+                let hasGtfs = !!stopData;
+                let gtfsTimeRaw = hasGtfs ? stopData.departure_time : null;
+                let gtfsSecs = timeStrToSeconds(gtfsTimeRaw);
+                
+                let baseTrainId = tId.replace(/\D/g, '');
+                let excelSecs = null;
+                
+                // Compare with Excel Data if available
+                if (hasExcelData && excelComparisonData[comparisonKey][baseTrainId]) {
+                    excelSecs = excelComparisonData[comparisonKey][baseTrainId][station.id];
                 }
+
+                if (hasGtfs) {
+                    cellContent = formatTime(gtfsTimeRaw);
+                    if (hasExcelData) {
+                        if (excelSecs !== undefined && excelSecs !== null) {
+                            // If difference is more than 60 seconds, mark as anomaly
+                            if (Math.abs(gtfsSecs - excelSecs) > 60) { 
+                                cellClass = 'mismatch';
+                                cellTitle = `Anomaly! Excel Document Expected: ${formatSeconds(excelSecs)}`;
+                            }
+                        } else {
+                            // GTFS has a stop, but Excel does not list one
+                            cellClass = 'mismatch';
+                            cellTitle = `Anomaly! Excel Document does NOT list a stop here.`;
+                        }
+                    }
+                } else {
+                    // GTFS does NOT have a stop, but Excel expected one
+                    if (hasExcelData && excelSecs !== undefined && excelSecs !== null) {
+                        cellContent = '--';
+                        cellClass = 'mismatch';
+                        cellTitle = `Anomaly! Excel Document expected a stop at: ${formatSeconds(excelSecs)}`;
+                    }
+                }
+
+                rowHTML += `\n        <td class="${cellClass}" title="${cellTitle}">${cellContent}</td>`;
+                cleanRowHTML += `\n        <td>${cellContent}</td>`;
             });
-            tableHTML += `\n      </tr>`;
+            
+            tableHTML += rowHTML + `\n      </tr>`;
+            cleanTableHTML += cleanRowHTML + `\n      </tr>`;
         });
 
-        tableHTML += `
-    </tbody>
-  </table>
-</div>`;
+        tableHTML += `\n    </tbody>\n  </table>\n</div>`;
+        cleanTableHTML += `\n    </tbody>\n  </table>\n</div>`;
 
         // Render to screen
         document.getElementById('output-container').innerHTML = tableHTML;
         
-        // Show raw HTML code for copying
+        // Show raw HTML code for copying (Using the clean version without the red classes)
         const rawContainer = document.getElementById('raw-html-container');
         rawContainer.style.display = 'block';
-        document.getElementById('raw-html').value = tableHTML.trim();
+        document.getElementById('raw-html').value = cleanTableHTML.trim();
         
-        showMessage("Schedule generated successfully!", "success");
+        let msg = "Schedule generated successfully!";
+        if(hasExcelData) msg += " Cross-referenced with Excel document.";
+        showMessage(msg, "success");
     }
 
-    // Helper to convert GTFS "HH:MM:SS" to total seconds for accurate numerical sorting
+    // --- Time Normalization Utilities ---
+    
+    // Converts GTFS time string to seconds past midnight. Handles overflow (e.g. 25:00:00).
     function timeStrToSeconds(timeStr) {
-        if (!timeStr) return 0;
+        if (!timeStr) return null;
         const parts = timeStr.split(':');
         let seconds = 0;
         if (parts.length >= 2) {
-            seconds += parseInt(parts[0], 10) * 3600; // Hours
-            seconds += parseInt(parts[1], 10) * 60;   // Minutes
-            if (parts[2]) seconds += parseInt(parts[2], 10); // Seconds
+            seconds += parseInt(parts[0], 10) * 3600; 
+            seconds += parseInt(parts[1], 10) * 60;   
+            if (parts[2]) seconds += parseInt(parts[2], 10); 
         }
-        return seconds;
+        return seconds % 86400; // Modulo 24 hours to match standard 12/24hr formats safely
     }
 
-    // Helper to format GTFS "HH:MM:SS" strictly for display if needed
+    // Converts messy Excel time strings ("10:15a", "14:23:00", "2:20 PM") to pure seconds
+    function normalizeToSeconds(timeStr) {
+        if (!timeStr) return null;
+        timeStr = String(timeStr).trim().toLowerCase();
+        if (timeStr === "no stop" || timeStr === "--") return null;
+        
+        let isPM = timeStr.includes('p');
+        let isAM = timeStr.includes('a');
+        
+        let cleanTime = timeStr.replace(/[apm\s]/g, '');
+        let parts = cleanTime.split(':');
+        
+        if (parts.length >= 2) {
+            let hours = parseInt(parts[0], 10);
+            let mins = parseInt(parts[1], 10);
+            let secs = parts[2] ? parseInt(parts[2], 10) : 0;
+            
+            if (isPM && hours < 12) hours += 12;
+            if (isAM && hours === 12) hours = 0;
+            
+            return ((hours % 24) * 3600) + (mins * 60) + secs;
+        }
+        return null;
+    }
+
+    // Converts pure seconds back to a readable "8:15a" format for the tooltip
+    function formatSeconds(secs) {
+        let h = Math.floor(secs / 3600);
+        let m = Math.floor((secs % 3600) / 60);
+        let period = h >= 12 ? 'p' : 'a';
+        h = h % 12;
+        if (h === 0) h = 12;
+        return `${h}:${m.toString().padStart(2, '0')}${period}`;
+    }
+
+    // Helper to format GTFS "HH:MM:SS" strictly for display
     function formatTime(timeStr) {
         if (!timeStr) return '--';
         const parts = timeStr.split(':');
         if (parts.length >= 2) {
             let hours = parseInt(parts[0], 10);
             const minutes = parts[1];
-            
-            // Handle GTFS times past midnight (e.g., 25:30:00 becomes 1:30)
             hours = hours % 24;
-            
-            // Determine AM or PM ('a' or 'p')
             const period = hours >= 12 ? 'p' : 'a';
-            
-            // Convert to 12-hour format
             hours = hours % 12;
-            hours = hours ? hours : 12; // the hour '0' should be '12'
-            
+            hours = hours ? hours : 12; 
             return `${hours}:${minutes}${period}`;
         }
         return timeStr;
@@ -471,7 +643,7 @@
         const textarea = document.getElementById('raw-html');
         textarea.select();
         document.execCommand('copy');
-        showMessage("HTML copied to clipboard!", "success");
+        showMessage("Clean HTML copied to clipboard!", "success");
     }
 </script>
 

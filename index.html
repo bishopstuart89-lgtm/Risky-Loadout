@@ -498,11 +498,11 @@
             .sort((a, b) => parseInt(a.stop_sequence) - parseInt(b.stop_sequence))
             .map(st => ({ id: st.stop_id, name: stopsMap[st.stop_id] }));
 
-        // 5. Sort Trains Chronologically
+        // 5. Sort Trains Numerically (Lowest to Highest Train Number)
         const sortedTripIds = Object.keys(tripStops).sort((a, b) => {
-            const firstStopA = tripStops[a].sort((x,y) => parseInt(x.stop_sequence) - parseInt(y.stop_sequence))[0];
-            const firstStopB = tripStops[b].sort((x,y) => parseInt(x.stop_sequence) - parseInt(y.stop_sequence))[0];
-            return timeStrToSeconds(firstStopA.departure_time) - timeStrToSeconds(firstStopB.departure_time);
+            const numA = parseInt(a.replace(/\D/g, ''), 10) || 0;
+            const numB = parseInt(b.replace(/\D/g, ''), 10) || 0;
+            return numA - numB;
         });
 
         // =======================================================================

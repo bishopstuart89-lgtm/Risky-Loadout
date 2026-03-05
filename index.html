@@ -181,14 +181,47 @@
             background-color: #e2e6ea;
         }
 
-        /* Anomaly Highlight Class */
-        .ccjpa-schedule td.mismatch {
+        /* Anomaly Highlight Classes */
+        /* Red: General Mismatches */
+        .ccjpa-schedule td.mismatch, .ccjpa-schedule th.mismatch {
             background-color: #ffebee !important;
             color: #c62828 !important;
             font-weight: bold;
             border: 2px solid #ef9a9a !important;
             cursor: help;
         }
+        /* Orange: Missing in GTFS */
+        .ccjpa-schedule td.missing-gtfs, .ccjpa-schedule th.missing-gtfs {
+            background-color: #fff3e0 !important;
+            color: #e65100 !important;
+            font-weight: bold;
+            border: 2px solid #ffb74d !important;
+            cursor: help;
+        }
+        /* Blue: Missing in Excel */
+        .ccjpa-schedule td.missing-excel, .ccjpa-schedule th.missing-excel {
+            background-color: #e3f2fd !important;
+            color: #0d47a1 !important;
+            font-weight: bold;
+            border: 2px solid #64b5f6 !important;
+            cursor: help;
+        }
+
+        /* Changelog Section Styling */
+        .changelog-section {
+            border-left-color: #1D1B4D;
+            background: #ffffff;
+            margin-top: 30px;
+        }
+        .changelog-section h2 { margin-bottom: 15px; }
+        .legend {
+            display: flex; gap: 20px; margin-bottom: 20px; font-size: 14px; font-weight: bold; flex-wrap: wrap;
+        }
+        .legend-item { display: flex; align-items: center; gap: 8px; }
+        .color-box { width: 18px; height: 18px; display: inline-block; border-radius: 4px; }
+        
+        .changelog-list { margin: 0; padding-left: 20px; color: #333; line-height: 1.6; }
+        .changelog-list li { margin-bottom: 8px; }
 
         #raw-html-container {
             margin-top: 20px;
@@ -222,9 +255,8 @@
             This application allows the CCJPA team to upload raw GTFS transit data and instantly generate responsive, accessible HTML tables matching the Capitol Corridor brand.
         </div>
         <div class="faq-item">
-            <strong>NEW: Excel Comparison Feature</strong>
-            You can optionally upload the Master Schedule Excel file. The tool will cross-reference the GTFS timetable against the Excel sheet. Any times that don't match, or stops that exist in one but not the other, will be highlighted in <span style="color:#c62828; font-weight:bold;">red</span>. Hover over a red cell to see the time the Excel document expected.<br>
-            <i>Note: The tool uses Geographical Boundaries to automatically ignore bus connections on the ends of a train's route.</i>
+            <strong>NEW: Full Schedule Excel Comparison</strong>
+            Upload the Master Schedule Excel file to cross-reference against the GTFS feed. The tool now analyzes both files to find completely missing schedules, extra stops, or mismatched departure times. Hover your mouse over any highlighted cell to read the expected value, or scroll down to view the compiled Error Changelog.
         </div>
         <div class="faq-item">
             <strong>Which files do I need to upload?</strong>
@@ -264,6 +296,7 @@
 
     <!-- Output Area -->
     <div id="output-container"></div>
+    <div id="changelog-container"></div>
     
     <div id="raw-html-container">
         <h3>Generated HTML Code (Without Error Highlights)</h3>
@@ -276,11 +309,7 @@
 
 <script>
     // Global objects to hold our parsed GTFS data
-    let gtfsData = {
-        stops: null,
-        trips: null,
-        stop_times: null
-    };
+    let gtfsData = { stops: null, trips: null, stop_times: null };
 
     // Holds our parsed Excel data. Structure: excelData["Weekday_1"]["521"]["SAC"] = [15600, 15720] (seconds)
     let excelComparisonData = {};
@@ -454,28 +483,20 @@
     function generateTable() {
         const service = document.getElementById('service-id').value;
         const direction = document.getElementById('direction-id').value;
+        let comparisonKey = `${service}_${direction}`;
+        let hasExcelData = excelComparisonData[comparisonKey] !== undefined;
+        let changelogErrors = [];
         
         // 1. Map Stop IDs to Names
         const stopsMap = {};
         gtfsData.stops.forEach(s => stopsMap[s.stop_id] = s.stop_name);
 
-        // 2. Filter Trips
+        // 2. Filter GTFS Trips
         const relevantTrips = gtfsData.trips.filter(t => 
-            t.route_id === 'CC' && 
-            t.service_id === service && 
-            t.direction_id === direction
+            t.route_id === 'CC' && t.service_id === service && t.direction_id === direction
         );
 
-        if (relevantTrips.length === 0) {
-            showMessage(`No trips found for Capitol Corridor ${service} in Direction ${direction}.`, "error");
-            document.getElementById('output-container').innerHTML = '';
-            document.getElementById('raw-html-container').style.display = 'none';
-            return;
-        }
-
         const tripIds = new Set(relevantTrips.map(t => t.trip_id));
-
-        // 3. Filter Stop Times
         const relevantStopTimes = gtfsData.stop_times.filter(st => tripIds.has(st.trip_id));
 
         const tripStops = {};
@@ -484,7 +505,16 @@
             tripStops[st.trip_id].push(st);
         });
 
-        // 4. Determine Master Geographical Station Order
+        // Map full GTFS trip IDs to Base IDs for logical correlation (e.g. 521W -> 521)
+        const gtfsBaseToFull = {};
+        Object.keys(tripStops).forEach(tId => {
+            gtfsBaseToFull[tId.replace(/\D/g, '')] = tId;
+        });
+
+        const gtfsBaseIds = Object.keys(gtfsBaseToFull);
+        const excelBaseIds = hasExcelData ? Object.keys(excelComparisonData[comparisonKey]) : [];
+
+        // Determine Master Geographical Station Order using the longest GTFS trip
         let maxStops = 0;
         let longestTripId = null;
         for (const [tId, stops] of Object.entries(tripStops)) {
@@ -493,34 +523,36 @@
                 longestTripId = tId;
             }
         }
+        
+        if (!longestTripId && !hasExcelData) {
+            showMessage(`No trips found for Capitol Corridor ${service} in Direction ${direction}.`, "error");
+            document.getElementById('output-container').innerHTML = '';
+            document.getElementById('changelog-container').innerHTML = '';
+            document.getElementById('raw-html-container').style.display = 'none';
+            return;
+        }
 
-        const masterStops = tripStops[longestTripId]
+        const masterStops = longestTripId ? tripStops[longestTripId]
             .sort((a, b) => parseInt(a.stop_sequence) - parseInt(b.stop_sequence))
-            .map(st => ({ id: st.stop_id, name: stopsMap[st.stop_id] }));
+            .map(st => ({ id: st.stop_id, name: stopsMap[st.stop_id] })) : [];
 
-        // 5. Sort Trains Numerically (Lowest to Highest Train Number)
-        const sortedTripIds = Object.keys(tripStops).sort((a, b) => {
-            const numA = parseInt(a.replace(/\D/g, ''), 10) || 0;
-            const numB = parseInt(b.replace(/\D/g, ''), 10) || 0;
-            return numA - numB;
+        // 3. Combine GTFS and Excel Train IDs and sort numerically
+        const unifiedBaseIds = Array.from(new Set([...gtfsBaseIds, ...excelBaseIds])).sort((a, b) => {
+            return parseInt(a) - parseInt(b);
         });
 
-        // =======================================================================
-        // NEW FEATURE: Pre-calculate Geographical Bounds for Bus Detection
-        // Finds where each train officially starts and ends in GTFS.
-        // We use this to safely ignore any Excel times that fall entirely outside
-        // the train's route (e.g., bus connections at the ends of the line).
-        // =======================================================================
+        // Calculate GTFS Geographical Bounds to safely ignore bus connections
         const trainBounds = {};
-        sortedTripIds.forEach(tId => {
-            let tStops = [...tripStops[tId]].sort((a,b) => parseInt(a.stop_sequence) - parseInt(b.stop_sequence));
+        gtfsBaseIds.forEach(baseId => {
+            let fullId = gtfsBaseToFull[baseId];
+            let tStops = [...tripStops[fullId]].sort((a,b) => parseInt(a.stop_sequence) - parseInt(b.stop_sequence));
             if (tStops.length > 0) {
                 let firstId = tStops[0].stop_id;
                 let lastId = tStops[tStops.length - 1].stop_id;
                 let idx1 = masterStops.findIndex(ms => ms.id === firstId);
                 let idx2 = masterStops.findIndex(ms => ms.id === lastId);
                 if (idx1 > -1 && idx2 > -1) {
-                    trainBounds[tId] = {
+                    trainBounds[baseId] = {
                         min: Math.min(idx1, idx2),
                         max: Math.max(idx1, idx2)
                     };
@@ -528,96 +560,113 @@
             }
         });
 
-        let comparisonKey = `${service}_${direction}`;
-        let hasExcelData = excelComparisonData[comparisonKey] !== undefined;
-
-        // 6. Build the HTML Table String
-        let tableHTML = `
-<div class="table-container">
-  <table class="ccjpa-schedule" aria-label="${service} Train Schedule">
-    <thead>
-      <tr>
-        <th scope="col">Station</th>`;
+        // =======================================================================
+        // HTML TABLE CONSTRUCTION
+        // =======================================================================
+        let tableHTML = `<div class="table-container">\n  <table class="ccjpa-schedule" aria-label="${service} Train Schedule">\n    <thead>\n      <tr>\n        <th scope="col">Station</th>`;
         
-        sortedTripIds.forEach(tId => {
-            let displayId = tId.replace(/\D/g, ''); 
-            tableHTML += `<th scope="col">Train ${displayId || tId}</th>`;
+        // Generate Headers (and check for missing entire trains)
+        unifiedBaseIds.forEach(baseId => {
+            let thClass = '';
+            let thTitle = '';
+            
+            if (hasExcelData) {
+                if (!gtfsBaseIds.includes(baseId)) {
+                    thClass = 'missing-gtfs';
+                    thTitle = 'Train schedule completely missing from GTFS';
+                    changelogErrors.push(`Train <strong>${baseId}</strong> is present in the Excel document but completely missing from GTFS.`);
+                } else if (!excelBaseIds.includes(baseId)) {
+                    thClass = 'missing-excel';
+                    thTitle = 'Train schedule completely missing from Excel';
+                    changelogErrors.push(`Train <strong>${baseId}</strong> is present in GTFS but completely missing from the Excel document.`);
+                }
+            }
+            
+            tableHTML += `<th scope="col" class="${thClass}" title="${thTitle}">Train ${baseId}</th>`;
         });
         
-        tableHTML += `
-      </tr>
-    </thead>
-    <tbody>`;
+        tableHTML += `\n      </tr>\n    </thead>\n    <tbody>`;
+        let cleanTableHTML = tableHTML; // Parallel generation for raw CMS code
 
-        let cleanTableHTML = tableHTML; 
-
+        // Generate Rows
         masterStops.forEach((station, stationIndex) => {
             let rowHTML = `\n      <tr>\n        <th scope="row">${station.name}</th>`;
             let cleanRowHTML = `\n      <tr>\n        <th scope="row">${station.name}</th>`;
             
-            sortedTripIds.forEach(tId => {
-                const stopData = tripStops[tId].find(st => st.stop_id === station.id);
+            unifiedBaseIds.forEach(baseId => {
+                let hasGtfsTrain = gtfsBaseIds.includes(baseId);
+                let fullGtfsId = hasGtfsTrain ? gtfsBaseToFull[baseId] : null;
+                let stopData = hasGtfsTrain ? tripStops[fullGtfsId].find(st => st.stop_id === station.id) : null;
                 
                 let cellContent = '--';
                 let cellClass = '';
                 let cellTitle = '';
                 
-                let hasGtfs = !!stopData;
-                let gtfsTimeRaw = hasGtfs ? stopData.departure_time : null;
+                let gtfsTimeRaw = stopData ? stopData.departure_time : null;
                 let gtfsSecs = timeStrToSeconds(gtfsTimeRaw);
-                
-                let baseTrainId = tId.replace(/\D/g, '');
-                let excelSecsArray = null;
-                
-                // Determine if this cell falls OUTSIDE the physical bounds of this train
+                let excelSecsArray = (hasExcelData && excelComparisonData[comparisonKey][baseId]) ? excelComparisonData[comparisonKey][baseId][station.id] : null;
+
                 let isOutsideTrainRoute = false;
-                if (trainBounds[tId]) {
-                    if (stationIndex < trainBounds[tId].min || stationIndex > trainBounds[tId].max) {
+                if (hasGtfsTrain && trainBounds[baseId]) {
+                    if (stationIndex < trainBounds[baseId].min || stationIndex > trainBounds[baseId].max) {
                         isOutsideTrainRoute = true;
                     }
                 }
 
-                // Check Excel Data
-                if (hasExcelData && excelComparisonData[comparisonKey][baseTrainId]) {
-                    excelSecsArray = excelComparisonData[comparisonKey][baseTrainId][station.id];
-                }
-
-                if (hasGtfs) {
+                // Core Comparison Logic
+                if (hasGtfsTrain && !hasExcelData) {
+                    // No Excel provided, just show GTFS
                     cellContent = formatTime(gtfsTimeRaw);
-                    if (hasExcelData) {
-                        if (excelSecsArray && excelSecsArray.length > 0) {
-                            let matched = false;
-                            for (let eSecs of excelSecsArray) {
-                                if (Math.abs(gtfsSecs - eSecs) <= 60) { 
-                                    matched = true;
-                                    break;
+                } 
+                else if (hasGtfsTrain && hasExcelData) {
+                    if (!excelBaseIds.includes(baseId)) {
+                        // Train entirely missing from Excel. Mark all cells blue.
+                        cellContent = formatTime(gtfsTimeRaw);
+                        if (cellContent !== '--') {
+                            cellClass = 'missing-excel';
+                            cellTitle = 'Schedule missing from Excel';
+                        }
+                    } else {
+                        // Train is shared in both. Compare specific times.
+                        if (stopData) {
+                            cellContent = formatTime(gtfsTimeRaw);
+                            if (excelSecsArray && excelSecsArray.length > 0) {
+                                let matched = false;
+                                for (let eSecs of excelSecsArray) {
+                                    if (Math.abs(gtfsSecs - eSecs) <= 60) { matched = true; break; }
+                                }
+                                if (!matched) {
+                                    cellClass = 'mismatch';
+                                    let expectedStr = excelSecsArray.map(formatSeconds).join(" or ");
+                                    cellTitle = `Mismatch! GTFS: ${cellContent} | Excel Expected: ${expectedStr}`;
+                                    changelogErrors.push(`Train <strong>${baseId}</strong> at <strong>${station.name}</strong>: GTFS time is ${cellContent}, but Excel expects ${expectedStr}.`);
+                                }
+                            } else {
+                                // GTFS has stop, Excel missed it entirely
+                                cellClass = 'mismatch';
+                                cellTitle = `Mismatch! Extra stop in GTFS. Excel does not list a stop here.`;
+                                changelogErrors.push(`Train <strong>${baseId}</strong> at <strong>${station.name}</strong>: Stop exists in GTFS but is missing in Excel.`);
+                            }
+                        } else {
+                            // GTFS missed a stop
+                            if (excelSecsArray && excelSecsArray.length > 0) {
+                                if (!isOutsideTrainRoute) {
+                                    cellContent = '--';
+                                    cellClass = 'mismatch';
+                                    let expectedStr = excelSecsArray.map(formatSeconds).join(" or ");
+                                    cellTitle = `Mismatch! Missing stop in GTFS. Excel expects: ${expectedStr}`;
+                                    changelogErrors.push(`Train <strong>${baseId}</strong> at <strong>${station.name}</strong>: Missing stop in GTFS. Excel expects a stop at ${expectedStr}.`);
                                 }
                             }
-                            
-                            if (!matched) {
-                                cellClass = 'mismatch';
-                                let expectedStr = excelSecsArray.map(formatSeconds).join(" or ");
-                                cellTitle = `Anomaly! Excel Document Expected: ${expectedStr}`;
-                            }
-                        } else {
-                            // Missing in Excel
-                            cellClass = 'mismatch';
-                            cellTitle = `Anomaly! Excel Document does NOT list a stop here.`;
                         }
                     }
-                } else {
-                    // GTFS DOES NOT have a stop here
-                    if (hasExcelData && excelSecsArray && excelSecsArray.length > 0) {
-                        if (isOutsideTrainRoute) {
-                            // This is a bus extension! Ignore safely without throwing an error.
-                            cellContent = '--';
-                        } else {
-                            // It's inside the route bounds. GTFS missed a middle stop!
-                            cellContent = '--';
-                            cellClass = 'mismatch';
-                            let expectedStr = excelSecsArray.map(formatSeconds).join(" or ");
-                            cellTitle = `Anomaly! Excel Document expected a train stop at: ${expectedStr}`;
-                        }
+                }
+                else if (!hasGtfsTrain && hasExcelData) {
+                    // Train entirely missing from GTFS
+                    if (excelSecsArray && excelSecsArray.length > 0) {
+                        cellContent = formatSeconds(excelSecsArray[0]); // Display what Excel expected
+                        cellClass = 'missing-gtfs';
+                        cellTitle = `Missing in GTFS! Excel expected: ${cellContent}`;
                     }
                 }
 
@@ -634,6 +683,36 @@
 
         document.getElementById('output-container').innerHTML = tableHTML;
         
+        // =======================================================================
+        // CHANGELOG & SUMMARY GENERATION
+        // =======================================================================
+        let changelogHTML = `
+            <div class="faq-section changelog-section">
+                <h2>Comparison Summary & Changelog</h2>
+                <div class="legend">
+                    <span class="legend-item"><span class="color-box" style="background: #ffebee; border: 2px solid #ef9a9a;"></span> Time/Stop Mismatch</span>
+                    <span class="legend-item"><span class="color-box" style="background: #fff3e0; border: 2px solid #ffb74d;"></span> Missing in GTFS (Found in Excel)</span>
+                    <span class="legend-item"><span class="color-box" style="background: #e3f2fd; border: 2px solid #64b5f6;"></span> Missing in Excel (Found in GTFS)</span>
+                </div>
+                <ul class="changelog-list">
+        `;
+        
+        if (!hasExcelData) {
+            changelogHTML += `<li><em>No Excel file uploaded. Displaying raw GTFS data without comparison.</em></li>`;
+        } else if (changelogErrors.length === 0) {
+            changelogHTML += `<li><strong style="color: #2e7d32;">No anomalies found!</strong> The GTFS schedule perfectly matches the Excel document.</li>`;
+        } else {
+            // Remove exact duplicates from the list
+            let uniqueErrors = Array.from(new Set(changelogErrors));
+            uniqueErrors.forEach(err => {
+                changelogHTML += `<li>${err}</li>`;
+            });
+        }
+        changelogHTML += `</ul></div>`;
+        
+        document.getElementById('changelog-container').innerHTML = changelogHTML;
+
+        // Display raw HTML output
         const rawContainer = document.getElementById('raw-html-container');
         rawContainer.style.display = 'block';
         document.getElementById('raw-html').value = cleanTableHTML.trim();

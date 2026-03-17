@@ -176,13 +176,12 @@
         }
 
         /* Styling for the Station Name column */
-        .ccjpa-schedule .station-name {
-            text-align: center;
+        .ccjpa-schedule tbody td.station-name {
+            text-align: right;
             font-weight: bold;
             color: var(--cc-navy);
             background-color: #f8f9fa;
-            position: sticky;
-            border-right: 1px solid #ccc;
+            border-right: 2px solid var(--cc-navy);
         }
 
         .ccjpa-schedule tbody tr:nth-child(even) th,
@@ -190,14 +189,15 @@
             background-color: var(--cc-gray);
         }
 
-        .ccjpa-schedule tbody tr:nth-child(even) .station-code,
-        .ccjpa-schedule tbody tr:nth-child(even) .station-name {
+        .ccjpa-schedule tbody tr:nth-child(even) th.station-code,
+        .ccjpa-schedule tbody tr:nth-child(even) td.station-name {
             background-color: #e9ecef;
         }
         
         .ccjpa-schedule tbody tr:hover td,
         .ccjpa-schedule tbody tr:hover th,
-        .ccjpa-schedule tbody tr:hover .station-code {
+        .ccjpa-schedule tbody tr:hover th.station-code,
+        .ccjpa-schedule tbody tr:hover td.station-name {
             background-color: #e2e6ea;
         }
 

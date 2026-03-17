@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CCJPA Schedule Validator</title>
-    <!-- PapaParse for parsing GTFS CSV/TXT files -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-    <!-- SheetJS for parsing Excel (.xlsx) files -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root {
@@ -160,14 +158,29 @@
             z-index: 2;
         }
 
-        .ccjpa-schedule tbody th {
-            text-align: right;
+        /* Make the top-left corner double-sticky to stay above scrolling columns */
+        .ccjpa-schedule thead th:first-child {
+            left: 0;
+            z-index: 3; 
+        }
+
+        .ccjpa-schedule tbody th.station-code {
+            text-align: center;
             font-weight: bold;
-            color: #333333;
+            color: var(--cc-navy);
             background-color: #f8f9fa;
             position: sticky;
             left: 0;
             z-index: 1;
+            border-right: 1px solid #ccc;
+        }
+
+        /* Styling for the Station Name column */
+        .ccjpa-schedule .station-name {
+            text-align: right;
+            font-weight: bold;
+            color: #333333;
+            background-color: #f8f9fa;
             border-right: 2px solid var(--cc-navy);
         }
 
@@ -175,9 +188,15 @@
         .ccjpa-schedule tbody tr:nth-child(even) td {
             background-color: var(--cc-gray);
         }
+
+        .ccjpa-schedule tbody tr:nth-child(even) .station-code,
+        .ccjpa-schedule tbody tr:nth-child(even) .station-name {
+            background-color: #e9ecef;
+        }
         
         .ccjpa-schedule tbody tr:hover td,
-        .ccjpa-schedule tbody tr:hover th {
+        .ccjpa-schedule tbody tr:hover th,
+        .ccjpa-schedule tbody tr:hover .station-code {
             background-color: #e2e6ea;
         }
 
@@ -247,7 +266,6 @@
 
 <div class="container">
     
-    <!-- FAQ Section -->
     <div class="faq-section">
         <h2>How to use this tool</h2>
         <div class="faq-item">
@@ -267,7 +285,6 @@
 
     <div id="message-box"></div>
 
-    <!-- Controls -->
     <div class="controls">
         <div class="form-group">
             <label for="gtfs-files">1. Upload GTFS Files (.txt)</label>
@@ -294,7 +311,6 @@
         <button class="primary" onclick="processFiles()">Generate & Compare</button>
     </div>
 
-    <!-- Output Area -->
     <div id="output-container"></div>
     <div id="changelog-container"></div>
     
@@ -563,7 +579,7 @@
         // =======================================================================
         // HTML TABLE CONSTRUCTION
         // =======================================================================
-        let tableHTML = `<div class="table-container">\n  <table class="ccjpa-schedule" aria-label="${service} Train Schedule">\n    <thead>\n      <tr>\n        <th scope="col">Station</th>`;
+        let tableHTML = `<div class="table-container">\n  <table class="ccjpa-schedule" aria-label="${service} Train Schedule">\n    <thead>\n      <tr>\n        <th scope="col" class="station-code">Station</th>\n        <th scope="col" class="station-name">Station Name</th>`;
         
         // Generate Headers (and check for missing entire trains)
         unifiedBaseIds.forEach(baseId => {
@@ -590,8 +606,8 @@
 
         // Generate Rows
         masterStops.forEach((station, stationIndex) => {
-            let rowHTML = `\n      <tr>\n        <th scope="row">${station.name}</th>`;
-            let cleanRowHTML = `\n      <tr>\n        <th scope="row">${station.name}</th>`;
+            let rowHTML = `\n      <tr>\n        <th scope="row" class="station-code">${station.id}</th>\n        <td class="station-name">${station.name}</td>`;
+            let cleanRowHTML = `\n      <tr>\n        <th scope="row" class="station-code">${station.id}</th>\n        <td class="station-name">${station.name}</td>`;
             
             unifiedBaseIds.forEach(baseId => {
                 let hasGtfsTrain = gtfsBaseIds.includes(baseId);

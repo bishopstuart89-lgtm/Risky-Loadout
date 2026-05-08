@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GTFS · Excel Schedule Diff</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,700&family=JetBrains+Mono:wght@400;500;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    /* ---- Tokens ---- */
+    :root {
+      --bg: #f6f4ee;
+      --bg-card: #fbfaf6;
+      --ink: #0c0c0c;
+      --ink-soft: #4a4a4a;
+      --rule: #d4cfc0;
+      --rule-soft: #e7e3d6;
+      --accent: #b53a18;
+      --accent-warm: #c2410c;
+      --accent-deep: #7a2611;
+      --gtfs: #1c4d3a;
+      --excel: #1d3461;
+      --code: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+      --sans: 'DM Sans', system-ui, sans-serif;
+      --serif: 'Fraunces', Georgia, serif;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    body {
+      background-image:
+        radial-gradient(at 12% 8%, rgba(0,0,0,.018) 0, transparent 45%),
+        radial-gradient(at 88% 92%, rgba(0,0,0,.014) 0, transparent 50%);
+      min-height: 100vh;
+    }
+    .page { max-width: 1200px; margin: 0 auto; padding: 48px 32px 96px; }
+    a { color: inherit; }
+    code { font-family: var(--code); font-size: .92em; }
+    em { font-style: italic; }
+
+    /* ---- Masthead ---- */
+    .masthead { padding-top: 16px; }
+    .masthead-rule { height: 4px; background: var(--ink); margin-bottom: 18px; position: relative; }
+    .masthead-rule::after {
+      content: ''; position: absolute; right: 0; top: 0; bottom: 0;
+      width: 80px; background: var(--accent);
+    }
+    .masthead-row {
+      display: flex; justify-content: space-between; align-items: baseline;
+      font-family: var(--code); font-size: 12px; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--ink-soft);
+    }
+    .masthead-mark { display: flex; gap: 14px; align-items: baseline; }
+    .mark-num { font-weight: 700; color: var(--accent); font-size: 14px; }
+    .mark-label { font-weight: 500; }
+    .dot { margin: 0 8px; }
+    .masthead-title {
+      font-family: var(--serif); font-weight: 400;
+      font-size: clamp(38px, 5.6vw, 64px);
+      line-height: 1.05; letter-spacing: -.02em;
+      margin: 28px 0 18px; max-width: 22ch;
+    }
+    .masthead-title em { font-style: italic; color: var(--accent); }
+    .underline {
+      background-image: linear-gradient(0deg, var(--accent) 0, var(--accent) 100%);
+      background-repeat: no-repeat;
+      background-size: 100% 6px;
+      background-position: 0 100%;
+      padding-bottom: 2px;
+    }
+    .masthead-sub {
+      font-size: 17px; color: var(--ink-soft);
+      max-width: 64ch; margin: 0 0 56px;
+    }
+    .masthead-sub code {
+      background: rgba(181,58,24,.08); color: var(--accent-deep);
+      padding: 1px 6px; border-radius: 3px;
+    }
+
+    /* ---- Upload zone ---- */
+    .dropzone-wrap { display: grid; grid-template-columns: 1fr 320px; gap: 56px; }
+    .upload-form { display: flex; flex-direction: column; gap: 0; }
+    .slot {
+      display: grid; grid-template-columns: 64px 1fr;
+      border-top: 1px solid var(--rule); padding: 32px 0;
+    }
+    .slot:last-of-type { border-bottom: 1px solid var(--rule); }
+    .slot-tag {
+      font-family: var(--code); font-size: 13px; font-weight: 700;
+      letter-spacing: .1em; color: var(--accent); padding-top: 4px;
+    }
+    .slot-body h2 {
+      font-family: var(--serif); font-weight: 500;
+      font-size: 26px; line-height: 1.1; margin: 0 0 4px;
+      letter-spacing: -.01em;
+    }
+    .slot-help { margin: 0 0 18px; color: var(--ink-soft); font-size: 15px; }
+    .slot-help code { background: rgba(0,0,0,.04); padding: 1px 5px; border-radius: 3px; }
+
+    .file-input { display: inline-flex; align-items: center; gap: 16px; cursor: pointer; }
+    .file-input input[type=file] {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+    }
+    .file-input-cta {
+      display: inline-block;
+      font-family: var(--code); font-size: 13px; font-weight: 500;
+      letter-spacing: .04em; text-transform: uppercase;
+      background: var(--ink); color: var(--bg-card);
+      padding: 12px 22px; transition: background .15s ease;
+    }
+    .file-input:hover .file-input-cta { background: var(--accent); }
+    .file-input input:focus-visible + .file-input-cta {
+      outline: 2px solid var(--accent); outline-offset: 2px;
+    }
+    .file-input-status { font-family: var(--code); font-size: 13px; color: var(--ink-soft); }
+    .file-input-status.has-files { color: var(--accent-deep); font-weight: 500; }
+
+    .run-button {
+      margin-top: 36px; align-self: flex-start;
+      display: inline-flex; align-items: center; gap: 16px;
+      background: var(--accent); color: #fff; border: none;
+      font-family: var(--serif); font-style: italic;
+      font-size: 24px; font-weight: 500;
+      padding: 18px 38px 20px; cursor: pointer;
+      transition: background .15s ease, transform .15s ease;
+      letter-spacing: -.01em;
+    }
+    .run-button:hover:not(:disabled) { background: var(--accent-deep); transform: translateY(-1px); }
+    .run-button:active { transform: translateY(0); }
+    .run-button:disabled { opacity: .5; cursor: not-allowed; }
+    .run-button-arrow { font-family: var(--code); font-size: 22px; font-style: normal; }
+
+    .error-banner {
+      margin-top: 24px;
+      padding: 14px 20px;
+      background: #f9e6dd;
+      border-left: 4px solid var(--accent);
+      color: var(--accent-deep);
+      font-size: 14px;
+      font-family: var(--code);
+    }
+    .error-banner:empty { display: none; }
+
+    /* ---- Legend ---- */
+    .legend {
+      border: 1px solid var(--rule); background: var(--bg-card);
+      padding: 28px 26px; align-self: start;
+      position: sticky; top: 32px;
+    }
+    .legend h3 {
+      font-family: var(--code); font-size: 11px; font-weight: 700;
+      letter-spacing: .14em; text-transform: uppercase;
+      margin: 0 0 18px; color: var(--ink-soft);
+    }
+    .legend dl { margin: 0; }
+    .legend dt {
+      font-family: var(--serif); font-weight: 500; font-size: 17px;
+      margin-top: 14px; padding-left: 14px; position: relative;
+    }
+    .legend dt::before {
+      content: ''; position: absolute; left: 0; top: 9px;
+      width: 6px; height: 6px; border-radius: 50%;
+    }
+    .legend-mismatch::before { background: var(--accent); }
+    .legend-missing-gtfs::before { background: var(--gtfs); }
+    .legend-missing-excel::before { background: var(--excel); }
+    .legend dd { margin: 4px 0 0 14px; font-size: 14px; color: var(--ink-soft); line-height: 1.45; }
+
+    .page-footer {
+      margin-top: 96px; border-top: 1px solid var(--rule);
+      padding-top: 18px; font-family: var(--code); font-size: 12px;
+      letter-spacing: .04em; color: var(--ink-soft);
+    }
+
+    /* ---- Results view ---- */
+    .results-header {
+      display: flex; justify-content: space-between; align-items: flex-end;
+      border-bottom: 4px solid var(--ink);
+      padding-bottom: 18px; margin-bottom: 32px;
+    }
+    .back-link {
+      font-family: var(--code); font-size: 13px; letter-spacing: .04em;
+      text-decoration: none; color: var(--ink); cursor: pointer;
+      border-bottom: 1px solid currentColor; padding-bottom: 2px;
+      background: none; border-left: none; border-right: none; border-top: none;
+      font-weight: inherit;
+    }
+    .back-link:hover { color: var(--accent); }
+    .results-meta { display: flex; gap: 32px; font-family: var(--code); }
+    .meta-label {
+      display: block; font-size: 11px; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--ink-soft);
+    }
+    .meta-value { font-size: 17px; font-weight: 500; color: var(--ink); }
+
+    .counts {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      margin-bottom: 48px;
+      border: 1px solid var(--rule); background: var(--bg-card);
+    }
+    .count {
+      background: transparent; border: none;
+      border-right: 1px solid var(--rule);
+      padding: 28px 32px; text-align: left; cursor: pointer; font: inherit;
+      display: flex; flex-direction: column; gap: 8px;
+      transition: background .15s ease; position: relative;
+    }
+    .count:last-child { border-right: none; }
+    .count:hover { background: rgba(0,0,0,.025); }
+    .count.is-active { background: var(--ink); color: var(--bg-card); }
+    .count.is-active::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    }
+    .count-mismatch.is-active::before { background: var(--accent); }
+    .count-missing-gtfs.is-active::before { background: var(--gtfs); }
+    .count-missing-excel.is-active::before { background: var(--excel); }
+    .count-num {
+      font-family: var(--serif); font-size: 56px; font-weight: 400;
+      line-height: 1; letter-spacing: -.02em;
+    }
+    .count-label {
+      font-family: var(--code); font-size: 12px;
+      letter-spacing: .1em; text-transform: uppercase;
+    }
+
+    .results-panel { animation: fade .25s ease; }
+    @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+    .panel-head { margin-bottom: 20px; }
+    .panel-head h2 {
+      font-family: var(--serif); font-weight: 500;
+      font-size: 32px; margin: 0 0 4px; letter-spacing: -.01em;
+    }
+    .panel-head p { margin: 0; color: var(--ink-soft); font-size: 15px; }
+    .panel-head code { background: rgba(0,0,0,.05); padding: 1px 6px; border-radius: 3px; }
+
+    .empty {
+      font-family: var(--serif); font-style: italic; font-size: 20px;
+      color: var(--ink-soft); padding: 32px 0;
+    }
+
+    .filter-row {
+      display: flex; gap: 12px; align-items: center;
+      margin-bottom: 14px;
+      font-family: var(--code); font-size: 12px;
+      color: var(--ink-soft);
+    }
+    .filter-row input {
+      font: inherit; padding: 8px 12px;
+      background: var(--bg-card); border: 1px solid var(--rule);
+      color: var(--ink); min-width: 240px;
+    }
+    .filter-row input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .filter-row .row-count { margin-left: auto; }
+
+    .table-scroll {
+      overflow-x: auto; max-height: 70vh;
+      border: 1px solid var(--rule); background: var(--bg-card);
+    }
+    .diff-table { width: 100%; border-collapse: collapse; font-family: var(--code); font-size: 13px; }
+    .diff-table thead th {
+      background: var(--ink); color: var(--bg-card);
+      font-weight: 500; letter-spacing: .06em; text-transform: uppercase;
+      font-size: 11px; padding: 12px 16px; text-align: left;
+      position: sticky; top: 0; z-index: 1;
+    }
+    .diff-table tbody td {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--rule-soft);
+      vertical-align: top; white-space: nowrap;
+    }
+    .diff-table tbody tr:last-child td { border-bottom: none; }
+    .diff-table tbody tr:hover { background: rgba(0,0,0,.025); }
+    .diff-table .col-excel { color: var(--accent); font-weight: 500; }
+    .diff-table .col-gtfs  { color: var(--gtfs); font-weight: 500; }
+    .diff-table .col-excel-only { color: var(--excel); font-weight: 500; }
+    .diff-table .col-hint  { color: var(--accent-deep); font-style: italic; font-family: var(--sans); font-size: 12px; }
+
+    .download-link {
+      display: inline-block; margin-top: 14px;
+      font-family: var(--code); font-size: 12px; letter-spacing: .04em;
+      color: var(--ink); border-bottom: 1px solid currentColor;
+      text-decoration: none; padding-bottom: 2px; cursor: pointer;
+      background: none; border-left: none; border-right: none; border-top: none;
+    }
+    .download-link:hover { color: var(--accent); }
+
+    /* ---- Loading state ---- */
+    .loading-overlay {
+      position: fixed; inset: 0;
+      background: rgba(246,244,238,.92);
+      display: none; align-items: center; justify-content: center; z-index: 100;
+    }
+    .loading-overlay.active { display: flex; }
+    .loading-content { text-align: center; }
+    .loading-content .spinner {
+      width: 36px; height: 36px;
+      border: 2px solid var(--rule);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      margin: 0 auto 16px;
+    }
+    .loading-content .label {
+      font-family: var(--code); font-size: 12px;
+      letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft);
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 880px) {
+      .dropzone-wrap { grid-template-columns: 1fr; }
+      .legend { position: static; }
+      .counts { grid-template-columns: 1fr; }
+      .count { border-right: none; border-bottom: 1px solid var(--rule); }
+      .count:last-child { border-bottom: none; }
+      .results-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+      .results-meta { gap: 20px; flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ UPLOAD VIEW ============ -->
+  <div class="page" id="upload-view">
+    <header class="masthead">
+      <div class="masthead-rule"></div>
+      <div class="masthead-row">
+        <div class="masthead-mark">
+          <span class="mark-num">01</span>
+          <span class="mark-label">SCHEDULE-DIFF</span>
+        </div>
+        <div class="masthead-meta">
+          <span>GTFS × Excel</span>
+          <span class="dot">·</span>
+          <span>Capitol Corridor</span>
+        </div>
+      </div>
+      <h1 class="masthead-title">
+        Find every <em>mismatch</em>, missing trip, and<br>orphaned timepoint between the
+        <span class="underline">spreadsheet</span> and the <span class="underline">feed</span>.
+      </h1>
+      <p class="masthead-sub">
+        Upload your <code>trips.txt</code>, <code>stop_times.txt</code>, and the schedule workbook.
+        Comparison runs entirely in your browser — no server, no model calls, files never leave your device.
+      </p>
+    </header>
+
+    <main class="dropzone-wrap">
+      <form class="upload-form" id="upload-form" onsubmit="return false;">
+
+        <section class="slot">
+          <div class="slot-tag">A</div>
+          <div class="slot-body">
+            <h2>GTFS feed</h2>
+            <p class="slot-help">Drop the <code>.txt</code> files (we read <code>trips.txt</code> and <code>stop_times.txt</code>). Multiple files OK.</p>
+            <label class="file-input">
+              <input type="file" id="gtfs-files" accept=".txt" multiple>
+              <span class="file-input-cta">Choose GTFS files</span>
+              <span class="file-input-status" id="gtfs-status">No files selected</span>
+            </label>
+          </div>
+        </section>
+
+        <section class="slot">
+          <div class="slot-tag">B</div>
+          <div class="slot-body">
+            <h2>Schedule workbook</h2>
+            <p class="slot-help">The <code>.xlsx</code> with <em>Weekdays&nbsp;&nbsp;Schedule</em> and <em>Weekend</em> tabs.</p>
+            <label class="file-input">
+              <input type="file" id="excel-file" accept=".xlsx">
+              <span class="file-input-cta">Choose Excel file</span>
+              <span class="file-input-status" id="excel-status">No file selected</span>
+            </label>
+          </div>
+        </section>
+
+        <button type="button" class="run-button" id="run-button" disabled>
+          <span class="run-button-arrow">→</span>
+          <span class="run-button-label">Run comparison</span>
+        </button>
+        <div class="error-banner" id="error-banner"></div>
+      </form>
+
+      <aside class="legend">
+        <h3>What you'll see</h3>
+        <dl>
+          <dt class="legend-mismatch">Time / Stop mismatch</dt>
+          <dd>Same trip + stop in both, but the times disagree. Auto-tagged hints for AM/PM flips and 12-hour midnight bugs.</dd>
+          <dt class="legend-missing-gtfs">Missing in GTFS</dt>
+          <dd>Trip or timepoint exists in the spreadsheet but not the feed. Usually a proposed change waiting on a publish.</dd>
+          <dt class="legend-missing-excel">Missing in Excel</dt>
+          <dd>Trip or timepoint is in the feed but not the spreadsheet. Could be a deletion that hasn't been confirmed.</dd>
+        </dl>
+      </aside>
+    </main>
+
+    <footer class="page-footer">
+      <span>Deterministic. Reproducible. 100% client-side — your files never upload anywhere.</span>
+    </footer>
+  </div>
+
+  <!-- ============ RESULTS VIEW ============ -->
+  <div class="page" id="results-view" hidden>
+    <header class="results-header">
+      <button class="back-link" id="back-button">← New comparison</button>
+      <div class="results-meta">
+        <div>
+          <span class="meta-label">Workbook</span>
+          <span class="meta-value" id="meta-filename">—</span>
+        </div>
+        <div>
+          <span class="meta-label">GTFS trips (CC)</span>
+          <span class="meta-value" id="meta-gtfs-trips">—</span>
+        </div>
+        <div>
+          <span class="meta-label">Excel trips</span>
+          <span class="meta-value" id="meta-excel-trips">—</span>
+        </div>
+      </div>
+    </header>
+
+    <section class="counts">
+      <button class="count count-mismatch is-active" data-target="mismatch">
+        <span class="count-num" id="count-mismatch">0</span>
+        <span class="count-label">Time / Stop Mismatch</span>
+      </button>
+      <button class="count count-missing-gtfs" data-target="missing-gtfs">
+        <span class="count-num" id="count-missing-gtfs">0</span>
+        <span class="count-label">Missing in GTFS</span>
+      </button>
+      <button class="count count-missing-excel" data-target="missing-excel">
+        <span class="count-num" id="count-missing-excel">0</span>
+        <span class="count-label">Missing in Excel</span>
+      </button>
+    </section>
+
+    <section class="results-panel" data-panel="mismatch">
+      <div class="panel-head">
+        <h2>Time / Stop Mismatch</h2>
+        <p>Same <code>(trip, stop)</code> in both sources, but at least one of arrival or departure differs.</p>
+      </div>
+      <div class="filter-row">
+        <input type="text" id="filter-mismatch" placeholder="Filter by trip ID, stop, service…">
+        <button class="download-link" data-csv="mismatch">↓ Download CSV</button>
+        <span class="row-count" id="rowcount-mismatch"></span>
+      </div>
+      <div class="table-scroll" id="table-mismatch"></div>
+    </section>
+
+    <section class="results-panel" data-panel="missing-gtfs" hidden>
+      <div class="panel-head">
+        <h2>Missing in GTFS</h2>
+        <p>These rows are in the Excel workbook but no matching <code>(trip, stop)</code> exists in GTFS.</p>
+      </div>
+      <div class="filter-row">
+        <input type="text" id="filter-missing-gtfs" placeholder="Filter by trip ID, stop, service…">
+        <button class="download-link" data-csv="missing-gtfs">↓ Download CSV</button>
+        <span class="row-count" id="rowcount-missing-gtfs"></span>
+      </div>
+      <div class="table-scroll" id="table-missing-gtfs"></div>
+    </section>
+
+    <section class="results-panel" data-panel="missing-excel" hidden>
+      <div class="panel-head">
+        <h2>Missing in Excel</h2>
+        <p>These rows exist in GTFS but no matching <code>(trip, stop)</code> exists in the Excel workbook.</p>
+      </div>
+      <div class="filter-row">
+        <input type="text" id="filter-missing-excel" placeholder="Filter by trip ID, stop, service…">
+        <button class="download-link" data-csv="missing-excel">↓ Download CSV</button>
+        <span class="row-count" id="rowcount-missing-excel"></span>
+      </div>
+      <div class="table-scroll" id="table-missing-excel"></div>
+    </section>
+  </div>
+
+  <div class="loading-overlay" id="loading">
+    <div class="loading-content">
+      <div class="spinner"></div>
+      <div class="label" id="loading-label">Parsing…</div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <script>
+  /* ===========================================================================
+     GTFS parser, Excel parser, comparator. Mirrors the Python implementation.
+     =========================================================================== */
+
+  // ---- GTFS ----
+  function parseGTFS({ tripsText, stopTimesText, routeId = 'CC' }) {
+    const trips = Papa.parse(tripsText, { header: true, skipEmptyLines: true }).data;
+    const stopTimes = Papa.parse(stopTimesText, { header: true, skipEmptyLines: true }).data;
+
+    const tripMeta = new Map();
+    for (const t of trips) {
+      if (t.route_id !== routeId) continue;
+      tripMeta.set(t.trip_id, {
+        service_id: t.service_id,
+        direction_id: t.direction_id === '' ? null : Number(t.direction_id),
+      });
+    }
+
+    const records = [];
+    for (const st of stopTimes) {
+      const meta = tripMeta.get(st.trip_id);
+      if (!meta) continue;
+      records.push({
+        trip_id: st.trip_id,
+        service_id: meta.service_id,
+        direction_id: meta.direction_id,
+        stop_sequence: Number(st.stop_sequence),
+        stop_id: st.stop_id,
+        arrival_time: (st.arrival_time || '').trim(),
+        departure_time: (st.departure_time || '').trim(),
+      });
+    }
+    return records;
+  }
+
+  // ---- Excel: stop name map (Weekday sheet) ----
+  const WEEKDAY_STATIONS = {
+    'AUBURN': ['ARN', 'both'],
+    'ROCKLIN': ['RLN', 'both'],
+    'ROSEVILLE': ['RSV', 'both'],
+    'SACRAMENTO': ['SAC', 'both'],
+    'SACRAMENTO ARR': ['SAC', 'arr'],
+    'SACRAMENTO DEP': ['SAC', 'dep'],
+    'DAVIS': ['DAV', 'both'],
+    'FAIRFIELD/VACAVILLE': ['FFV', 'both'],
+    'SUISUN/FAIRFIELD': ['SUI', 'both'],
+    'MARTINEZ': ['MTZ', 'both'],
+    'RICHMOND': ['RIC', 'both'],
+    'BERKELEY': ['BKY', 'both'],
+    'EMERYVILLE': ['EMY', 'both'],
+    'EMERYVILLE ARR': ['EMY', 'arr'],
+    'EMERYVILLE DEP': ['EMY', 'dep'],
+    'OAKLAND JACK LONDON': ['OKJ', 'both'],
+    'OAKLAND JACK LONDON ARR': ['OKJ', 'arr'],
+    'OAKLAND JACK LONDON DEP': ['OKJ', 'dep'],
+    'OAKLAND COLISEUM': ['OAC', 'both'],
+    'HAYWARD': ['HAY', 'both'],
+    'FREMONT': ['FMT', 'both'],
+    'GREAT AMERICA': ['GAC', 'both'],
+    'SANTA CLARA': ['SCC', 'both'],
+    'SAN JOSE': ['SJC', 'both'],
+  };
+
+  const TIME_12H_RE = /^(\d{1,2}):(\d{2})\s*(A|P|AM|PM)\.?$/i;
+  const TIME_24H_RE = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/;
+  const STATION_TAIL_RE = /-\s*([A-Z]{3})\s*$/;
+  const TRAIN_ID_RE = /^\d{3,4}[A-Z]?$/;
+  const BLANK_TIME_TOKENS = new Set(['.', '..', '...', '. . .', '—', '-', 'N/A', '']);
+
+  function isBlank(v) {
+    if (v === null || v === undefined) return true;
+    if (typeof v === 'string' && BLANK_TIME_TOKENS.has(v.trim())) return true;
+    return false;
+  }
+
+  function fmtTime(v) {
+    if (v === null || v === undefined) return null;
+    if (v instanceof Date) {
+      const hh = v.getUTCHours(), mm = v.getUTCMinutes(), ss = v.getUTCSeconds();
+      return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+    }
+    if (typeof v === 'number') {
+      const totalSeconds = Math.round(v * 86400);
+      const hh = Math.floor(totalSeconds / 3600) % 24;
+      const mm = Math.floor((totalSeconds % 3600) / 60);
+      const ss = totalSeconds % 60;
+      return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+    }
+    if (typeof v === 'string') {
+      const s = v.trim();
+      if (BLANK_TIME_TOKENS.has(s)) return null;
+      const cleaned = s.replace(/^L\s+/i, '').trim();
+      let m = cleaned.match(TIME_12H_RE);
+      if (m) {
+        let hh = parseInt(m[1], 10), mm = parseInt(m[2], 10);
+        const ap = m[3].toUpperCase().charAt(0);
+        if (ap === 'A') hh = hh === 12 ? 0 : hh;
+        else hh = hh === 12 ? 12 : hh + 12;
+        return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:00`;
+      }
+      m = cleaned.match(TIME_24H_RE);
+      if (m) {
+        const hh = parseInt(m[1], 10), mm = parseInt(m[2], 10);
+        const ss = m[3] ? parseInt(m[3], 10) : 0;
+        return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+      }
+    }
+    return null;
+  }
+
+  function sheetToRows(ws) {
+    return XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true });
+  }
+
+  function looksLikeTrainHeader(row) {
+    if (!row || row.length < 2) return false;
+    if (!isBlank(row[0])) return false;
+    let trainLike = 0, nonblank = 0;
+    for (let i = 1; i < row.length; i++) {
+      if (isBlank(row[i])) continue;
+      nonblank++;
+      let s = row[i];
+      if (typeof s === 'number') s = String(Math.trunc(s));
+      s = String(s).trim();
+      if (TRAIN_ID_RE.test(s)) trainLike++;
+    }
+    return nonblank >= 2 && trainLike === nonblank;
+  }
+
+  function extractTrains(row) {
+    const out = [];
+    for (let i = 1; i < row.length; i++) {
+      const v = row[i];
+      if (isBlank(v)) out.push(null);
+      else if (typeof v === 'number') out.push(String(Math.trunc(v)));
+      else out.push(String(v).trim());
+    }
+    return out;
+  }
+
+  function parseWeekday(ws, serviceId = 'Weekday') {
+    const rows = sheetToRows(ws);
+    const records = [];
+    let currentTrains = null;
+    for (const row of rows) {
+      if (!row || row.length === 0) continue;
+      const a = row[0];
+      if (a === null || a === undefined) continue;
+      const aStr = String(a).trim();
+      if (aStr === 'Proposed Train Number') { currentTrains = extractTrains(row); continue; }
+      if (aStr === 'Working Train number') continue;
+      if (['Eastbound','Westbound','Train type','Weekday Service'].includes(aStr)) continue;
+      const entry = WEEKDAY_STATIONS[aStr.toUpperCase()];
+      if (!entry || !currentTrains) continue;
+      const [stop_id, slot] = entry;
+      for (let col = 0; col < currentTrains.length; col++) {
+        const tid = currentTrains[col];
+        if (!tid) continue;
+        const t = fmtTime(row[col + 1]);
+        if (!t) continue;
+        records.push({ trip_id: tid, service_id: serviceId, stop_id, slot, time: t });
+      }
+    }
+    return records;
+  }
+
+  function parseWeekend(ws, serviceId = 'Weekend') {
+    const rows = sheetToRows(ws);
+    const records = [];
+    let trains = null;
+    let currentStop = null;
+    let arrForStop = new Map();
+
+    function flushPending() {
+      if (!currentStop || arrForStop.size === 0) return;
+      for (const [tid, t] of arrForStop) {
+        records.push({ trip_id: tid, service_id: serviceId, stop_id: currentStop, arrival_time: t, departure_time: t });
+      }
+    }
+
+    for (const row of rows) {
+      if (!row) continue;
+      if (looksLikeTrainHeader(row)) {
+        flushPending();
+        trains = extractTrains(row);
+        currentStop = null;
+        arrForStop = new Map();
+        continue;
+      }
+      if (!trains) continue;
+      const a = row[0];
+      if (!isBlank(a)) {
+        const m = String(a).trim().match(STATION_TAIL_RE);
+        if (!m) continue;
+        flushPending();
+        currentStop = m[1];
+        arrForStop = new Map();
+        for (let col = 0; col < trains.length; col++) {
+          const tid = trains[col]; if (!tid) continue;
+          const t = fmtTime(row[col + 1]);
+          if (t !== null) arrForStop.set(tid, t);
+        }
+      } else {
+        if (!currentStop) continue;
+        for (let col = 0; col < trains.length; col++) {
+          const tid = trains[col]; if (!tid) continue;
+          const dep = fmtTime(row[col + 1]);
+          const arr = arrForStop.get(tid);
+          if (arr !== undefined) arrForStop.delete(tid);
+          if (arr === undefined && dep === null) continue;
+          const finalArr = arr !== undefined ? arr : dep;
+          const finalDep = dep !== null ? dep : arr;
+          records.push({ trip_id: tid, service_id: serviceId, stop_id: currentStop, arrival_time: finalArr, departure_time: finalDep });
+        }
+        for (const [tid, t] of arrForStop) {
+          records.push({ trip_id: tid, service_id: serviceId, stop_id: currentStop, arrival_time: t, departure_time: t });
+        }
+        arrForStop = new Map();
+        currentStop = null;
+      }
+    }
+    flushPending();
+    return records;
+  }
+
+  function parseExcel(workbook) {
+    function findSheet(...needles) {
+      for (const name of workbook.SheetNames) {
+        const norm = name.trim().toLowerCase().replace(/\s+/g, ' ');
+        if (needles.includes(norm)) return workbook.Sheets[name];
+      }
+      return null;
+    }
+    const wd = findSheet('weekdays schedule', 'weekday schedule', 'weekdays');
+    const we = findSheet('weekend');
+    const wdRecords = wd ? parseWeekday(wd) : [];
+    const weRecords = we ? parseWeekend(we) : [];
+
+    const weekdayCollapsed = new Map();
+    for (const r of wdRecords) {
+      const key = r.trip_id + '\u0000' + r.stop_id;
+      let row = weekdayCollapsed.get(key);
+      if (!row) {
+        row = { trip_id: r.trip_id, service_id: r.service_id, stop_id: r.stop_id, arrival_time: null, departure_time: null };
+        weekdayCollapsed.set(key, row);
+      }
+      if (r.slot === 'arr') row.arrival_time = r.time;
+      else if (r.slot === 'dep') row.departure_time = r.time;
+      else { row.arrival_time = r.time; row.departure_time = r.time; }
+    }
+    const weekdayOut = [];
+    for (const v of weekdayCollapsed.values()) {
+      if (v.arrival_time === null && v.departure_time !== null) v.arrival_time = v.departure_time;
+      if (v.departure_time === null && v.arrival_time !== null) v.departure_time = v.arrival_time;
+      weekdayOut.push(v);
+    }
+    return weekdayOut.concat(weRecords);
+  }
+
+  // ---- Comparator ----
+  function hintFor(excelT, gtfsT) {
+    if (!excelT || !gtfsT) return '';
+    const e = excelT.split(':').map(Number), g = gtfsT.split(':').map(Number);
+    if (e.length < 2 || g.length < 2) return '';
+    const [eh, em] = e, [gh, gm] = g;
+    if (em !== gm) return '';
+    if (((eh - gh) % 24 + 24) % 24 === 12 && gh < 12) return 'Likely AM/PM flip';
+    if (((gh - eh) % 24 + 24) % 24 === 12) return 'Likely 12-hour midnight (12:xx → 0:xx)';
+    if (Math.abs(eh - gh) === 1 && em === gm) return 'Off by 1 hour';
+    return '';
+  }
+
+  function compare(gtfs, excel) {
+    const keyOf = r => `${r.service_id}\u0000${r.trip_id}\u0000${r.stop_id}`;
+    const gMap = new Map(); for (const r of gtfs) gMap.set(keyOf(r), r);
+    const eMap = new Map(); for (const r of excel) eMap.set(keyOf(r), r);
+
+    const mismatch = [], missingInGtfs = [], missingInExcel = [];
+    for (const [k, e] of eMap) {
+      const g = gMap.get(k);
+      if (!g) {
+        missingInGtfs.push({
+          service_id: e.service_id, trip_id: e.trip_id, stop_id: e.stop_id,
+          excel_arrival: e.arrival_time, excel_departure: e.departure_time,
+        });
+        continue;
+      }
+      if (e.arrival_time && g.arrival_time && e.arrival_time !== g.arrival_time) {
+        mismatch.push({
+          service_id: e.service_id, trip_id: e.trip_id, stop_id: e.stop_id,
+          field: 'arrival', excel: e.arrival_time, gtfs: g.arrival_time,
+          hint: hintFor(e.arrival_time, g.arrival_time),
+        });
+      }
+      if (e.departure_time && g.departure_time && e.departure_time !== g.departure_time) {
+        mismatch.push({
+          service_id: e.service_id, trip_id: e.trip_id, stop_id: e.stop_id,
+          field: 'departure', excel: e.departure_time, gtfs: g.departure_time,
+          hint: hintFor(e.departure_time, g.departure_time),
+        });
+      }
+    }
+    for (const [k, g] of gMap) {
+      if (!eMap.has(k)) {
+        missingInExcel.push({
+          service_id: g.service_id, trip_id: g.trip_id, stop_id: g.stop_id,
+          gtfs_arrival: g.arrival_time, gtfs_departure: g.departure_time,
+        });
+      }
+    }
+
+    const sortKey = (a, b) => {
+      if (a.service_id !== b.service_id) return a.service_id.localeCompare(b.service_id);
+      if (a.trip_id !== b.trip_id) return a.trip_id.localeCompare(b.trip_id, undefined, { numeric: true });
+      if (a.stop_id !== b.stop_id) return a.stop_id.localeCompare(b.stop_id);
+      if ('field' in a && 'field' in b) return a.field.localeCompare(b.field);
+      return 0;
+    };
+    mismatch.sort(sortKey);
+    missingInGtfs.sort(sortKey);
+    missingInExcel.sort(sortKey);
+    return { mismatch, missingInGtfs, missingInExcel };
+  }
+
+  /* ===========================================================================
+     UI wiring
+     =========================================================================== */
+
+  const state = {
+    gtfsFiles: [],
+    excelFile: null,
+    report: null,
+  };
+
+  const els = {
+    gtfsInput: document.getElementById('gtfs-files'),
+    excelInput: document.getElementById('excel-file'),
+    gtfsStatus: document.getElementById('gtfs-status'),
+    excelStatus: document.getElementById('excel-status'),
+    runButton: document.getElementById('run-button'),
+    runLabel: document.querySelector('.run-button-label'),
+    backButton: document.getElementById('back-button'),
+    errorBanner: document.getElementById('error-banner'),
+    loading: document.getElementById('loading'),
+    loadingLabel: document.getElementById('loading-label'),
+    uploadView: document.getElementById('upload-view'),
+    resultsView: document.getElementById('results-view'),
+  };
+
+  function updateRunButton() {
+    const ok = state.gtfsFiles.length > 0 && state.excelFile !== null;
+    els.runButton.disabled = !ok;
+  }
+
+  els.gtfsInput.addEventListener('change', (e) => {
+    state.gtfsFiles = Array.from(e.target.files);
+    if (!state.gtfsFiles.length) {
+      els.gtfsStatus.textContent = 'No files selected';
+      els.gtfsStatus.classList.remove('has-files');
+    } else {
+      const names = state.gtfsFiles.map(f => f.name);
+      els.gtfsStatus.textContent =
+        names.length === 1 ? names[0] : `${names.length} files · ${names.slice(0,2).join(', ')}${names.length > 2 ? ' …' : ''}`;
+      els.gtfsStatus.classList.add('has-files');
+    }
+    updateRunButton();
+  });
+
+  els.excelInput.addEventListener('change', (e) => {
+    state.excelFile = e.target.files[0] || null;
+    if (!state.excelFile) {
+      els.excelStatus.textContent = 'No file selected';
+      els.excelStatus.classList.remove('has-files');
+    } else {
+      els.excelStatus.textContent = state.excelFile.name;
+      els.excelStatus.classList.add('has-files');
+    }
+    updateRunButton();
+  });
+
+  function showError(msg) {
+    els.errorBanner.textContent = msg;
+  }
+  function clearError() { els.errorBanner.textContent = ''; }
+
+  function readText(file) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = () => reject(r.error);
+      r.readAsText(file);
+    });
+  }
+  function readArrayBuffer(file) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = () => reject(r.error);
+      r.readAsArrayBuffer(file);
+    });
+  }
+
+  els.runButton.addEventListener('click', async () => {
+    clearError();
+    let trips = null, stopTimes = null;
+    for (const f of state.gtfsFiles) {
+      const lower = f.name.toLowerCase();
+      if (lower.endsWith('trips.txt')) trips = f;
+      else if (lower.endsWith('stop_times.txt')) stopTimes = f;
+    }
+    if (!trips || !stopTimes) {
+      showError('GTFS upload must include trips.txt and stop_times.txt.');
+      return;
+    }
+    if (!state.excelFile) {
+      showError('Pick the Excel workbook.');
+      return;
+    }
+
+    els.loading.classList.add('active');
+    els.loadingLabel.textContent = 'Reading files…';
+    try {
+      const [tripsText, stopTimesText, xlsxBuf] = await Promise.all([
+        readText(trips),
+        readText(stopTimes),
+        readArrayBuffer(state.excelFile),
+      ]);
+
+      els.loadingLabel.textContent = 'Parsing GTFS…';
+      await new Promise(r => requestAnimationFrame(r));
+      const gtfs = parseGTFS({ tripsText, stopTimesText });
+
+      els.loadingLabel.textContent = 'Parsing workbook…';
+      await new Promise(r => requestAnimationFrame(r));
+      const wb = XLSX.read(xlsxBuf, { type: 'array', cellDates: true });
+      const excel = parseExcel(wb);
+
+      els.loadingLabel.textContent = 'Comparing…';
+      await new Promise(r => requestAnimationFrame(r));
+      const report = compare(gtfs, excel);
+
+      state.report = {
+        ...report,
+        meta: {
+          filename: state.excelFile.name,
+          n_gtfs_trips: new Set(gtfs.map(r => r.trip_id)).size,
+          n_excel_trips: new Set(excel.map(r => r.trip_id)).size,
+        }
+      };
+      renderResults();
+    } catch (err) {
+      console.error(err);
+      showError('Couldn\u2019t process those files: ' + (err && err.message ? err.message : String(err)));
+    } finally {
+      els.loading.classList.remove('active');
+    }
+  });
+
+  els.backButton.addEventListener('click', () => {
+    els.resultsView.hidden = true;
+    els.uploadView.hidden = false;
+    window.scrollTo(0, 0);
+  });
+
+  /* ---- Results rendering ---- */
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    })[c]);
+  }
+
+  function renderTable(containerId, columns, rows) {
+    const container = document.getElementById(containerId);
+    if (!rows.length) {
+      container.innerHTML = '<p class="empty" style="padding:24px;">No rows in this category.</p>';
+      return;
+    }
+    const thead = '<thead><tr>' + columns.map(c => `<th>${escapeHtml(c.label)}</th>`).join('') + '</tr></thead>';
+    const tbody = '<tbody>' + rows.map(r =>
+      '<tr>' + columns.map(c => {
+        const cls = c.cls ? ` class="${c.cls}"` : '';
+        const val = r[c.key];
+        return `<td${cls}>${val === null || val === undefined ? '' : escapeHtml(val)}</td>`;
+      }).join('') + '</tr>'
+    ).join('') + '</tbody>';
+    container.innerHTML = `<table class="diff-table">${thead}${tbody}</table>`;
+  }
+
+  function applyFilter(rows, query) {
+    const q = query.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter(r => Object.values(r).some(v =>
+      v !== null && v !== undefined && String(v).toLowerCase().includes(q)
+    ));
+  }
+
+  function rowsToCsv(columns, rows) {
+    const esc = v => {
+      if (v === null || v === undefined) return '';
+      const s = String(v);
+      if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+      return s;
+    };
+    const lines = [columns.map(c => esc(c.label)).join(',')];
+    for (const r of rows) lines.push(columns.map(c => esc(r[c.key])).join(','));
+    return lines.join('\n');
+  }
+
+  const COLUMN_DEFS = {
+    mismatch: [
+      { key: 'service_id', label: 'service' },
+      { key: 'trip_id', label: 'trip' },
+      { key: 'stop_id', label: 'stop' },
+      { key: 'field', label: 'field' },
+      { key: 'excel', label: 'excel', cls: 'col-excel' },
+      { key: 'gtfs', label: 'gtfs', cls: 'col-gtfs' },
+      { key: 'hint', label: 'hint', cls: 'col-hint' },
+    ],
+    'missing-gtfs': [
+      { key: 'service_id', label: 'service' },
+      { key: 'trip_id', label: 'trip' },
+      { key: 'stop_id', label: 'stop' },
+      { key: 'excel_arrival', label: 'excel arrival', cls: 'col-excel' },
+      { key: 'excel_departure', label: 'excel departure', cls: 'col-excel' },
+    ],
+    'missing-excel': [
+      { key: 'service_id', label: 'service' },
+      { key: 'trip_id', label: 'trip' },
+      { key: 'stop_id', label: 'stop' },
+      { key: 'gtfs_arrival', label: 'gtfs arrival', cls: 'col-excel-only' },
+      { key: 'gtfs_departure', label: 'gtfs departure', cls: 'col-excel-only' },
+    ],
+  };
+
+  function bucketRows(name) {
+    if (name === 'mismatch') return state.report.mismatch;
+    if (name === 'missing-gtfs') return state.report.missingInGtfs;
+    return state.report.missingInExcel;
+  }
+
+  function renderBucket(name) {
+    const filterEl = document.getElementById('filter-' + name);
+    const rowsAll = bucketRows(name);
+    const filtered = applyFilter(rowsAll, filterEl.value);
+    renderTable('table-' + name, COLUMN_DEFS[name], filtered);
+    document.getElementById('rowcount-' + name).textContent =
+      filtered.length === rowsAll.length
+        ? `${rowsAll.length} rows`
+        : `${filtered.length} of ${rowsAll.length} rows`;
+  }
+
+  function renderResults() {
+    document.getElementById('meta-filename').textContent = state.report.meta.filename;
+    document.getElementById('meta-gtfs-trips').textContent = state.report.meta.n_gtfs_trips;
+    document.getElementById('meta-excel-trips').textContent = state.report.meta.n_excel_trips;
+    document.getElementById('count-mismatch').textContent = state.report.mismatch.length;
+    document.getElementById('count-missing-gtfs').textContent = state.report.missingInGtfs.length;
+    document.getElementById('count-missing-excel').textContent = state.report.missingInExcel.length;
+
+    renderBucket('mismatch');
+    renderBucket('missing-gtfs');
+    renderBucket('missing-excel');
+
+    els.uploadView.hidden = true;
+    els.resultsView.hidden = false;
+    window.scrollTo(0, 0);
+  }
+
+  // Tab switching
+  document.querySelectorAll('.count').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.count').forEach(b => b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      const target = btn.dataset.target;
+      document.querySelectorAll('.results-panel').forEach(p => {
+        p.hidden = p.dataset.panel !== target;
+      });
+    });
+  });
+
+  // Filter inputs (debounced via input event)
+  ['mismatch', 'missing-gtfs', 'missing-excel'].forEach(name => {
+    document.getElementById('filter-' + name).addEventListener('input', () => renderBucket(name));
+  });
+
+  // CSV downloads
+  document.querySelectorAll('[data-csv]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const name = btn.dataset.csv;
+      const rows = bucketRows(name);
+      const csv = rowsToCsv(COLUMN_DEFS[name], rows);
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `gtfs-diff-${name}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  });
+
+  </script>
+</body>
+</html>

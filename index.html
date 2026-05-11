@@ -11,457 +11,924 @@
             --cc-navy: #1D1B4D;
             --cc-yellow: #FFC709;
             --cc-gray: #f1f3f5;
-            --err-red: #ff4d4f;
-            --warn-orange: #faad14;
-            --info-blue: #1890ff;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--cc-gray);
-            color: #333;
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            background-color: #f8f9fa;
+            color: #333;
         }
 
-        .header {
+        header {
             background-color: var(--cc-navy);
             color: white;
-            padding: 20px;
+            padding: 20px 40px;
             border-bottom: 5px solid var(--cc-yellow);
-            border-radius: 8px 8px 0 0;
-            margin-bottom: 20px;
         }
 
-        .header h1 {
-            margin: 0 0 10px 0;
-            font-size: 1.5rem;
+        header h1 {
+            margin: 0;
+            font-size: 24px;
         }
 
-        .control-panel {
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        /* FAQ Section */
+        .faq-section {
             background: white;
-            padding: 20px;
+            padding: 20px 30px;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            border-left: 4px solid var(--cc-yellow);
         }
 
-        .input-group {
+        .faq-section h2 {
+            margin-top: 0;
+            color: var(--cc-navy);
+        }
+
+        .faq-item {
+            margin-bottom: 15px;
+        }
+
+        .faq-item strong {
+            display: block;
+            margin-bottom: 5px;
+            color: #444;
+        }
+
+        /* Controls Section */
+        .controls {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            align-items: end;
+        }
+
+        .form-group {
             display: flex;
             flex-direction: column;
-            gap: 10px;
         }
 
-        button {
-            background-color: var(--cc-navy);
-            color: white;
+        .form-group label {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: var(--cc-navy);
+        }
+
+        select, input[type="file"] {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        button.primary {
+            background-color: var(--cc-yellow);
+            color: var(--cc-navy);
+            font-weight: bold;
             border: none;
-            padding: 10px 20px;
+            padding: 12px 20px;
             border-radius: 4px;
             cursor: pointer;
-            font-weight: bold;
+            font-size: 16px;
             transition: background-color 0.2s;
         }
 
-        button:hover {
-            background-color: #2a276b;
+        button.primary:hover {
+            background-color: #e6b300;
         }
 
-        .action-bar {
-            margin-top: 20px;
-            grid-column: span 2;
-            display: flex;
-            gap: 10px;
-        }
-
-        /* Table Design */
-        .table-container {
-            max-height: 600px;
-            overflow: auto;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        /* Message Box */
+        #message-box {
+            display: none;
+            padding: 15px;
+            border-radius: 4px;
             margin-bottom: 20px;
-            position: relative;
+            font-weight: bold;
+        }
+        .error { background-color: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+        .success { background-color: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+
+        /* Generated Schedule Table */
+        .table-container {
+            overflow-x: auto;
+            width: 100%;
+            margin: 20px 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            background: white;
         }
 
-        table {
-            border-collapse: collapse;
+        .ccjpa-schedule {
             width: 100%;
+            border-collapse: collapse;
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            text-align: center;
+            font-size: 14px;
+            background-color: #ffffff;
             min-width: 800px;
+        }
+
+        .ccjpa-schedule th, .ccjpa-schedule td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e0e0e0;
+            border-right: 1px solid #e0e0e0;
             white-space: nowrap;
         }
 
-        th, td {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            text-align: center;
-        }
-
-        th {
+        .ccjpa-schedule thead th {
             background-color: var(--cc-navy);
-            color: white;
+            color: #ffffff;
+            font-weight: 600;
             position: sticky;
             top: 0;
-            z-index: 10;
+            border-bottom: 4px solid var(--cc-yellow);
+            z-index: 2;
         }
 
-        /* Sticky Columns */
-        th:nth-child(1), td:nth-child(1) { /* Station Code */
+        .ccjpa-schedule thead th:first-child {
+            left: 0;
+            z-index: 3;
+        }
+
+        .ccjpa-schedule tbody th.station-code {
+            text-align: center;
+            font-weight: bold;
+            color: var(--cc-navy);
+            background-color: #f8f9fa;
             position: sticky;
             left: 0;
-            background-color: var(--cc-gray);
-            font-weight: bold;
-            z-index: 5;
-        }
-        th:nth-child(2), td:nth-child(2) { /* Station Name */
-            position: sticky;
-            left: 80px; /* Adjust based on col 1 width */
-            background-color: var(--cc-gray);
-            font-weight: bold;
-            text-align: left;
-            z-index: 5;
-        }
-        th:nth-child(1), th:nth-child(2) {
-            z-index: 15; /* Headers overlap correctly */
-            background-color: var(--cc-navy);
+            z-index: 1;
+            border-right: 1px solid #ccc;
         }
 
-        /* Highlights */
-        .mismatch-time { background-color: var(--err-red); color: white; cursor: help; }
-        .missing-gtfs { background-color: var(--warn-orange); cursor: help; }
-        .missing-excel { background-color: var(--info-blue); color: white; cursor: help; }
-        .bus-row { opacity: 0.5; background: #eee !important; }
+        .ccjpa-schedule tbody td.station-name {
+            text-align: right;
+            font-weight: bold;
+            color: var(--cc-navy);
+            background-color: #f8f9fa;
+            border-right: 2px solid var(--cc-navy);
+        }
 
+        .ccjpa-schedule tbody tr:nth-child(even) th,
+        .ccjpa-schedule tbody tr:nth-child(even) td {
+            background-color: var(--cc-gray);
+        }
+
+        .ccjpa-schedule tbody tr:nth-child(even) th.station-code,
+        .ccjpa-schedule tbody tr:nth-child(even) td.station-name {
+            background-color: #e9ecef;
+        }
+
+        .ccjpa-schedule tbody tr:hover td,
+        .ccjpa-schedule tbody tr:hover th,
+        .ccjpa-schedule tbody tr:hover th.station-code,
+        .ccjpa-schedule tbody tr:hover td.station-name {
+            background-color: #e2e6ea;
+        }
+
+        /* Anomaly Highlight Classes */
+        .ccjpa-schedule td.mismatch, .ccjpa-schedule th.mismatch {
+            background-color: #ffebee !important;
+            color: #c62828 !important;
+            font-weight: bold;
+            border: 2px solid #ef9a9a !important;
+            cursor: help;
+        }
+        .ccjpa-schedule td.missing-gtfs, .ccjpa-schedule th.missing-gtfs {
+            background-color: #fff3e0 !important;
+            color: #e65100 !important;
+            font-weight: bold;
+            border: 2px solid #ffb74d !important;
+            cursor: help;
+        }
+        .ccjpa-schedule td.missing-excel, .ccjpa-schedule th.missing-excel {
+            background-color: #e3f2fd !important;
+            color: #0d47a1 !important;
+            font-weight: bold;
+            border: 2px solid #64b5f6 !important;
+            cursor: help;
+        }
+
+        /* Changelog Section */
+        .changelog-section {
+            border-left-color: var(--cc-navy);
+            background: #ffffff;
+            margin-top: 30px;
+        }
+        .changelog-section h2 { margin-bottom: 15px; }
         .legend {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-            font-size: 0.9rem;
+            display: flex; gap: 20px; margin-bottom: 20px;
+            font-size: 14px; font-weight: bold; flex-wrap: wrap;
         }
-        .legend-item { display: flex; align-items: center; gap: 5px; }
-        .legend-color { width: 15px; height: 15px; border-radius: 3px; }
+        .legend-item { display: flex; align-items: center; gap: 8px; }
+        .color-box { width: 18px; height: 18px; display: inline-block; border-radius: 4px; }
 
-        /* Output Summary */
-        .summary-box {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        .changelog-list { margin: 0; padding-left: 20px; color: #333; line-height: 1.6; }
+        .changelog-list li { margin-bottom: 8px; }
+
+        #raw-html-container {
+            margin-top: 20px;
+            display: none;
         }
 
-        ul#changelog {
-            max-height: 200px;
-            overflow-y: auto;
+        textarea {
+            width: 100%;
+            height: 150px;
             font-family: monospace;
-            background: #f8f9fa;
-            padding: 15px 30px;
-            border: 1px solid #ddd;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
         }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <h1>CCJPA Schedule Validator</h1>
-    <p>Operational Single Source of Truth Alignment Tool</p>
-</div>
+<header>
+    <h1>CCJPA Web Schedule Validator</h1>
+</header>
 
-<div class="control-panel">
-    <div class="input-group">
-        <label><strong>1. Upload GTFS Files (stops.txt, trips.txt, stop_times.txt)</strong></label>
-        <input type="file" id="gtfsFiles" multiple accept=".txt">
-    </div>
-    <div class="input-group">
-        <label><strong>2. Upload Master Excel Schedule</strong></label>
-        <input type="file" id="excelFile" accept=".xlsx, .xls, .csv">
-    </div>
-    <div class="action-bar">
-        <button onclick="runValidation()">Validate Schedules</button>
-        <button onclick="exportCMSHTML()" style="background-color: var(--cc-yellow); color: var(--cc-navy);">Copy HTML for CMS</button>
-    </div>
-</div>
+<div class="container">
 
-<div class="legend">
-    <div class="legend-item"><div class="legend-color" style="background: var(--err-red)"></div> Time Mismatch</div>
-    <div class="legend-item"><div class="legend-color" style="background: var(--warn-orange)"></div> Missing in GTFS (Found in Excel)</div>
-    <div class="legend-item"><div class="legend-color" style="background: var(--info-blue)"></div> Missing in Excel (Found in GTFS)</div>
-</div>
-
-<div class="table-container" id="tableContainer">
+    <div class="faq-section">
+        <h2>How to use this tool</h2>
+        <div class="faq-item">
+            <strong>What is this tool?</strong>
+            Upload raw GTFS transit data and the master Excel schedule. The tool generates a responsive, on-brand schedule table while cross-referencing both files to surface time mismatches, extra stops, and missing schedules. Hover any highlighted cell to read the expected value, or scroll down for the compiled Error Changelog.
+        </div>
+        <div class="faq-item">
+            <strong>Which files do I need to upload?</strong>
+            1. The GTFS files: <code>stops.txt</code>, <code>trips.txt</code>, and <code>stop_times.txt</code>.<br>
+            2. (Optional) The master Excel schedule file with <em>Weekdays Schedule</em> and <em>Weekend</em> tabs.
+        </div>
+        <div class="faq-item">
+            <strong>How is the comparison performed?</strong>
+            All parsing and diffing runs locally in your browser — files never leave your device. GTFS times within 60 seconds of the Excel value are considered matching (to accommodate minor dwell-time encoding differences between sources).
+        </div>
     </div>
 
-<div class="summary-box">
-    <h3>Comparison Summary (Changelog)</h3>
-    <ul id="changelog">
-        <li>Awaiting validation...</li>
-    </ul>
+    <div id="message-box"></div>
+
+    <div class="controls">
+        <div class="form-group">
+            <label for="gtfs-files">1. Upload GTFS Files (.txt)</label>
+            <input type="file" id="gtfs-files" multiple accept=".txt">
+        </div>
+        <div class="form-group">
+            <label for="excel-file">2. Upload Excel File (Optional Comparison)</label>
+            <input type="file" id="excel-file" accept=".xlsx,.xls">
+        </div>
+        <div class="form-group">
+            <label for="service-id">3. Select Service Period</label>
+            <select id="service-id">
+                <option value="Weekday">Weekday</option>
+                <option value="Weekend">Weekend</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="direction-id">4. Select Direction</label>
+            <select id="direction-id">
+                <option value="1">Westbound / Southbound (To San Jose)</option>
+                <option value="0">Eastbound / Northbound (To Auburn)</option>
+            </select>
+        </div>
+        <button class="primary" onclick="processFiles()">Generate &amp; Compare</button>
+    </div>
+
+    <div id="output-container"></div>
+    <div id="changelog-container"></div>
+
+    <div id="raw-html-container">
+        <h3>Generated HTML Code (Without Error Highlights)</h3>
+        <p>Copy this code and paste it into the HTML editor of your website CMS.</p>
+        <textarea id="raw-html" readonly></textarea>
+        <button class="primary" style="margin-top: 10px;" onclick="copyHTML()">Copy to Clipboard</button>
+    </div>
+
 </div>
 
 <script>
-    // --- Configuration & Dictionaries ---
-    const STATION_MAP = {
-        "AUBURN": "ARN", "ROCKLIN": "RLN", "ROSEVILLE": "RSV", 
-        "SACRAMENTO": "SAC", "SACRAMENTO ARR": "SAC", "SACRAMENTO DEP": "SAC",
-        "DAVIS": "DAV", "SUISUN": "SUI", "MARTINEZ": "MTZ", "RICHMOND": "RIC", 
-        "BERKELEY": "BKY", "EMERYVILLE": "EMY", "EMERYVILLE ARR": "EMY", "EMERYVILLE DEP": "EMY",
-        "OAKLAND JACK LONDON": "OKJ", "OAKLAND JACK LONDON DEP": "OKJ", 
-        "OAKLAND COLISEUM": "OAC", "HAYWARD": "HAY", "FREMONT": "FMT", 
-        "SANTA CLARA": "SCC", "SAN JOSE": "SJC", "SAN JOSE ARR": "SJC", "SAN JOSE DEP": "SJC"
-    };
+/* ===========================================================================
+   State
+   =========================================================================== */
 
-    // State Variables
-    let gtfsData = { stops: {}, trips: {}, stop_times: {} };
-    let excelData = { headers: [], rows: [] };
-    let validationLogs = [];
+let gtfsData = { stops: null, trips: null, stop_times: null };
+// excelComparisonData["Weekday_1"]["521"]["SAC"] = [seconds_int, ...]
+let excelComparisonData = {};
 
-    // --- Utility Functions ---
-    function timeToSeconds(timeStr) {
-        if (!timeStr) return null;
-        let match = String(timeStr).match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
-        if (!match) return null;
-        return parseInt(match[1]) * 3600 + parseInt(match[2]) * 60 + (parseInt(match[3]) || 0);
-    }
+function showMessage(msg, type) {
+    const box = document.getElementById('message-box');
+    box.textContent = msg;
+    box.className = type;
+    box.style.display = 'block';
+    if (type === 'success') setTimeout(() => { box.style.display = 'none'; }, 6000);
+}
 
-    function formatSeconds(secs) {
-        if (secs === null || isNaN(secs)) return "--";
-        let h = Math.floor(secs / 3600);
-        let m = Math.floor((secs % 3600) / 60);
-        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-    }
+/* ===========================================================================
+   GTFS parsing
+   =========================================================================== */
 
-    function getDirectionFromTrain(trainId) {
-        // Odd = Westbound (1), Even = Eastbound (0)
-        let num = parseInt(trainId.replace(/\D/g, ''), 10);
-        return num % 2 !== 0 ? 1 : 0;
-    }
-
-    function logChangelog(msg) {
-        validationLogs.push(msg);
-    }
-
-    // --- Parsing Functions ---
-    async function parseGTFS() {
-        const files = document.getElementById('gtfsFiles').files;
-        if (files.length === 0) return alert("Please upload GTFS files.");
-        
-        const fileReaders = Array.from(files).map(file => {
-            return new Promise((resolve) => {
-                Papa.parse(file, {
-                    header: true,
-                    skipEmptyLines: true,
-                    complete: (results) => resolve({ name: file.name, data: results.data })
-                });
-            });
+function parseCSV(file, key) {
+    return new Promise((resolve) => {
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (results) => { gtfsData[key] = results.data; resolve(); }
         });
+    });
+}
 
-        const parsedFiles = await Promise.all(fileReaders);
-        
-        parsedFiles.forEach(pf => {
-            if (pf.name.includes('stops.txt')) {
-                pf.data.forEach(row => gtfsData.stops[row.stop_id] = row);
-            } else if (pf.name.includes('trips.txt')) {
-                pf.data.forEach(row => {
-                    // Assuming trip_short_name contains Train ID
-                    let trainId = row.trip_short_name || row.trip_id; 
-                    gtfsData.trips[row.trip_id] = { trainId: trainId, ...row };
-                });
-            } else if (pf.name.includes('stop_times.txt')) {
-                if(!gtfsData.stop_times) gtfsData.stop_times = {};
-                pf.data.forEach(row => {
-                    let trip = gtfsData.trips[row.trip_id];
-                    if (!trip) return;
-                    let trainId = trip.trainId;
-                    if (!gtfsData.stop_times[trainId]) gtfsData.stop_times[trainId] = [];
-                    gtfsData.stop_times[trainId].push({
-                        stop_id: row.stop_id,
-                        arr: timeToSeconds(row.arrival_time),
-                        dep: timeToSeconds(row.departure_time),
-                        seq: parseInt(row.stop_sequence)
-                    });
-                });
+/* ===========================================================================
+   Excel parsing — handles "Weekdays  Schedule" and "Weekend" tabs of
+   CAP_Schedule_Change-Test.xlsx and variants. Tracks direction by block order.
+   Uses raw fraction-of-day values to stay timezone-independent.
+   =========================================================================== */
+
+const WEEKDAY_STATIONS = {
+    'AUBURN': ['ARN', 'both'],
+    'ROCKLIN': ['RLN', 'both'],
+    'ROSEVILLE': ['RSV', 'both'],
+    'SACRAMENTO': ['SAC', 'both'],
+    'SACRAMENTO ARR': ['SAC', 'arr'],
+    'SACRAMENTO DEP': ['SAC', 'dep'],
+    'DAVIS': ['DAV', 'both'],
+    'FAIRFIELD/VACAVILLE': ['FFV', 'both'],
+    'SUISUN/FAIRFIELD': ['SUI', 'both'],
+    'MARTINEZ': ['MTZ', 'both'],
+    'RICHMOND': ['RIC', 'both'],
+    'BERKELEY': ['BKY', 'both'],
+    'EMERYVILLE': ['EMY', 'both'],
+    'EMERYVILLE ARR': ['EMY', 'arr'],
+    'EMERYVILLE DEP': ['EMY', 'dep'],
+    'OAKLAND JACK LONDON': ['OKJ', 'both'],
+    'OAKLAND JACK LONDON ARR': ['OKJ', 'arr'],
+    'OAKLAND JACK LONDON DEP': ['OKJ', 'dep'],
+    'OAKLAND COLISEUM': ['OAC', 'both'],
+    'HAYWARD': ['HAY', 'both'],
+    'FREMONT': ['FMT', 'both'],
+    'GREAT AMERICA': ['GAC', 'both'],
+    'SANTA CLARA': ['SCC', 'both'],
+    'SAN JOSE': ['SJC', 'both'],
+};
+
+const TIME_12H_RE = /^(\d{1,2}):(\d{2})\s*(A|P|AM|PM)\.?$/i;
+const TIME_24H_RE = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/;
+const STATION_TAIL_RE = /-\s*([A-Z]{3})\s*$/;
+const TRAIN_ID_RE = /^\d{3,4}[A-Z]?$/;
+const BLANK_TIME_TOKENS = new Set(['.', '..', '...', '. . .', '—', '-', 'N/A', '']);
+
+function isBlankCell(v) {
+    if (v === null || v === undefined) return true;
+    if (typeof v === 'string' && BLANK_TIME_TOKENS.has(v.trim())) return true;
+    return false;
+}
+
+function timeToSeconds(v) {
+    if (v === null || v === undefined) return null;
+    if (v instanceof Date) {
+        // Defensive: if SheetJS ever yields a Date, use local-time getters
+        // (anchored at the user's TZ so the value matches the original cell).
+        return v.getHours() * 3600 + v.getMinutes() * 60 + v.getSeconds();
+    }
+    if (typeof v === 'number') {
+        // Excel time = fraction of a day. Timezone-independent.
+        return Math.round(v * 86400) % 86400;
+    }
+    if (typeof v === 'string') {
+        const s = v.trim();
+        if (BLANK_TIME_TOKENS.has(s)) return null;
+        const cleaned = s.replace(/^L\s+/i, '').trim();
+        let m = cleaned.match(TIME_12H_RE);
+        if (m) {
+            let hh = parseInt(m[1], 10);
+            const mm = parseInt(m[2], 10);
+            const ap = m[3].toUpperCase().charAt(0);
+            if (ap === 'A') hh = hh === 12 ? 0 : hh;
+            else hh = hh === 12 ? 12 : hh + 12;
+            return (hh * 3600 + mm * 60) % 86400;
+        }
+        m = cleaned.match(TIME_24H_RE);
+        if (m) {
+            const hh = parseInt(m[1], 10), mm = parseInt(m[2], 10);
+            const ss = m[3] ? parseInt(m[3], 10) : 0;
+            return (hh * 3600 + mm * 60 + ss) % 86400;
+        }
+    }
+    return null;
+}
+
+function sheetToRows(ws) {
+    // No cellDates → time cells come through as raw fractions, not Date objects
+    return XLSX.utils.sheet_to_json(ws, { header: 1, defval: null, raw: true });
+}
+
+function looksLikeTrainHeader(row) {
+    if (!row || row.length < 2) return false;
+    if (!isBlankCell(row[0])) return false;
+    let trainLike = 0, nonblank = 0;
+    for (let i = 1; i < row.length; i++) {
+        if (isBlankCell(row[i])) continue;
+        nonblank++;
+        let s = row[i];
+        if (typeof s === 'number') s = String(Math.trunc(s));
+        s = String(s).trim();
+        if (TRAIN_ID_RE.test(s)) trainLike++;
+    }
+    return nonblank >= 2 && trainLike === nonblank;
+}
+
+function extractTrains(row) {
+    const out = [];
+    for (let i = 1; i < row.length; i++) {
+        const v = row[i];
+        if (isBlankCell(v)) out.push(null);
+        else if (typeof v === 'number') out.push(String(Math.trunc(v)));
+        else out.push(String(v).trim());
+    }
+    return out;
+}
+
+/**
+ * Walk the Weekday sheet. Two stacked blocks: westbound first (direction "1"),
+ * then "Eastbound" marker, then eastbound (direction "0").
+ */
+function parseWeekday(ws, serviceId) {
+    const rows = sheetToRows(ws);
+    const records = [];
+    let currentTrains = null;
+    let blockCount = 0;
+
+    for (const row of rows) {
+        if (!row || row.length === 0) continue;
+        const a = row[0];
+        if (a === null || a === undefined) continue;
+        const aStr = String(a).trim();
+
+        if (aStr === 'Proposed Train Number') {
+            currentTrains = extractTrains(row);
+            blockCount++;
+            continue;
+        }
+        if (aStr === 'Working Train number') continue;
+        if (['Eastbound','Westbound','Train type','Weekday Service'].includes(aStr)) continue;
+
+        const entry = WEEKDAY_STATIONS[aStr.toUpperCase()];
+        if (!entry || !currentTrains) continue;
+        const [stop_id, slot] = entry;
+        // First block = direction 1 (WB to SJ), second = direction 0 (EB to SAC)
+        const direction_id = blockCount === 1 ? '1' : '0';
+
+        for (let col = 0; col < currentTrains.length; col++) {
+            const tid = currentTrains[col];
+            if (!tid) continue;
+            const secs = timeToSeconds(row[col + 1]);
+            if (secs === null) continue;
+            records.push({ trip_id: tid, service_id: serviceId, direction_id, stop_id, slot, secs });
+        }
+    }
+    return records;
+}
+
+/**
+ * Walk the Weekend sheet. Train header rows mark block boundaries; first
+ * block direction "1", second direction "0".
+ */
+function parseWeekend(ws, serviceId) {
+    const rows = sheetToRows(ws);
+    const records = [];
+    let trains = null;
+    let blockCount = 0;
+    let currentStop = null;
+    let arrForStop = new Map();
+
+    function flushPending(direction_id) {
+        if (!currentStop || arrForStop.size === 0) return;
+        for (const [tid, secs] of arrForStop) {
+            records.push({ trip_id: tid, service_id: serviceId, direction_id, stop_id: currentStop, arrival_secs: secs, departure_secs: secs });
+        }
+    }
+
+    for (const row of rows) {
+        if (!row) continue;
+
+        if (looksLikeTrainHeader(row)) {
+            flushPending(blockCount === 1 ? '1' : '0');
+            trains = extractTrains(row);
+            blockCount++;
+            currentStop = null;
+            arrForStop = new Map();
+            continue;
+        }
+        if (!trains) continue;
+
+        const direction_id = blockCount === 1 ? '1' : '0';
+        const a = row[0];
+        if (!isBlankCell(a)) {
+            const m = String(a).trim().match(STATION_TAIL_RE);
+            if (!m) continue;
+            flushPending(direction_id);
+            currentStop = m[1];
+            arrForStop = new Map();
+            for (let col = 0; col < trains.length; col++) {
+                const tid = trains[col]; if (!tid) continue;
+                const secs = timeToSeconds(row[col + 1]);
+                if (secs !== null) arrForStop.set(tid, secs);
             }
-        });
-        
-        // Sort stop times
-        Object.keys(gtfsData.stop_times).forEach(trainId => {
-            gtfsData.stop_times[trainId].sort((a, b) => a.seq - b.seq);
-        });
-        console.log("GTFS Loaded:", gtfsData);
+        } else {
+            if (!currentStop) continue;
+            for (let col = 0; col < trains.length; col++) {
+                const tid = trains[col]; if (!tid) continue;
+                const depSecs = timeToSeconds(row[col + 1]);
+                const arrSecs = arrForStop.get(tid);
+                if (arrSecs !== undefined) arrForStop.delete(tid);
+                if (arrSecs === undefined && depSecs === null) continue;
+                const finalArr = arrSecs !== undefined ? arrSecs : depSecs;
+                const finalDep = depSecs !== null ? depSecs : arrSecs;
+                records.push({ trip_id: tid, service_id: serviceId, direction_id, stop_id: currentStop, arrival_secs: finalArr, departure_secs: finalDep });
+            }
+            for (const [tid, secs] of arrForStop) {
+                records.push({ trip_id: tid, service_id: serviceId, direction_id, stop_id: currentStop, arrival_secs: secs, departure_secs: secs });
+            }
+            arrForStop = new Map();
+            currentStop = null;
+        }
+    }
+    flushPending(blockCount === 1 ? '1' : '0');
+    return records;
+}
+
+/**
+ * Parse the Excel workbook into excelComparisonData =
+ *     { "Weekday_1": { "521": { "SAC": [seconds] } } }
+ */
+async function parseExcelFile(file) {
+    excelComparisonData = {};
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+
+    function findSheet(...needles) {
+        for (const name of wb.SheetNames) {
+            const norm = name.trim().toLowerCase().replace(/\s+/g, ' ');
+            if (needles.includes(norm)) return wb.Sheets[name];
+        }
+        return null;
     }
 
-    async function parseExcel() {
-        const file = document.getElementById('excelFile').files[0];
-        if (!file) return alert("Please upload the Excel file.");
+    const wd = findSheet('weekdays schedule', 'weekday schedule', 'weekdays');
+    const we = findSheet('weekend');
 
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, {type: 'array', cellText: false, cellDates: true});
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                
-                // Read as array of arrays
-                const jsonArr = XLSX.utils.sheet_to_json(worksheet, {header: 1, raw: false, dateNF: 'HH:mm:ss'});
-                
-                excelData.headers = [];
-                excelData.rows = [];
-
-                // Find header row (row containing "Train" or numbers)
-                let headerRowIdx = -1;
-                for(let i=0; i<jsonArr.length; i++) {
-                    if (jsonArr[i].some(c => String(c).match(/Train|5\d\d|7\d\d/i))) {
-                        headerRowIdx = i;
-                        excelData.headers = jsonArr[i];
-                        break;
-                    }
-                }
-
-                if(headerRowIdx === -1) return alert("Could not detect Train Headers in Excel.");
-
-                for (let i = headerRowIdx + 1; i < jsonArr.length; i++) {
-                    let row = jsonArr[i];
-                    if (!row || row.length === 0 || !row[0]) continue;
-                    let rowName = String(row[0]).toUpperCase().trim();
-                    
-                    // Filter Bus Rows
-                    if (rowName.includes("BUS") || row.some(c => String(c).toUpperCase().includes("BUS"))) {
-                        continue; 
-                    }
-
-                    let gtfsCode = STATION_MAP[rowName] || STATION_MAP[rowName.replace(/,.*/, '')] || rowName;
-                    
-                    let rowData = {
-                        originalName: rowName,
-                        code: gtfsCode,
-                        isArr: rowName.includes("ARR"),
-                        isDep: rowName.includes("DEP") || (!rowName.includes("ARR") && !rowName.includes("DEP")),
-                        times: {}
-                    };
-
-                    excelData.headers.forEach((h, colIdx) => {
-                        if(colIdx > 0 && h && String(h).match(/\d{3}/)) {
-                            let trainId = String(h).match(/\d{3}/)[0];
-                            if(row[colIdx]) {
-                                rowData.times[trainId] = timeToSeconds(row[colIdx]);
-                            }
-                        }
-                    });
-                    excelData.rows.push(rowData);
-                }
-                console.log("Excel Loaded:", excelData);
-                resolve();
-            };
-            reader.readAsArrayBuffer(file);
-        });
+    // Weekday: collapse slot records (arr/dep) into a single set of times per (trip, stop)
+    if (wd) {
+        const wdRecords = parseWeekday(wd, 'Weekday');
+        const byKey = new Map();
+        for (const r of wdRecords) {
+            const key = r.direction_id + '\u0000' + r.trip_id + '\u0000' + r.stop_id;
+            let entry = byKey.get(key);
+            if (!entry) {
+                entry = { trip_id: r.trip_id, direction_id: r.direction_id, stop_id: r.stop_id, secs: new Set() };
+                byKey.set(key, entry);
+            }
+            entry.secs.add(r.secs);
+        }
+        for (const e of byKey.values()) {
+            const k = `Weekday_${e.direction_id}`;
+            if (!excelComparisonData[k]) excelComparisonData[k] = {};
+            if (!excelComparisonData[k][e.trip_id]) excelComparisonData[k][e.trip_id] = {};
+            excelComparisonData[k][e.trip_id][e.stop_id] = [...e.secs];
+        }
     }
 
-    // --- Core Validation & Rendering ---
-    async function runValidation() {
-        validationLogs = [];
-        await parseGTFS();
-        await parseExcel();
+    // Weekend: each record already has arrival_secs + departure_secs
+    if (we) {
+        for (const r of parseWeekend(we, 'Weekend')) {
+            const k = `Weekend_${r.direction_id}`;
+            if (!excelComparisonData[k]) excelComparisonData[k] = {};
+            if (!excelComparisonData[k][r.trip_id]) excelComparisonData[k][r.trip_id] = {};
+            const set = new Set(excelComparisonData[k][r.trip_id][r.stop_id] || []);
+            set.add(r.arrival_secs);
+            set.add(r.departure_secs);
+            excelComparisonData[k][r.trip_id][r.stop_id] = [...set];
+        }
+    }
+}
 
-        let trainsToProcess = excelData.headers.filter(h => String(h).match(/\d{3}/)).map(h => String(h).match(/\d{3}/)[0]);
-        let uniqueTrains = [...new Set(trainsToProcess)];
+/* ===========================================================================
+   Display helpers — lowercase a/p, no leading zero, CCJPA convention
+   =========================================================================== */
 
-        let html = `<table id="resultTable"><thead><tr>
-            <th style="min-width: 80px; left: 0;">Station</th>
-            <th style="min-width: 150px; left: 80px;">Name</th>`;
-        
-        uniqueTrains.forEach(t => html += `<th>${t}</th>`);
-        html += `</tr></thead><tbody>`;
+function timeStrToSeconds(timeStr) {
+    if (!timeStr) return null;
+    const parts = timeStr.split(':');
+    if (parts.length < 2) return null;
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    const s = parts[2] ? parseInt(parts[2], 10) : 0;
+    if (isNaN(h) || isNaN(m)) return null;
+    return ((h * 3600) + (m * 60) + s) % 86400;
+}
 
-        // Process rows by GTFS standard codes
-        let processedCodes = new Set();
-        let displayRows = [];
+function formatSeconds(secs) {
+    if (secs === null || secs === undefined) return '--';
+    let h = Math.floor(secs / 3600) % 24;
+    const m = Math.floor((secs % 3600) / 60);
+    const period = h >= 12 ? 'p' : 'a';
+    h = h % 12;
+    if (h === 0) h = 12;
+    return `${h}:${m.toString().padStart(2, '0')}${period}`;
+}
 
-        excelData.rows.forEach(exRow => {
-            let rowHtml = `<tr>
-                <td style="left: 0;">${exRow.code}</td>
-                <td style="left: 80px;">${exRow.originalName}</td>`;
+function formatGtfsTime(timeStr) {
+    const secs = timeStrToSeconds(timeStr);
+    return secs === null ? '--' : formatSeconds(secs);
+}
 
-            uniqueTrains.forEach(trainId => {
-                let cellHtml = `<td>--</td>`;
-                let exTime = exRow.times[trainId];
-                
-                let gtfsTrainData = gtfsData.stop_times[trainId];
-                if (!gtfsTrainData) {
-                    if (exTime) {
-                        cellHtml = `<td class="missing-gtfs" title="Train missing in GTFS">${formatSeconds(exTime)}</td>`;
-                        logChangelog(`Train ${trainId} exists in Excel but is missing from GTFS.`);
-                    } else {
-                        cellHtml = `<td>--</td>`;
+/* ===========================================================================
+   Orchestration
+   =========================================================================== */
+
+async function processFiles() {
+    const gtfsInput = document.getElementById('gtfs-files');
+    const excelInput = document.getElementById('excel-file');
+
+    if (gtfsInput.files.length === 0 && !gtfsData.stops) {
+        showMessage('Please select the GTFS .txt files first.', 'error');
+        return;
+    }
+
+    if (gtfsInput.files.length > 0) {
+        gtfsData = { stops: null, trips: null, stop_times: null };
+        for (let i = 0; i < gtfsInput.files.length; i++) {
+            const file = gtfsInput.files[i];
+            const name = file.name.toLowerCase();
+            if (name.endsWith('stops.txt')) await parseCSV(file, 'stops');
+            else if (name.endsWith('trips.txt')) await parseCSV(file, 'trips');
+            else if (name.endsWith('stop_times.txt')) await parseCSV(file, 'stop_times');
+        }
+        if (!gtfsData.stops || !gtfsData.trips || !gtfsData.stop_times) {
+            showMessage('Missing required GTFS files. Need stops.txt, trips.txt, and stop_times.txt.', 'error');
+            return;
+        }
+    }
+
+    if (excelInput.files.length > 0) {
+        try {
+            await parseExcelFile(excelInput.files[0]);
+        } catch (err) {
+            console.error(err);
+            showMessage('Could not parse Excel file: ' + (err.message || err), 'error');
+            return;
+        }
+    }
+
+    generateTable();
+}
+
+/* ===========================================================================
+   Table generation — stations × trains grid, error cells highlighted in place
+   =========================================================================== */
+
+function generateTable() {
+    const service = document.getElementById('service-id').value;
+    const direction = document.getElementById('direction-id').value;
+    const comparisonKey = `${service}_${direction}`;
+    const hasExcelData = excelComparisonData[comparisonKey] !== undefined;
+
+    const changelogErrors = new Set();
+
+    // Build stops_id → stop_name lookup
+    const stopsMap = {};
+    gtfsData.stops.forEach(s => { stopsMap[s.stop_id] = s.stop_name; });
+
+    // Filter GTFS to route CC + selected service + selected direction
+    const relevantTrips = gtfsData.trips.filter(t =>
+        t.route_id === 'CC' && t.service_id === service && String(t.direction_id) === String(direction)
+    );
+    const tripIds = new Set(relevantTrips.map(t => t.trip_id));
+    const relevantStopTimes = gtfsData.stop_times.filter(st => tripIds.has(st.trip_id));
+
+    // Group stop_times by trip and sort by stop_sequence
+    const tripStops = {};
+    relevantStopTimes.forEach(st => {
+        if (!tripStops[st.trip_id]) tripStops[st.trip_id] = [];
+        tripStops[st.trip_id].push(st);
+    });
+    Object.values(tripStops).forEach(arr => arr.sort((a, b) => parseInt(a.stop_sequence) - parseInt(b.stop_sequence)));
+
+    // tripId → { stop_id: stop_time_row } for O(1) cell lookup
+    const tripStopsMap = {};
+    Object.entries(tripStops).forEach(([tId, arr]) => {
+        tripStopsMap[tId] = {};
+        arr.forEach(st => { tripStopsMap[tId][st.stop_id] = st; });
+    });
+
+    // Strip suffix letters from trip_ids (e.g. "521W" → "521") so they correlate with Excel
+    const gtfsBaseToFull = {};
+    Object.keys(tripStops).forEach(tId => {
+        gtfsBaseToFull[tId.replace(/\D/g, '')] = tId;
+    });
+
+    const gtfsBaseIdSet = new Set(Object.keys(gtfsBaseToFull));
+    const excelBaseIdSet = hasExcelData ? new Set(Object.keys(excelComparisonData[comparisonKey])) : new Set();
+
+    // Master station order from the longest GTFS trip in this direction
+    let maxStops = 0, longestTripId = null;
+    for (const [tId, stops] of Object.entries(tripStops)) {
+        if (stops.length > maxStops) { maxStops = stops.length; longestTripId = tId; }
+    }
+
+    if (!longestTripId && !hasExcelData) {
+        showMessage(`No trips found for Capitol Corridor ${service} in this direction.`, 'error');
+        document.getElementById('output-container').innerHTML = '';
+        document.getElementById('changelog-container').innerHTML = '';
+        document.getElementById('raw-html-container').style.display = 'none';
+        return;
+    }
+
+    const masterStops = longestTripId
+        ? tripStops[longestTripId].map(st => ({ id: st.stop_id, name: stopsMap[st.stop_id] || st.stop_id }))
+        : [];
+    const masterStopIndex = new Map(masterStops.map((ms, i) => [ms.id, i]));
+
+    // Train geographical bounds — needed to suppress "missing stop" warnings for
+    // stops outside a train's normal route (e.g. Auburn doesn't apply to most trips)
+    const trainBounds = {};
+    gtfsBaseIdSet.forEach(baseId => {
+        const fullId = gtfsBaseToFull[baseId];
+        const arr = tripStops[fullId];
+        if (arr.length > 0) {
+            const idx1 = masterStopIndex.get(arr[0].stop_id);
+            const idx2 = masterStopIndex.get(arr[arr.length - 1].stop_id);
+            if (idx1 !== undefined && idx2 !== undefined) {
+                trainBounds[baseId] = { min: Math.min(idx1, idx2), max: Math.max(idx1, idx2) };
+            }
+        }
+    });
+
+    // Union of all train IDs, sorted numerically
+    const unifiedBaseIds = Array.from(new Set([...gtfsBaseIdSet, ...excelBaseIdSet]))
+        .sort((a, b) => parseInt(a) - parseInt(b));
+
+    // -------------------------------------------------------------------------
+    // HTML construction
+    // -------------------------------------------------------------------------
+    const parts = [];
+    parts.push(`<div class="table-container">\n  <table class="ccjpa-schedule" aria-label="${service} Train Schedule">\n    <thead>\n      <tr>\n        <th scope="col" class="station-code">Station</th>\n        <th scope="col" class="station-name">Station Name</th>`);
+
+    unifiedBaseIds.forEach(baseId => {
+        let thClass = '', thTitle = '';
+        if (hasExcelData) {
+            if (!gtfsBaseIdSet.has(baseId)) {
+                thClass = 'missing-gtfs';
+                thTitle = 'Train schedule completely missing from GTFS';
+                changelogErrors.add(`Train <strong>${baseId}</strong> is present in the Excel document but completely missing from GTFS.`);
+            } else if (!excelBaseIdSet.has(baseId)) {
+                thClass = 'missing-excel';
+                thTitle = 'Train schedule completely missing from Excel';
+                changelogErrors.add(`Train <strong>${baseId}</strong> is present in GTFS but completely missing from the Excel document.`);
+            }
+        }
+        parts.push(`<th scope="col" class="${thClass}" title="${thTitle}">Train ${baseId}</th>`);
+    });
+
+    parts.push(`\n      </tr>\n    </thead>\n    <tbody>`);
+
+    masterStops.forEach((station, stationIndex) => {
+        parts.push(`\n      <tr>\n        <th scope="row" class="station-code">${station.id}</th>\n        <td class="station-name">${station.name}</td>`);
+
+        unifiedBaseIds.forEach(baseId => {
+            const hasGtfsTrain = gtfsBaseIdSet.has(baseId);
+            const fullGtfsId = hasGtfsTrain ? gtfsBaseToFull[baseId] : null;
+            const stopData = hasGtfsTrain ? (tripStopsMap[fullGtfsId][station.id] || null) : null;
+
+            let cellContent = '--';
+            let cellClass = '';
+            let cellTitle = '';
+
+            const gtfsTimeRaw = stopData ? stopData.departure_time : null;
+            const gtfsSecs = timeStrToSeconds(gtfsTimeRaw);
+            const excelSecsArray = (hasExcelData && excelComparisonData[comparisonKey][baseId])
+                ? excelComparisonData[comparisonKey][baseId][station.id]
+                : null;
+            const isOutsideTrainRoute = hasGtfsTrain && trainBounds[baseId]
+                ? (stationIndex < trainBounds[baseId].min || stationIndex > trainBounds[baseId].max)
+                : false;
+
+            if (hasGtfsTrain && !hasExcelData) {
+                cellContent = formatGtfsTime(gtfsTimeRaw);
+            } else if (hasGtfsTrain && hasExcelData) {
+                if (!excelBaseIdSet.has(baseId)) {
+                    cellContent = formatGtfsTime(gtfsTimeRaw);
+                    if (cellContent !== '--') {
+                        cellClass = 'missing-excel';
+                        cellTitle = 'Schedule missing from Excel';
                     }
                 } else {
-                    // Find stop in GTFS bounds
-                    let gtfsStop = gtfsTrainData.find(s => s.stop_id.includes(exRow.code));
-                    
-                    if (gtfsStop && exTime) {
-                        let compareTime = exRow.isArr ? gtfsStop.arr : gtfsStop.dep;
-                        let diff = Math.abs(compareTime - exTime);
-                        
-                        if (diff > 60) {
-                            cellHtml = `<td class="mismatch-time" title="GTFS expects: ${formatSeconds(compareTime)}">${formatSeconds(exTime)}</td>`;
-                            logChangelog(`Mismatch Train ${trainId} at ${exRow.code}: Excel says ${formatSeconds(exTime)}, GTFS says ${formatSeconds(compareTime)}`);
+                    if (stopData) {
+                        cellContent = formatGtfsTime(gtfsTimeRaw);
+                        if (excelSecsArray && excelSecsArray.length > 0) {
+                            // 60-second tolerance (covers minor ARR/DEP encoding diffs)
+                            const matched = excelSecsArray.some(eSecs => Math.abs(gtfsSecs - eSecs) <= 60);
+                            if (!matched) {
+                                cellClass = 'mismatch';
+                                const expectedStr = excelSecsArray.map(formatSeconds).join(' or ');
+                                cellTitle = `Mismatch! GTFS: ${cellContent} | Excel Expected: ${expectedStr}`;
+                                changelogErrors.add(`Train <strong>${baseId}</strong> at <strong>${station.name}</strong>: GTFS time is ${cellContent}, but Excel expects ${expectedStr}.`);
+                            }
                         } else {
-                            cellHtml = `<td>${formatSeconds(exTime)}</td>`;
+                            cellClass = 'mismatch';
+                            cellTitle = 'Mismatch! Extra stop in GTFS. Excel does not list a stop here.';
+                            changelogErrors.add(`Train <strong>${baseId}</strong> at <strong>${station.name}</strong>: Stop exists in GTFS but is missing in Excel.`);
                         }
-                    } else if (!gtfsStop && exTime) {
-                        // Check bounds to avoid flagging bus extensions
-                        let firstSeq = gtfsTrainData[0].seq;
-                        let lastSeq = gtfsTrainData[gtfsTrainData.length - 1].seq;
-                        // For simplicity in this demo, if it has a time but isn't in GTFS, flag it.
-                        cellHtml = `<td class="missing-gtfs" title="Stop missing in GTFS">${formatSeconds(exTime)}</td>`;
-                        logChangelog(`Stop ${exRow.code} on Train ${trainId} found in Excel but missing in GTFS.`);
-                    } else if (gtfsStop && !exTime) {
-                        let gtfsTime = exRow.isArr ? gtfsStop.arr : gtfsStop.dep;
-                        cellHtml = `<td class="missing-excel" title="Missing in Excel. GTFS expects: ${formatSeconds(gtfsTime)}">--</td>`;
-                        logChangelog(`Stop ${exRow.code} on Train ${trainId} is missing in Excel. GTFS expects ${formatSeconds(gtfsTime)}`);
                     } else {
-                        cellHtml = `<td>--</td>`;
+                        if (excelSecsArray && excelSecsArray.length > 0 && !isOutsideTrainRoute) {
+                            cellClass = 'mismatch';
+                            const expectedStr = excelSecsArray.map(formatSeconds).join(' or ');
+                            cellTitle = `Mismatch! Missing stop in GTFS. Excel expects: ${expectedStr}`;
+                            changelogErrors.add(`Train <strong>${baseId}</strong> at <strong>${station.name}</strong>: Missing stop in GTFS. Excel expects a stop at ${expectedStr}.`);
+                        }
                     }
                 }
-                rowHtml += cellHtml;
-            });
-            rowHtml += `</tr>`;
-            html += rowHtml;
+            } else if (!hasGtfsTrain && hasExcelData) {
+                if (excelSecsArray && excelSecsArray.length > 0) {
+                    cellContent = formatSeconds(excelSecsArray[0]);
+                    cellClass = 'missing-gtfs';
+                    cellTitle = `Missing in GTFS! Excel expected: ${cellContent}`;
+                }
+            }
+
+            parts.push(`\n        <td class="${cellClass}" title="${cellTitle}">${cellContent}</td>`);
         });
 
-        html += `</tbody></table>`;
-        document.getElementById('tableContainer').innerHTML = html;
+        parts.push(`\n      </tr>`);
+    });
 
-        let logHtml = validationLogs.length > 0 
-            ? validationLogs.map(l => `<li>${l}</li>`).join('')
-            : `<li><span style="color:green;">No mismatches found. Perfect alignment.</span></li>`;
-        document.getElementById('changelog').innerHTML = logHtml;
+    parts.push(`\n    </tbody>\n  </table>\n</div>`);
+
+    const tableHTML = parts.join('');
+    const cleanTableHTML = tableHTML
+        .replace(/ class="[^"]*"/g, '')
+        .replace(/ title="[^"]*"/g, '');
+
+    document.getElementById('output-container').innerHTML = tableHTML;
+
+    // -------------------------------------------------------------------------
+    // Changelog
+    // -------------------------------------------------------------------------
+    const changelogParts = [`
+        <div class="faq-section changelog-section">
+            <h2>Comparison Summary &amp; Changelog</h2>
+            <div class="legend">
+                <span class="legend-item"><span class="color-box" style="background: #ffebee; border: 2px solid #ef9a9a;"></span> Time/Stop Mismatch</span>
+                <span class="legend-item"><span class="color-box" style="background: #fff3e0; border: 2px solid #ffb74d;"></span> Missing in GTFS (Found in Excel)</span>
+                <span class="legend-item"><span class="color-box" style="background: #e3f2fd; border: 2px solid #64b5f6;"></span> Missing in Excel (Found in GTFS)</span>
+            </div>
+            <ul class="changelog-list">
+    `];
+
+    if (!hasExcelData) {
+        changelogParts.push(`<li><em>No Excel file uploaded. Displaying raw GTFS data without comparison.</em></li>`);
+    } else if (changelogErrors.size === 0) {
+        changelogParts.push(`<li><strong style="color: #2e7d32;">No anomalies found!</strong> The GTFS schedule perfectly matches the Excel document.</li>`);
+    } else {
+        changelogErrors.forEach(err => changelogParts.push(`<li>${err}</li>`));
     }
+    changelogParts.push(`</ul></div>`);
 
-    function exportCMSHTML() {
-        const table = document.getElementById('resultTable');
-        if(!table) return alert("Please run validation first.");
-        
-        let clone = table.cloneNode(true);
-        // Strip out styling and classes for TablePress
-        let cells = clone.getElementsByTagName('td');
-        for(let i=0; i<cells.length; i++) {
-            cells[i].className = '';
-            cells[i].removeAttribute('title');
-            cells[i].removeAttribute('style');
-        }
-        let headers = clone.getElementsByTagName('th');
-        for(let i=0; i<headers.length; i++) {
-            headers[i].removeAttribute('style');
-        }
+    document.getElementById('changelog-container').innerHTML = changelogParts.join('');
 
-        navigator.clipboard.writeText(clone.outerHTML).then(() => {
-            alert("Clean HTML copied to clipboard. Ready for CMS/TablePress pasting.");
-        });
+    const rawContainer = document.getElementById('raw-html-container');
+    rawContainer.style.display = 'block';
+    document.getElementById('raw-html').value = cleanTableHTML.trim();
+
+    let msg = 'Schedule generated successfully!';
+    if (hasExcelData) msg += ' Cross-referenced with Excel document.';
+    showMessage(msg, 'success');
+}
+
+async function copyHTML() {
+    try {
+        await navigator.clipboard.writeText(document.getElementById('raw-html').value);
+        showMessage('Clean HTML copied to clipboard!', 'success');
+    } catch (err) {
+        const textarea = document.getElementById('raw-html');
+        textarea.select();
+        document.execCommand('copy');
+        showMessage('Clean HTML copied to clipboard!', 'success');
     }
+}
 </script>
 
 </body>

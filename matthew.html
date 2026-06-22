@@ -518,6 +518,105 @@
     83%      { opacity:0.25; }
     86%      { opacity:0.55; }
   }
+
+  /* ── TIMER SCREEN ── */
+  #timerScreen {
+    position: fixed;
+    inset: 0;
+    z-index: 150;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    text-align: center;
+  }
+
+  #timerScreen.hidden {
+    display: none;
+  }
+
+  .timer-eyepair {
+    margin-bottom: 40px;
+  }
+
+  .timer-label {
+    font-family: 'Georgia', serif;
+    font-size: clamp(10px, 2vw, 13px);
+    letter-spacing: 0.35em;
+    color: var(--gold-dark);
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    opacity: 0;
+    animation: fadeInUp 2s ease 1s forwards;
+  }
+
+  #timerGrid {
+    display: flex;
+    gap: clamp(12px, 3vw, 28px);
+    align-items: flex-start;
+    justify-content: center;
+    opacity: 0;
+    animation: fadeInUp 2s ease 1.4s forwards;
+  }
+
+  .timer-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .timer-digits {
+    font-family: 'Georgia', serif;
+    font-size: clamp(36px, 10vw, 80px);
+    color: var(--gold);
+    line-height: 1;
+    letter-spacing: 0.04em;
+    text-shadow: 0 0 30px rgba(212,168,75,0.4);
+    min-width: clamp(70px, 18vw, 150px);
+    text-align: center;
+  }
+
+  .timer-unit {
+    font-size: clamp(8px, 1.8vw, 11px);
+    letter-spacing: 0.3em;
+    color: var(--gold-dim);
+    text-transform: uppercase;
+  }
+
+  .timer-sep {
+    font-family: 'Georgia', serif;
+    font-size: clamp(28px, 8vw, 64px);
+    color: var(--gold-faint);
+    line-height: 1;
+    padding-top: 4px;
+    animation: sepPulse 1s ease-in-out infinite;
+  }
+
+  @keyframes sepPulse {
+    0%, 100% { opacity: 0.3; }
+    50%       { opacity: 0.9; }
+  }
+
+  .timer-sublabel {
+    font-family: 'Georgia', serif;
+    font-size: clamp(11px, 2.2vw, 15px);
+    color: var(--gold-dim);
+    font-style: italic;
+    margin-top: 32px;
+    opacity: 0;
+    animation: fadeInUp 2s ease 1.8s forwards;
+    letter-spacing: 0.08em;
+  }
+
+  #timerEyeCanvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+  }
+
 </style>
 </head>
 <body>
@@ -529,6 +628,35 @@
 <div id="rippleContainer"></div>
 
 <!-- Audio toggle -->
+
+<!-- TIMER SCREEN -->
+<div id="timerScreen">
+  <canvas id="timerEyeCanvas"></canvas>
+  <p class="timer-label">Something stirs on the 25th of June</p>
+  <div id="timerGrid">
+    <div class="timer-block">
+      <div class="timer-digits" id="tDays">00</div>
+      <div class="timer-unit">Days</div>
+    </div>
+    <div class="timer-sep">:</div>
+    <div class="timer-block">
+      <div class="timer-digits" id="tHours">00</div>
+      <div class="timer-unit">Hours</div>
+    </div>
+    <div class="timer-sep">:</div>
+    <div class="timer-block">
+      <div class="timer-digits" id="tMins">00</div>
+      <div class="timer-unit">Minutes</div>
+    </div>
+    <div class="timer-sep">:</div>
+    <div class="timer-block">
+      <div class="timer-digits" id="tSecs">00</div>
+      <div class="timer-unit">Seconds</div>
+    </div>
+  </div>
+  <p class="timer-sublabel">something is waiting for you&hellip;</p>
+</div>
+
 <button id="audioBtn" title="Toggle sound">♪</button>
 
 <!-- KNOCK SCREEN -->
@@ -1462,7 +1590,128 @@ let animT = 0;
 function animLoop() {
   animT += 0.016;
   drawBg(animT);
+  // Draw timer eyes if timer screen is visible
+  if (!timerScreen.classList.contains('hidden')) {
+    drawTimerEyes(animT);
+  }
   requestAnimationFrame(animLoop);
+}
+
+
+// ══════════════════════════════════════════════════════════
+// TIMER — countdown to 25 June 2026 00:00 Greece (UTC+3)
+// ══════════════════════════════════════════════════════════
+const UNLOCK_UTC = Date.UTC(2026, 5, 24, 21, 0, 0); // June 25 00:00 EEST = June 24 21:00 UTC
+
+const timerScreen  = document.getElementById('timerScreen');
+const knockScreenEl = document.getElementById('knockScreen');
+
+// Timer eye canvas — pairs of red eyes scattered across the screen
+const tec  = document.getElementById('timerEyeCanvas');
+const tecCtx = tec.getContext('2d');
+let timerEyes = [];
+
+function resizeTimerCanvas() {
+  tec.width  = window.innerWidth;
+  tec.height = window.innerHeight;
+  const W = tec.width, H = tec.height;
+
+  // Eyes placed only in the tree/house zone — lower portion of screen,
+  // left and right sides where the edge trees and far treeline sit.
+  // groundY is roughly 68% of screen height.
+  const groundY = H * 0.68;
+  const rng = mulberry32(77);
+
+  // Fixed positions: clustered near edge trees and in far treeline gaps
+  // x as fraction of W, y as fraction between 0.48–0.67 (in the tree canopy zone)
+  const positions = [
+    // left edge tree cluster
+    { xf: 0.06, yf: 0.54 },
+    { xf: 0.14, yf: 0.60 },
+    // left of centre — between far trees
+    { xf: 0.26, yf: 0.58 },
+    // right of centre — between far trees
+    { xf: 0.74, yf: 0.56 },
+    // right edge tree cluster
+    { xf: 0.86, yf: 0.62 },
+    { xf: 0.93, yf: 0.55 },
+  ];
+
+  timerEyes = positions.map((p, i) => ({
+    x:     W * p.xf,
+    y:     H * p.yf,
+    phase: i * 1.1,
+    speed: 0.35 + (i % 3) * 0.15,
+  }));
+}
+
+function drawTimerEyes(t) {
+  tecCtx.clearRect(0, 0, tec.width, tec.height);
+  const sep = 7;
+  for (const eye of timerEyes) {
+    const blink = 0.70 + 0.30 * Math.sin(t * eye.speed + eye.phase);
+    // occasionally close (blink)
+    const isClosed = Math.sin(t * eye.speed * 3.1 + eye.phase * 2) > 0.92;
+    if (isClosed) continue;
+    for (let e = -1; e <= 1; e += 2) {
+      const ex = eye.x + e * sep;
+      for (let i = 3; i >= 0; i--) {
+        tecCtx.beginPath();
+        tecCtx.arc(ex, eye.y, 5 + i * 7, 0, Math.PI * 2);
+        tecCtx.fillStyle = `rgba(255,10,0,${blink * (0.10 - i * 0.022)})`;
+        tecCtx.fill();
+      }
+      tecCtx.beginPath();
+      tecCtx.arc(ex, eye.y, 5, 0, Math.PI * 2);
+      tecCtx.fillStyle = `rgba(255,50,10,${blink * 0.92})`;
+      tecCtx.fill();
+      tecCtx.beginPath();
+      tecCtx.arc(ex, eye.y, 2, 0, Math.PI * 2);
+      tecCtx.fillStyle = `rgba(255,210,190,${blink * 0.88})`;
+      tecCtx.fill();
+    }
+  }
+}
+
+function pad(n) { return String(Math.floor(n)).padStart(2, '0'); }
+
+function updateTimer() {
+  const now  = Date.now();
+  const diff = UNLOCK_UTC - now;
+
+  if (diff <= 0) {
+    // Time's up — hide timer, show knock screen
+    timerScreen.classList.add('hidden');
+    knockScreenEl.style.display = 'flex';
+    return;
+  }
+
+  const days  = diff / 86400000;
+  const hours = (diff % 86400000) / 3600000;
+  const mins  = (diff % 3600000)  / 60000;
+  const secs  = (diff % 60000)    / 1000;
+
+  document.getElementById('tDays').textContent  = pad(days);
+  document.getElementById('tHours').textContent = pad(hours);
+  document.getElementById('tMins').textContent  = pad(mins);
+  document.getElementById('tSecs').textContent  = pad(secs);
+}
+
+function initTimer() {
+  const now = Date.now();
+  if (now >= UNLOCK_UTC) {
+    // Already past unlock time — skip timer entirely
+    timerScreen.classList.add('hidden');
+    knockScreenEl.style.display = 'flex';
+  } else {
+    // Show timer, hide knock screen until unlocked
+    knockScreenEl.style.display = 'none';
+    timerScreen.classList.remove('hidden');
+    updateTimer();
+    setInterval(updateTimer, 1000);
+    resizeTimerCanvas();
+    window.addEventListener('resize', resizeTimerCanvas);
+  }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1625,6 +1874,7 @@ window.addEventListener('resize', () => { resizeCanvas(); initStars(); });
 resizeCanvas();
 initStars();
 animLoop();
+initTimer();
 </script>
 </body>
 </html>

@@ -85,6 +85,24 @@
   .pill.tbc{background:rgba(101,120,140,.12);color:var(--muted);border:1px solid rgba(101,120,140,.28)}
   .pill.board{background:rgba(242,168,29,.14);color:var(--signal);border:1px solid rgba(242,168,29,.4)}
   .pill.t1{background:var(--signal);color:#2b1d00;border:1px solid var(--signal);font-weight:600}
+  td.sel,th.sel{width:34px;padding-left:11px;padding-right:0}
+  td.sel input,th.sel input{width:15px;height:15px;accent-color:var(--rail);cursor:pointer;margin:1px 0 0}
+  tbody tr.picked{background:#FFFBF1}
+  tbody tr.picked:hover{background:#FFF7E4}
+  .selbar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--board);color:#fff;
+          border-top:2px solid var(--signal);transform:translateY(110%);transition:transform .22s ease}
+  .selbar.show{transform:none}
+  @media (prefers-reduced-motion:reduce){.selbar{transition:none}}
+  .selbar .wrap{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:12px 20px}
+  .selbar .n{font-family:var(--disp);font-size:22px;text-transform:uppercase;letter-spacing:.03em;line-height:1}
+  .selbar .n b{color:var(--signal);font-weight:700}
+  .selbar .brk{font-family:var(--mono);font-size:11px;color:#9db3c6;letter-spacing:.05em}
+  .selbar .acts{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+  .selbar button{border-color:var(--signal);background:var(--signal);color:#2b1d00;font-weight:600}
+  .selbar button.ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.4)}
+  .chk{display:flex;align-items:center;gap:6px;font-size:13px;white-space:nowrap;padding-bottom:2px}
+  .chk input{width:15px;height:15px;accent-color:var(--rail)}
+  main{padding-bottom:96px}
   .chg{display:block;margin-top:5px;padding:5px 7px;border-left:2px solid var(--signal);background:#FFF9EC;font-size:12px}
   .chg b{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--caution);display:block;margin-bottom:2px}
 
@@ -153,7 +171,9 @@
         <option value="cat">By category</option>
         <option value="name">By name</option>
       </select></div>
-    <div class="field"><label>&nbsp;</label><button class="ghost" id="csv">Download CSV</button></div>
+    <div class="field"><label>&nbsp;</label>
+      <label class="chk"><input type="checkbox" id="selOnly"> Selected only</label></div>
+    <div class="field"><label>&nbsp;</label><button class="ghost" id="csv">Export all shown</button></div>
     <span class="count" id="count"></span>
   </div>
 </div>
@@ -183,6 +203,17 @@
   <div id="groups"><p class="loading">Loading events…</p></div>
 </main>
 
+<div class="selbar" id="selbar" role="region" aria-label="Selected conferences">
+  <div class="wrap">
+    <span class="n"><b id="selCount">0</b> selected</span>
+    <span class="brk" id="selBreak"></span>
+    <span class="acts">
+      <button id="selExport">Export selected to CSV</button>
+      <button class="ghost" id="selClear">Clear selection</button>
+    </span>
+  </div>
+</div>
+
 <footer>
   <div class="wrap">
     <span>Internal working document · Registration costs exclude travel and lodging</span>
@@ -195,6 +226,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 let EVENTS = [], CATS = {}, changes = {};
+const selected = new Set();   // event ids, in memory for this session
 const today = new Date(); today.setHours(0,0,0,0);
 
 // A refresh token can be supplied as ?token=… when the deployment is public.
@@ -275,6 +307,7 @@ function filtered(){
     if(tier==='3' && e.t!==3) return false;
     if(win){ if(!e.s) return false; if((new Date(e.s)-today)/864e5 > +win) return false; }
     if(q && !(e.n+' '+e.c+' '+e.note+' '+e.cost).toLowerCase().includes(q)) return false;
+    if($('#selOnly').checked && !selected.has(e.id)) return false;
     return true;
   });
 }
@@ -284,13 +317,16 @@ function rowHtml(e){
     ? `<a href="${esc(e.u)}" target="_blank" rel="noopener">${esc(e.n)}</a>`
     : `${esc(e.n)} <a href="${findLink(e)}" target="_blank" rel="noopener" style="font-family:var(--mono);font-size:10px">find&nbsp;↗</a>`;
   const ch = changes[e.id] ? `<span class="chg"><b>Checked ${esc(changes[e.id].when)}</b>${esc(changes[e.id].text)}</span>` : '';
-  return `<tr><td class="ev">${link}${e.t===1?' <span class="pill t1">Shortlist</span>':''}</td>
+  const on = selected.has(e.id);
+  return `<tr class="${on?'picked':''}" data-id="${e.id}">
+    <td class="sel"><input type="checkbox" data-pick="${e.id}" ${on?'checked':''} aria-label="Select ${esc(e.n)}"></td>
+    <td class="ev">${link}${e.t===1?' <span class="pill t1">Shortlist</span>':''}</td>
     <td class="dt">${esc(e.d)}<br>${stPill(e.st)}</td>
     <td class="lo">${esc(e.c)}</td><td class="co">${esc(e.cost)}</td>
     <td class="no">${esc(e.note)}${ch}</td></tr>`;
 }
 
-const HEAD = `<thead><tr><th>Event</th><th>Dates</th><th>Location</th><th>Registration cost</th><th>Focus and expected value to CCJPA</th></tr></thead>`;
+const HEAD = `<thead><tr><th class="sel"><input type="checkbox" data-all aria-label="Select everything in this table"></th><th>Event</th><th>Dates</th><th>Location</th><th>Registration cost</th><th>Focus and expected value to CCJPA</th></tr></thead>`;
 const EMPTY = '<p class="loading">Nothing matches those filters. Widen the search or clear the category.</p>';
 
 function render(){
@@ -304,6 +340,7 @@ function render(){
       return `<section class="grp"><h3>${esc(CATS[k].label)}</h3><p class="gd">${esc(CATS[k].desc)}</p>
         <table>${HEAD}<tbody>${r.map(rowHtml).join('')}</tbody></table></section>`;
     }).join('') || EMPTY;
+    syncSelectionUi();
     return;
   }
   const r=[...rows];
@@ -311,18 +348,79 @@ function render(){
   if(sort==='name') r.sort((a,b)=>a.n.localeCompare(b.n));
   $('#groups').innerHTML = r.length
     ? `<section class="grp"><table>${HEAD}<tbody>${r.map(rowHtml).join('')}</tbody></table></section>` : EMPTY;
+  syncSelectionUi();
 }
 
 /* ---------------- CSV ---------------- */
-function toCsv(){
-  const q=s=>'"'+String(s??'').replace(/"/g,'""')+'"';
-  const rows=[['Event','Dates','Location','Registration cost','Category','Relevance','Date status','Link','Notes']];
-  filtered().forEach(e=>rows.push([e.n,e.d,e.c,e.cost,CATS[e.cat].label,
-    e.t===1?'Shortlist':e.t===2?'Relevant':'Reference',
-    e.st==='ok'?'Confirmed':e.st==='warn'?'Disputed':'TBC',e.u||'',e.note].map(q)));
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([rows.map(r=>r.join(',')).join('\r\n')],{type:'text/csv'}));
-  a.download='ccjpa-conferences.csv'; a.click(); URL.revokeObjectURL(a.href);
+function toCsv(list, filename, planning){
+  const q = s => '"'+String(s ?? '').replace(/"/g,'""')+'"';
+  const head = ['Event','Dates','Location','Registration cost','Category','Relevance','Date status','Link','Notes'];
+  // The selected export is usually the basis of an attendance request, so it
+  // carries empty columns to fill in rather than making you add them by hand.
+  if(planning) head.push('Attendee','Est. travel + lodging','Approved by','Decision notes');
+  const rows = [head];
+  list.forEach(e=>{
+    const row = [e.n, e.d, e.c, e.cost, CATS[e.cat].label,
+      e.t===1?'Shortlist':e.t===2?'Relevant':'Reference',
+      e.st==='ok'?'Confirmed':e.st==='warn'?'Disputed — verify before booking':'Not published',
+      e.u||'', e.note];
+    if(planning) row.push('','','','');
+    rows.push(row.map(q));
+  });
+  // BOM so Excel opens the en dashes in the date column correctly.
+  const blob = new Blob(['\ufeff'+rows.map(r=>r.join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function stamp(){ return new Date().toISOString().slice(0,10); }
+
+/* ---------------- selection ---------------- */
+function syncSelectionUi(){
+  const n = selected.size;
+  $('#selCount').textContent = n;
+  $('#selbar').classList.toggle('show', n>0);
+  if(n){
+    const picked = EVENTS.filter(e=>selected.has(e.id));
+    const tally = t => picked.filter(e=>e.t===t).length;
+    const unsure = picked.filter(e=>e.st!=='ok').length;
+    const bits = [];
+    if(tally(1)) bits.push(tally(1)+' shortlist');
+    if(tally(2)) bits.push(tally(2)+' relevant');
+    if(tally(3)) bits.push(tally(3)+' reference');
+    if(unsure) bits.push(unsure+' with dates to confirm');
+    $('#selBreak').textContent = bits.join('  ·  ');
+  }
+  // Header boxes reflect whether their table is fully, partly or not selected.
+  document.querySelectorAll('table').forEach(tbl=>{
+    const all = tbl.querySelector('[data-all]');
+    if(!all) return;
+    const boxes = [...tbl.querySelectorAll('[data-pick]')];
+    const hit = boxes.filter(b=>b.checked).length;
+    all.checked = boxes.length>0 && hit===boxes.length;
+    all.indeterminate = hit>0 && hit<boxes.length;
+  });
+}
+
+function onGridChange(ev){
+  const box = ev.target;
+  if(box.matches('[data-pick]')){
+    const id = box.dataset.pick;
+    box.checked ? selected.add(id) : selected.delete(id);
+    box.closest('tr')?.classList.toggle('picked', box.checked);
+    if($('#selOnly').checked && !box.checked) render(); else syncSelectionUi();
+    return;
+  }
+  if(box.matches('[data-all]')){
+    const tbl = box.closest('table');
+    tbl.querySelectorAll('[data-pick]').forEach(b=>{
+      b.checked = box.checked;
+      b.checked ? selected.add(b.dataset.pick) : selected.delete(b.dataset.pick);
+      b.closest('tr')?.classList.toggle('picked', b.checked);
+    });
+    if($('#selOnly').checked) render(); else syncSelectionUi();
+  }
 }
 
 /* ---------------- on-demand refresh ---------------- */
@@ -382,8 +480,25 @@ $('#btnClear').addEventListener('click', async ()=>{
   render(); await loadVerification();
 });
 
-['#q','#cat','#tier','#win','#sort'].forEach(s=>$(s).addEventListener('input',render));
-$('#csv').addEventListener('click',toCsv);
+['#q','#cat','#tier','#win','#sort','#selOnly'].forEach(s=>$(s).addEventListener('input',render));
+
+$('#groups').addEventListener('change', onGridChange);
+
+$('#csv').addEventListener('click', ()=>
+  toCsv(filtered(), `ccjpa-conferences-${stamp()}.csv`, false));
+
+$('#selExport').addEventListener('click', ()=>{
+  const picked = EVENTS.filter(e=>selected.has(e.id))
+    .sort((a,b)=>(a.s||'9999').localeCompare(b.s||'9999'));
+  toCsv(picked, `ccjpa-conferences-selected-${stamp()}.csv`, true);
+});
+
+$('#selClear').addEventListener('click', ()=>{
+  selected.clear();
+  if($('#selOnly').checked) $('#selOnly').checked = false;
+  render();
+});
+
 boot();
 </script>
 </html>

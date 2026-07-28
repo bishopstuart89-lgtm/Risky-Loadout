@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>CCJPA Conference Register</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --board:#0D2233; --board-2:#12314a; --rail:#1B4468;
+    --signal:#F2A81D; --paper:#F5F7F9; --card:#FFFFFF;
+    --ink:#101820; --muted:#65788C; --line:#D9E0E7;
+    --go:#1F7A4D; --caution:#B4531A;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+    --disp:'Barlow Condensed',Impact,sans-serif;
+    --body:'Inter',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+  a{color:var(--rail)}
+  .wrap{max-width:1360px;margin:0 auto;padding:0 20px}
+
+  header.mast{background:var(--board);color:#fff;padding:26px 0 0}
+  .mast .wrap{display:flex;flex-wrap:wrap;align-items:flex-end;gap:18px;justify-content:space-between}
+  .brandline{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--signal);margin:0 0 6px}
+  h1{font-family:var(--disp);font-weight:700;font-size:clamp(34px,5vw,54px);line-height:.95;margin:0;text-transform:uppercase}
+  h1 span{color:var(--signal)}
+  .sub{color:#B7C7D6;max-width:52ch;margin:8px 0 0;font-size:14px}
+  .stamp{font-family:var(--mono);font-size:11px;color:#8FA6BA;text-align:right;line-height:1.7;padding-bottom:4px}
+  .stamp b{color:#fff;font-weight:500}
+
+  .board{margin-top:24px;background:linear-gradient(180deg,var(--board-2),#0a1c2b);border-top:2px solid var(--signal)}
+  .board .wrap{padding:18px 20px 22px}
+  .board-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 10px}
+  .board-h h2{font-family:var(--disp);text-transform:uppercase;letter-spacing:.06em;font-size:17px;font-weight:600;color:#fff;margin:0}
+  .board-h span{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:#7f97ac;text-transform:uppercase}
+  .brow{display:grid;grid-template-columns:118px 1fr 190px 158px;gap:14px;align-items:center;padding:9px 4px;border-bottom:1px solid rgba(255,255,255,.09);
+        opacity:0;transform:translateY(-6px);animation:flap .42s cubic-bezier(.2,.7,.3,1) forwards}
+  .brow:last-child{border-bottom:0}
+  @keyframes flap{to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.brow{animation:none;opacity:1;transform:none}}
+  .brow .d{font-family:var(--mono);font-size:12.5px;color:var(--signal);white-space:nowrap}
+  .brow .n{font-family:var(--disp);font-size:19px;text-transform:uppercase;color:#fff;line-height:1.1}
+  .brow .n a{color:inherit;text-decoration:none;border-bottom:1px solid rgba(242,168,29,.45)}
+  .brow .n a:hover{border-bottom-color:var(--signal)}
+  .brow .l{font-family:var(--mono);font-size:11.5px;color:#9db3c6;text-transform:uppercase;letter-spacing:.06em}
+  .brow .s{justify-self:end}
+  @media(max-width:820px){.brow{grid-template-columns:1fr;gap:4px;padding:12px 2px}.brow .s{justify-self:start}}
+
+  .controls{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+  .controls .wrap{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 20px}
+  .field{display:flex;flex-direction:column;gap:3px}
+  .field label{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  input[type=search],select{font-family:var(--body);font-size:13.5px;padding:7px 9px;border:1px solid var(--line);border-radius:3px;background:#fff;color:var(--ink);min-width:150px}
+  input[type=search]{min-width:230px}
+  :focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+  .count{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-left:auto;white-space:nowrap}
+  button{font-family:var(--body);font-size:13px;font-weight:500;padding:8px 13px;border:1px solid var(--rail);background:var(--rail);color:#fff;border-radius:3px;cursor:pointer}
+  button.ghost{background:#fff;color:var(--rail)}
+  button:hover:not(:disabled){filter:brightness(1.08)}
+  button:disabled{opacity:.5;cursor:default}
+
+  main{padding:22px 0 60px}
+  .grp{margin:0 0 30px}
+  .grp h3{font-family:var(--disp);text-transform:uppercase;font-size:19px;letter-spacing:.05em;margin:0 0 2px;color:var(--board)}
+  .grp p.gd{margin:0 0 10px;font-size:13px;color:var(--muted);max-width:90ch}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line)}
+  thead th{font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);text-align:left;padding:9px 11px;background:#EDF1F5;border-bottom:1px solid var(--line);white-space:nowrap}
+  tbody td{padding:10px 11px;border-bottom:1px solid var(--line);vertical-align:top;font-size:13.5px}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr:hover{background:#FBFCFD}
+  td.ev{font-weight:600;width:20%}
+  td.ev a{text-decoration:none;border-bottom:1px solid rgba(27,68,104,.3)}
+  td.dt{font-family:var(--mono);font-size:12px;width:13%;white-space:nowrap}
+  td.lo{width:16%;font-size:12.5px;color:#3d4c5a}
+  td.co{width:17%;font-size:12.5px}
+  td.no{color:#3d4c5a;font-size:12.5px}
+  .pill{display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:3px 7px;border-radius:2px;white-space:nowrap}
+  .pill.ok{background:rgba(31,122,77,.12);color:var(--go);border:1px solid rgba(31,122,77,.3)}
+  .pill.warn{background:rgba(180,83,26,.12);color:var(--caution);border:1px solid rgba(180,83,26,.3)}
+  .pill.tbc{background:rgba(101,120,140,.12);color:var(--muted);border:1px solid rgba(101,120,140,.28)}
+  .pill.board{background:rgba(242,168,29,.14);color:var(--signal);border:1px solid rgba(242,168,29,.4)}
+  .pill.t1{background:var(--signal);color:#2b1d00;border:1px solid var(--signal);font-weight:600}
+  .chg{display:block;margin-top:5px;padding:5px 7px;border-left:2px solid var(--signal);background:#FFF9EC;font-size:12px}
+  .chg b{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--caution);display:block;margin-bottom:2px}
+
+  .panel{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--signal);padding:16px 18px;margin:0 0 26px}
+  .panel h3{font-family:var(--disp);text-transform:uppercase;font-size:18px;letter-spacing:.05em;margin:0 0 6px;color:var(--board)}
+  .panel p{margin:0 0 10px;font-size:13.5px;max-width:88ch}
+  .panel .row{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-top:12px}
+  .log{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:10px;white-space:pre-wrap;max-height:200px;overflow:auto;border-top:1px dashed var(--line);padding-top:9px}
+  details.how{margin-top:12px;font-size:13px}
+  details.how summary{cursor:pointer;font-weight:600;color:var(--rail)}
+  details.how ul{margin:8px 0 0;padding-left:20px;color:#3d4c5a}
+  details.how li{margin-bottom:6px}
+  .loading,.failed{padding:40px 0;font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+  .failed{color:var(--caution)}
+  footer{border-top:1px solid var(--line);padding:20px 0 40px;font-size:12px;color:var(--muted)}
+  footer .wrap{display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between}
+</style>
+
+<header class="mast">
+  <div class="wrap">
+    <div>
+      <p class="brandline">Capitol Corridor Joint Powers Authority &nbsp;/&nbsp; Operations</p>
+      <h1>Conference <span>Register</span></h1>
+      <p class="sub">Digital train communications, fare payment and ticketing, operations and the wider rail sector. Filter, sort, and click through to the organiser.</p>
+    </div>
+    <div class="stamp">
+      Compiled <b id="compiled">—</b><br>
+      Events tracked <b id="totalCount">—</b><br>
+      Last checked <b id="lastVerified">—</b>
+    </div>
+  </div>
+
+  <div class="board">
+    <div class="wrap">
+      <div class="board-h">
+        <h2>Next departures</h2>
+        <span id="boardMeta">Soonest six</span>
+      </div>
+      <div id="boardRows"></div>
+    </div>
+  </div>
+</header>
+
+<div class="controls">
+  <div class="wrap">
+    <div class="field"><label for="q">Search</label>
+      <input type="search" id="q" placeholder="Event, city, topic…"></div>
+    <div class="field"><label for="cat">Category</label><select id="cat"></select></div>
+    <div class="field"><label for="tier">Relevance</label>
+      <select id="tier">
+        <option value="">All</option>
+        <option value="1">Shortlist only</option>
+        <option value="12">Shortlist + relevant</option>
+        <option value="3">Reference only</option>
+      </select></div>
+    <div class="field"><label for="win">Window</label>
+      <select id="win">
+        <option value="">All dates</option>
+        <option value="90">Next 90 days</option>
+        <option value="180">Next 6 months</option>
+        <option value="365">Next 12 months</option>
+      </select></div>
+    <div class="field"><label for="sort">Sort</label>
+      <select id="sort">
+        <option value="date">By date</option>
+        <option value="cat">By category</option>
+        <option value="name">By name</option>
+      </select></div>
+    <div class="field"><label>&nbsp;</label><button class="ghost" id="csv">Download CSV</button></div>
+    <span class="count" id="count"></span>
+  </div>
+</div>
+
+<main class="wrap">
+  <section class="panel">
+    <h3>Keeping this current</h3>
+    <p id="freshness">Loading the register…</p>
+    <p><strong>Check now</strong> runs live web searches against the organiser sites and reports anything that has moved. <strong>Look for new events</strong> sweeps the industry directories. Both cost API credit, so use them when you need an answer rather than out of habit — the scheduled Monday run covers routine drift.</p>
+    <div class="row">
+      <button id="btnVerify">Check now</button>
+      <button class="ghost" id="btnNew">Look for new events</button>
+      <button class="ghost" id="btnClear">Clear results</button>
+      <span class="count" id="vstat"></span>
+    </div>
+    <div class="log" id="log" hidden></div>
+    <details class="how">
+      <summary>How updating works on this deployment</summary>
+      <ul>
+        <li><strong>Scheduled.</strong> A GitHub Actions workflow runs every Monday at 07:00 UTC, re-checks the priority events, sweeps for new ones, and writes <code>data/verification.json</code>. If anything looks different it opens a pull request instead of editing the register. Merging it triggers a Vercel deploy.</li>
+        <li><strong>On demand.</strong> The buttons above call <code>/api/refresh</code>, a serverless function that holds the API key server-side. Results show for this session only; they are not saved. Anything worth keeping goes into <code>data/events.json</code> by hand.</li>
+        <li><strong>Why there is a human gate.</strong> Organisers publish inconsistent dates and the checker will sometimes treat an aggregator listing as authoritative. Three entries in this register already disagree across sources. Nothing should silently overwrite a date somebody might book travel against.</li>
+      </ul>
+    </details>
+  </section>
+
+  <div id="groups"><p class="loading">Loading events…</p></div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Internal working document · Registration costs exclude travel and lodging</span>
+    <span>Sources: organiser sites, APTA, Clarion Events, BWCS, Terrapinn, Progressive Railroading, Rail Personnel, Railway-News</span>
+  </div>
+</footer>
+
+<script type="module">
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+let EVENTS = [], CATS = {}, changes = {};
+const today = new Date(); today.setHours(0,0,0,0);
+
+// A refresh token can be supplied as ?token=… when the deployment is public.
+const token = new URLSearchParams(location.search).get('token');
+
+/* ---------------- load ---------------- */
+async function boot(){
+  try{
+    const res = await fetch('data/events.json', {cache:'no-cache'});
+    if(!res.ok) throw new Error('events.json returned '+res.status);
+    const data = await res.json();
+    EVENTS = data.events; CATS = data.categories;
+    $('#compiled').textContent = data.compiledAt || '—';
+    $('#totalCount').textContent = EVENTS.length;
+    $('#cat').innerHTML = '<option value="">All categories</option>' +
+      Object.entries(CATS).map(([k,v]) => `<option value="${k}">${esc(v.label)}</option>`).join('');
+    renderBoard(); render();
+    await loadVerification();
+  }catch(err){
+    $('#groups').innerHTML = `<p class="failed">Could not load data/events.json — ${esc(err.message)}.
+Check the file was deployed and that it is valid JSON.</p>`;
+    $('#freshness').textContent = 'The register failed to load.';
+  }
+}
+
+async function loadVerification(){
+  try{
+    const res = await fetch('data/verification.json', {cache:'no-cache'});
+    if(!res.ok) throw new Error('none');
+    const v = await res.json();
+    const when = new Date(v.checkedAt);
+    $('#lastVerified').textContent = when.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+    (v.results||[]).forEach(r=>{
+      if(r.status==='same' || r.status==='error') return;
+      const bits=[r.dates && 'Found: '+r.dates, r.cost && 'Cost: '+r.cost, r.note].filter(Boolean);
+      if(bits.length) changes[r.id]={text:' '+bits.join(' · '),when:$('#lastVerified').textContent};
+    });
+    const s = v.summary || {};
+    $('#freshness').innerHTML = `Last automated check <strong>${$('#lastVerified').textContent}</strong>: ` +
+      `${s.checked||0} events checked, <strong>${s.changed||0} changed</strong>, ${s.unclear||0} unclear` +
+      (s.newCandidates ? `, ${s.newCandidates} possible new events` : '') +
+      `. Flagged rows are marked in the table below.`;
+    render();
+  }catch{
+    $('#lastVerified').textContent = 'not yet';
+    $('#freshness').innerHTML = 'No automated check has run yet. The register is a snapshot compiled on <strong>' +
+      esc($('#compiled').textContent) + '</strong>.';
+  }
+}
+
+/* ---------------- render ---------------- */
+const stPill = st => st==='ok' ? '<span class="pill ok">Dates confirmed</span>'
+                  : st==='warn'? '<span class="pill warn">Dates disputed</span>'
+                  :              '<span class="pill tbc">Dates TBC</span>';
+const findLink = e => 'https://www.google.com/search?q='+encodeURIComponent(e.n+' conference official site registration');
+
+function renderBoard(){
+  const up = EVENTS.filter(e=>e.s && new Date(e.s)>=today).sort((a,b)=>a.s.localeCompare(b.s)).slice(0,6);
+  $('#boardMeta').textContent = 'Soonest six · today '+today.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+  if(!up.length){ $('#boardRows').innerHTML = '<div class="brow"><div class="n">No upcoming events in the register</div></div>'; return; }
+  $('#boardRows').innerHTML = up.map((e,i)=>{
+    const days = Math.round((new Date(e.s)-today)/864e5);
+    const name = e.u ? `<a href="${esc(e.u)}" target="_blank" rel="noopener">${esc(e.n)}</a>` : esc(e.n);
+    return `<div class="brow" style="animation-delay:${i*70}ms">
+      <div class="d">${esc(e.d.split(' OR ')[0])}</div><div class="n">${name}</div>
+      <div class="l">${esc(e.c)}</div>
+      <div class="s">${e.t===1?'<span class="pill t1">Shortlist</span> ':''}<span class="pill board">${days} days</span></div>
+    </div>`;
+  }).join('');
+}
+
+function filtered(){
+  const q=$('#q').value.trim().toLowerCase(), cat=$('#cat').value, tier=$('#tier').value, win=$('#win').value;
+  return EVENTS.filter(e=>{
+    if(cat && e.cat!==cat) return false;
+    if(tier==='1' && e.t!==1) return false;
+    if(tier==='12' && e.t>2) return false;
+    if(tier==='3' && e.t!==3) return false;
+    if(win){ if(!e.s) return false; if((new Date(e.s)-today)/864e5 > +win) return false; }
+    if(q && !(e.n+' '+e.c+' '+e.note+' '+e.cost).toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+function rowHtml(e){
+  const link = e.u
+    ? `<a href="${esc(e.u)}" target="_blank" rel="noopener">${esc(e.n)}</a>`
+    : `${esc(e.n)} <a href="${findLink(e)}" target="_blank" rel="noopener" style="font-family:var(--mono);font-size:10px">find&nbsp;↗</a>`;
+  const ch = changes[e.id] ? `<span class="chg"><b>Checked ${esc(changes[e.id].when)}</b>${esc(changes[e.id].text)}</span>` : '';
+  return `<tr><td class="ev">${link}${e.t===1?' <span class="pill t1">Shortlist</span>':''}</td>
+    <td class="dt">${esc(e.d)}<br>${stPill(e.st)}</td>
+    <td class="lo">${esc(e.c)}</td><td class="co">${esc(e.cost)}</td>
+    <td class="no">${esc(e.note)}${ch}</td></tr>`;
+}
+
+const HEAD = `<thead><tr><th>Event</th><th>Dates</th><th>Location</th><th>Registration cost</th><th>Focus and expected value to CCJPA</th></tr></thead>`;
+const EMPTY = '<p class="loading">Nothing matches those filters. Widen the search or clear the category.</p>';
+
+function render(){
+  if(!EVENTS.length) return;
+  const rows = filtered(), sort = $('#sort').value;
+  $('#count').textContent = rows.length+' of '+EVENTS.length+' events';
+  if(sort==='cat'){
+    $('#groups').innerHTML = Object.keys(CATS).map(k=>{
+      const r = rows.filter(e=>e.cat===k); if(!r.length) return '';
+      r.sort((a,b)=>(a.s||'9999').localeCompare(b.s||'9999'));
+      return `<section class="grp"><h3>${esc(CATS[k].label)}</h3><p class="gd">${esc(CATS[k].desc)}</p>
+        <table>${HEAD}<tbody>${r.map(rowHtml).join('')}</tbody></table></section>`;
+    }).join('') || EMPTY;
+    return;
+  }
+  const r=[...rows];
+  if(sort==='date') r.sort((a,b)=>(a.s||'9999').localeCompare(b.s||'9999'));
+  if(sort==='name') r.sort((a,b)=>a.n.localeCompare(b.n));
+  $('#groups').innerHTML = r.length
+    ? `<section class="grp"><table>${HEAD}<tbody>${r.map(rowHtml).join('')}</tbody></table></section>` : EMPTY;
+}
+
+/* ---------------- CSV ---------------- */
+function toCsv(){
+  const q=s=>'"'+String(s??'').replace(/"/g,'""')+'"';
+  const rows=[['Event','Dates','Location','Registration cost','Category','Relevance','Date status','Link','Notes']];
+  filtered().forEach(e=>rows.push([e.n,e.d,e.c,e.cost,CATS[e.cat].label,
+    e.t===1?'Shortlist':e.t===2?'Relevant':'Reference',
+    e.st==='ok'?'Confirmed':e.st==='warn'?'Disputed':'TBC',e.u||'',e.note].map(q)));
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([rows.map(r=>r.join(',')).join('\r\n')],{type:'text/csv'}));
+  a.download='ccjpa-conferences.csv'; a.click(); URL.revokeObjectURL(a.href);
+}
+
+/* ---------------- on-demand refresh ---------------- */
+const logEl=$('#log');
+const log=m=>{logEl.hidden=false;logEl.textContent+=m+'\n';logEl.scrollTop=1e6};
+const busy=(on,msg)=>{['#btnVerify','#btnNew'].forEach(s=>$(s).disabled=on);$('#vstat').textContent=msg||''};
+
+async function callApi(mode){
+  const url = 'api/refresh?mode='+mode+(token?'&token='+encodeURIComponent(token):'');
+  const res = await fetch(url);
+  const body = await res.json().catch(()=>({error:'The endpoint did not return JSON.'}));
+  if(!res.ok) throw new Error(body.error || ('request failed with '+res.status));
+  return body;
+}
+
+$('#btnVerify').addEventListener('click', async ()=>{
+  busy(true,'Checking…'); logEl.hidden=false; logEl.textContent='';
+  log('Re-checking the shortlist and anything with unconfirmed dates. This makes several web searches, so give it up to a minute.');
+  try{
+    const out = await callApi('verify');
+    const when = new Date(out.checkedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+    out.results.forEach(r=>{
+      if(r.status==='same'){ log('  · '+r.name+' unchanged'); return; }
+      if(r.status==='error'){ log('  × '+r.name+' — '+r.note); return; }
+      const bits=[r.dates&&'Found: '+r.dates, r.cost&&'Cost: '+r.cost, r.note].filter(Boolean);
+      changes[r.id]={text:' '+bits.join(' · '),when};
+      log('  ! '+r.name+' — '+bits.join(' · ')+(r.source?'  ['+r.source+']':''));
+    });
+    log('\nThese results are not saved. Put anything worth keeping into data/events.json.');
+    busy(false, out.checked+' checked · '+out.flagged+' flagged');
+    render();
+  }catch(err){
+    log('\n× '+err.message);
+    if(/token/i.test(err.message)) log('  Add ?token=YOUR_TOKEN to the page URL.');
+    if(/ANTHROPIC_API_KEY/.test(err.message)) log('  Set the key in Vercel under Settings → Environment Variables, then redeploy.');
+    busy(false,'Check failed');
+  }
+});
+
+$('#btnNew').addEventListener('click', async ()=>{
+  busy(true,'Sweeping…'); logEl.hidden=false; logEl.textContent='';
+  log('Searching the industry directories for events not already tracked.');
+  try{
+    const out = await callApi('discover');
+    if(!out.found.length) log('  Nothing new beyond what is already listed.');
+    out.found.forEach(f=>log('+ '+f.name+' — '+f.dates+' — '+f.location+
+      (f.url?'\n    '+f.url:'')+(f.relevance?'\n    '+f.relevance:'')));
+    log('\nSuggestions only. Confirm on the organiser site before adding anything.');
+    busy(false, out.found.length+' possible additions');
+  }catch(err){
+    log('\n× '+err.message); busy(false,'Search failed');
+  }
+});
+
+$('#btnClear').addEventListener('click', async ()=>{
+  changes={}; logEl.hidden=true; logEl.textContent=''; $('#vstat').textContent='';
+  render(); await loadVerification();
+});
+
+['#q','#cat','#tier','#win','#sort'].forEach(s=>$(s).addEventListener('input',render));
+$('#csv').addEventListener('click',toCsv);
+boot();
+</script>
+</html>

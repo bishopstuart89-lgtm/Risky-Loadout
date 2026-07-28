@@ -1,0 +1,14 @@
+{
+  "name": "ccjpa-conference-register",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Conference register for CCJPA operations: digital train communications, fare payment, ticketing and wider rail industry events.",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "check": "node scripts/check-events.mjs",
+    "check:verify-only": "SKIP_DISCOVERY=true node scripts/check-events.mjs",
+    "validate": "node scripts/validate-data.mjs",
+    "dev": "vercel dev"
+  }
+}

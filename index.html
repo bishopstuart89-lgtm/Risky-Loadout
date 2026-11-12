@@ -184,7 +184,7 @@
     <p id="freshness">Loading the register…</p>
     <p><strong>Check now</strong> runs live web searches against the organiser sites and reports anything that has moved. <strong>Look for new events</strong> sweeps the industry directories. Both cost API credit, so use them when you need an answer rather than out of habit — the scheduled Monday run covers routine drift.</p>
     <div class="row">
-      <button id="btnVerify">Check now</button>
+      <button id="btnVerify">Check all (24)</button>
       <button class="ghost" id="btnQuick">Quick check (3)</button>
       <button class="ghost" id="btnNew">Look for new events</button>
       <button class="ghost" id="btnClear">Clear results</button>
@@ -455,33 +455,52 @@ async function callApi(mode, extra){
   return body;
 }
 
+let cancelRun = false;
+
 async function runVerify(limit){
+  cancelRun = false;
   busy(true,'Checking…'); logEl.hidden=false; logEl.textContent='';
-  log(limit
-    ? 'Quick check of '+limit+' events. Should take around twenty seconds.'
-    : 'Re-checking the shortlist and anything with unconfirmed dates. This makes several web searches, so give it up to a minute.');
+  $('#btnClear').textContent = 'Stop';
+
   try{
-    const out = await callApi('verify', limit?'&limit='+limit:'');
-    const when = new Date(out.checkedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-    out.results.forEach(r=>{
-      if(r.status==='same'){ log('  · '+r.name+' unchanged'); return; }
-      if(r.status==='error'){ log('  × '+r.name+' — '+r.note); return; }
-      const bits=[r.dates&&'Found: '+r.dates, r.cost&&'Cost: '+r.cost, r.note].filter(Boolean);
-      changes[r.id]={text:' '+bits.join(' · '),when};
-      log('  ! '+r.name+' — '+bits.join(' · ')+(r.source?'  ['+r.source+']':''));
-    });
-    if(out.truncated)
-      log('\n'+out.pending+' events were not reached before the time limit. Press again to continue, or use Quick check.');
-    log('\nThese results are not saved. Put anything worth keeping into data/events.json.');
-    busy(false, out.checked+' checked · '+out.flagged+' flagged'+
-      (out.truncated?' · '+out.pending+' pending':'')+
-      ' · '+Math.round((out.elapsedMs||0)/1000)+'s');
+    const list = (await callApi('targets', limit?'&limit='+limit:'')).targets;
+    log('Checking '+list.length+' event'+(list.length===1?'':'s')+', one at a time. '+
+        'Each makes several web searches, so allow roughly fifteen seconds each.\n');
+
+    const when = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+    let done=0, flagged=0, failed=0;
+
+    for(const t of list){
+      if(cancelRun){ log('\nStopped after '+done+' of '+list.length+'.'); break; }
+      $('#vstat').textContent = (done+1)+' of '+list.length+'…';
+      try{
+        const r = (await callApi('verify','&id='+encodeURIComponent(t.id))).result;
+        done++;
+        if(r.status==='same'){ log('  · '+r.name+' unchanged'); continue; }
+        if(r.status==='error'){ failed++; log('  × '+r.name+' — '+r.note); continue; }
+        const bits=[r.dates&&'Found: '+r.dates, r.cost&&'Cost: '+r.cost, r.note].filter(Boolean);
+        changes[r.id]={text:' '+bits.join(' · '),when};
+        flagged++;
+        log('  ! '+r.name+' — '+bits.join(' · ')+(r.source?'\n      '+r.source:''));
+        render();                       // show each finding as it lands
+      }catch(err){
+        failed++;
+        log('  × '+t.n+' — '+err.message.split('\n')[0]);
+      }
+    }
+
+    log('\n'+done+' checked · '+flagged+' flagged · '+failed+' failed.');
+    log('These results are not saved. Put anything worth keeping into data/events.json.');
+    busy(false, done+' checked · '+flagged+' flagged');
     render();
   }catch(err){
     log('\n× '+err.message);
     if(/token/i.test(err.message)) log('  Add ?token=YOUR_TOKEN to the page URL.');
     if(/ANTHROPIC_API_KEY/.test(err.message)) log('  Set the key in Vercel under Settings → Environment Variables, then redeploy.');
     busy(false,'Check failed');
+  }finally{
+    $('#btnClear').textContent = 'Clear results';
+    cancelRun = false;
   }
 }
 
@@ -504,6 +523,7 @@ $('#btnNew').addEventListener('click', async ()=>{
 });
 
 $('#btnClear').addEventListener('click', async ()=>{
+  if($('#btnClear').textContent === 'Stop'){ cancelRun = true; $('#vstat').textContent='stopping…'; return; }
   changes={}; logEl.hidden=true; logEl.textContent=''; $('#vstat').textContent='';
   render(); await loadVerification();
 });

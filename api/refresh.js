@@ -5,24 +5,30 @@ import { verifyEvents, discoverEvents, priorityTargets } from '../lib/check.mjs'
 /**
  * On-demand refresh endpoint.
  *
- *   GET /api/refresh?mode=verify    re-check dates and costs
- *   GET /api/refresh?mode=discover  look for events not yet tracked
+ *   GET /api/refresh?mode=verify           re-check dates and costs
+ *   GET /api/refresh?mode=verify&limit=3   quick probe, finishes fast
+ *   GET /api/refresh?mode=discover         look for events not yet tracked
  *
- * If REFRESH_TOKEN is set in the environment, callers must send it as
- * ?token= or an x-refresh-token header. Set it if the site is public —
- * otherwise anyone can spend your API credit by holding down the button.
- *
- * This function does not write anything. Results are returned to the caller
- * and shown for that session only. Durable updates come from the weekly
- * GitHub Actions run, which commits data/verification.json.
+ * Works to a time budget. Each batch makes several live web searches, so the
+ * full set will not always finish inside the platform's function limit.
+ * Rather than being killed mid-run — which makes the platform return an HTML
+ * error page the browser cannot parse — this returns whatever completed and
+ * reports the remainder as pending.
  */
+
+// Vercel caps functions at 60s on Hobby, 300s on Pro. Stop short of the cap
+// so there is time left to serialise a response.
+const LIMIT_MS = Number(process.env.REFRESH_BUDGET_MS || 45_000);
+const BATCH = 3;
+
 export default async function handler(req, res) {
   res.setHeader('cache-control', 'no-store');
 
+  const params = new URL(req.url, 'http://x').searchParams;
+
   const gate = process.env.REFRESH_TOKEN;
   if (gate) {
-    const supplied = req.headers['x-refresh-token'] ||
-      new URL(req.url, 'http://x').searchParams.get('token');
+    const supplied = req.headers['x-refresh-token'] || params.get('token');
     if (supplied !== gate) {
       return res.status(401).json({ error: 'Missing or incorrect refresh token.' });
     }
@@ -34,7 +40,8 @@ export default async function handler(req, res) {
     });
   }
 
-  const mode = new URL(req.url, 'http://x').searchParams.get('mode') || 'verify';
+  const started = Date.now();
+  const mode = params.get('mode') || 'verify';
 
   try {
     const raw = await readFile(join(process.cwd(), 'data', 'events.json'), 'utf8');
@@ -42,25 +49,41 @@ export default async function handler(req, res) {
 
     if (mode === 'discover') {
       const found = await discoverEvents(events);
-      return res.status(200).json({ mode, checkedAt: new Date().toISOString(), found });
+      return res.status(200).json({
+        mode, checkedAt: new Date().toISOString(), found,
+        elapsedMs: Date.now() - started
+      });
     }
 
-    // Capped at 12 per request to stay inside the Vercel function timeout.
-    // The weekly Actions run has no such limit and covers more.
-    const targets = priorityTargets(events, 12);
-    const results = await verifyEvents(targets);
+    // Default 9 rather than 12 — three batches usually fit inside 45 seconds.
+    // Narrow it further with ?limit=3 when probing.
+    const cap = Math.min(Number(params.get('limit')) || 9, 24);
+    const targets = priorityTargets(events, cap);
+
+    const results = [];
+    let pending = 0;
+
+    for (let i = 0; i < targets.length; i += BATCH) {
+      if (Date.now() - started > LIMIT_MS) { pending = targets.length - i; break; }
+      results.push(...await verifyEvents(targets.slice(i, i + BATCH), { batchSize: BATCH }));
+    }
+
     return res.status(200).json({
       mode,
       checkedAt: new Date().toISOString(),
       checked: results.length,
-      flagged: results.filter(r => r.status !== 'same').length,
+      flagged: results.filter(r => r.status !== 'same' && r.status !== 'error').length,
+      pending,
+      truncated: pending > 0,
+      elapsedMs: Date.now() - started,
       results
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    // Always answer in JSON so the page can show something useful.
+    return res.status(500).json({
+      error: err.message, stage: 'handler', elapsedMs: Date.now() - started
+    });
   }
 }
 
-// Verification makes several sequential searches, so it needs more than the
-// 10s default. 60s is the Hobby-plan ceiling; Pro allows up to 300.
 export const config = { maxDuration: 60 };

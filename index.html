@@ -185,6 +185,7 @@
     <p><strong>Check now</strong> runs live web searches against the organiser sites and reports anything that has moved. <strong>Look for new events</strong> sweeps the industry directories. Both cost API credit, so use them when you need an answer rather than out of habit — the scheduled Monday run covers routine drift.</p>
     <div class="row">
       <button id="btnVerify">Check now</button>
+      <button class="ghost" id="btnQuick">Quick check (3)</button>
       <button class="ghost" id="btnNew">Look for new events</button>
       <button class="ghost" id="btnClear">Clear results</button>
       <span class="count" id="vstat"></span>
@@ -426,21 +427,41 @@ function onGridChange(ev){
 /* ---------------- on-demand refresh ---------------- */
 const logEl=$('#log');
 const log=m=>{logEl.hidden=false;logEl.textContent+=m+'\n';logEl.scrollTop=1e6};
-const busy=(on,msg)=>{['#btnVerify','#btnNew'].forEach(s=>$(s).disabled=on);$('#vstat').textContent=msg||''};
+const busy=(on,msg)=>{['#btnVerify','#btnQuick','#btnNew'].forEach(s=>{const el=$(s); if(el) el.disabled=on;});$('#vstat').textContent=msg||''};
 
-async function callApi(mode){
-  const url = 'api/refresh?mode='+mode+(token?'&token='+encodeURIComponent(token):'');
+async function callApi(mode, extra){
+  const url = 'api/refresh?mode='+mode+(extra||'')+(token?'&token='+encodeURIComponent(token):'');
   const res = await fetch(url);
-  const body = await res.json().catch(()=>({error:'The endpoint did not return JSON.'}));
+  const text = await res.text();
+  let body;
+  try{
+    body = JSON.parse(text);
+  }catch{
+    // Something other than the function answered — a platform timeout page, an
+    // auth wall, or a 404. Surface enough detail to tell which.
+    const head = text.replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim().slice(0,220);
+    let hint = '';
+    if(res.status===504 || /timeout|FUNCTION_INVOCATION_TIMEOUT/i.test(text))
+      hint = ' The function ran out of time. Try the Quick check button, which does fewer events per request.';
+    else if(res.status===401 || res.status===403 || /authenticat|sign in|log in/i.test(text))
+      hint = ' Deployment Protection is intercepting /api/. Allow the route under Settings → Deployment Protection, or turn protection off.';
+    else if(res.status===404)
+      hint = ' The route was not found. Check that api/refresh.js deployed.';
+    throw new Error('HTTP '+res.status+' — the endpoint returned '+
+      (text.trim().startsWith('<')?'an HTML page':'something that is not JSON')+'.'+hint+
+      (head?'\n  Response began: '+head:''));
+  }
   if(!res.ok) throw new Error(body.error || ('request failed with '+res.status));
   return body;
 }
 
-$('#btnVerify').addEventListener('click', async ()=>{
+async function runVerify(limit){
   busy(true,'Checking…'); logEl.hidden=false; logEl.textContent='';
-  log('Re-checking the shortlist and anything with unconfirmed dates. This makes several web searches, so give it up to a minute.');
+  log(limit
+    ? 'Quick check of '+limit+' events. Should take around twenty seconds.'
+    : 'Re-checking the shortlist and anything with unconfirmed dates. This makes several web searches, so give it up to a minute.');
   try{
-    const out = await callApi('verify');
+    const out = await callApi('verify', limit?'&limit='+limit:'');
     const when = new Date(out.checkedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
     out.results.forEach(r=>{
       if(r.status==='same'){ log('  · '+r.name+' unchanged'); return; }
@@ -449,8 +470,12 @@ $('#btnVerify').addEventListener('click', async ()=>{
       changes[r.id]={text:' '+bits.join(' · '),when};
       log('  ! '+r.name+' — '+bits.join(' · ')+(r.source?'  ['+r.source+']':''));
     });
+    if(out.truncated)
+      log('\n'+out.pending+' events were not reached before the time limit. Press again to continue, or use Quick check.');
     log('\nThese results are not saved. Put anything worth keeping into data/events.json.');
-    busy(false, out.checked+' checked · '+out.flagged+' flagged');
+    busy(false, out.checked+' checked · '+out.flagged+' flagged'+
+      (out.truncated?' · '+out.pending+' pending':'')+
+      ' · '+Math.round((out.elapsedMs||0)/1000)+'s');
     render();
   }catch(err){
     log('\n× '+err.message);
@@ -458,7 +483,10 @@ $('#btnVerify').addEventListener('click', async ()=>{
     if(/ANTHROPIC_API_KEY/.test(err.message)) log('  Set the key in Vercel under Settings → Environment Variables, then redeploy.');
     busy(false,'Check failed');
   }
-});
+}
+
+$('#btnVerify').addEventListener('click', ()=>runVerify());
+$('#btnQuick').addEventListener('click', ()=>runVerify(3));
 
 $('#btnNew').addEventListener('click', async ()=>{
   busy(true,'Sweeping…'); logEl.hidden=false; logEl.textContent='';

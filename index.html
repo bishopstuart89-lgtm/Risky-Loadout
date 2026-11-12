@@ -87,6 +87,8 @@
   .pill.t1{background:var(--signal);color:#2b1d00;border:1px solid var(--signal);font-weight:600}
   td.sel,th.sel{width:34px;padding-left:11px;padding-right:0}
   td.sel input,th.sel input{width:15px;height:15px;accent-color:var(--rail);cursor:pointer;margin:1px 0 0}
+  tbody tr.gone td.ev,tbody tr.gone td.lo,tbody tr.gone td.co,tbody tr.gone td.no{opacity:.55}
+  .pill.past{background:rgba(101,120,140,.16);color:var(--muted);border:1px solid rgba(101,120,140,.35)}
   tbody tr.picked{background:#FFFBF1}
   tbody tr.picked:hover{background:#FFF7E4}
   .selbar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--board);color:#fff;
@@ -129,7 +131,7 @@
       <p class="sub">Digital train communications, fare payment and ticketing, operations and the wider rail sector. Filter, sort, and click through to the organiser.</p>
     </div>
     <div class="stamp">
-      Compiled <b id="compiled">—</b><br>
+      Data refreshed <b id="compiled">—</b><br>
       Events tracked <b id="totalCount">—</b><br>
       Last checked <b id="lastVerified">—</b>
     </div>
@@ -173,6 +175,8 @@
       </select></div>
     <div class="field"><label>&nbsp;</label>
       <label class="chk"><input type="checkbox" id="selOnly"> Selected only</label></div>
+    <div class="field"><label>&nbsp;</label>
+      <label class="chk"><input type="checkbox" id="showPast"> Show past</label></div>
     <div class="field"><label>&nbsp;</label><button class="ghost" id="csv">Export all shown</button></div>
     <span class="count" id="count"></span>
   </div>
@@ -240,7 +244,7 @@ async function boot(){
     if(!res.ok) throw new Error('events.json returned '+res.status);
     const data = await res.json();
     EVENTS = data.events; CATS = data.categories;
-    $('#compiled').textContent = data.compiledAt || '—';
+    $('#compiled').textContent = data.refreshedAt || data.compiledAt || '—';
     $('#totalCount').textContent = EVENTS.length;
     $('#cat').innerHTML = '<option value="">All categories</option>' +
       Object.entries(CATS).map(([k,v]) => `<option value="${k}">${esc(v.label)}</option>`).join('');
@@ -279,6 +283,7 @@ async function loadVerification(){
 }
 
 /* ---------------- render ---------------- */
+const pastPill = '<span class="pill past">Past</span>';
 const stPill = st => st==='ok' ? '<span class="pill ok">Dates confirmed</span>'
                   : st==='warn'? '<span class="pill warn">Dates disputed</span>'
                   :              '<span class="pill tbc">Dates TBC</span>';
@@ -299,6 +304,13 @@ function renderBoard(){
   }).join('');
 }
 
+// An event is past once its final day has gone. Events with no date are
+// never treated as past — they are unscheduled, not expired.
+function isPast(e){
+  const end = e.e || e.s;
+  return Boolean(end) && new Date(end) < today;
+}
+
 function filtered(){
   const q=$('#q').value.trim().toLowerCase(), cat=$('#cat').value, tier=$('#tier').value, win=$('#win').value;
   return EVENTS.filter(e=>{
@@ -309,6 +321,7 @@ function filtered(){
     if(win){ if(!e.s) return false; if((new Date(e.s)-today)/864e5 > +win) return false; }
     if(q && !(e.n+' '+e.c+' '+e.note+' '+e.cost).toLowerCase().includes(q)) return false;
     if($('#selOnly').checked && !selected.has(e.id)) return false;
+    if(!$('#showPast').checked && isPast(e)) return false;
     return true;
   });
 }
@@ -319,10 +332,10 @@ function rowHtml(e){
     : `${esc(e.n)} <a href="${findLink(e)}" target="_blank" rel="noopener" style="font-family:var(--mono);font-size:10px">find&nbsp;↗</a>`;
   const ch = changes[e.id] ? `<span class="chg"><b>Checked ${esc(changes[e.id].when)}</b>${esc(changes[e.id].text)}</span>` : '';
   const on = selected.has(e.id);
-  return `<tr class="${on?'picked':''}" data-id="${e.id}">
+  return `<tr class="${[on?'picked':'',isPast(e)?'gone':''].filter(Boolean).join(' ')}" data-id="${e.id}">
     <td class="sel"><input type="checkbox" data-pick="${e.id}" ${on?'checked':''} aria-label="Select ${esc(e.n)}"></td>
     <td class="ev">${link}${e.t===1?' <span class="pill t1">Shortlist</span>':''}</td>
-    <td class="dt">${esc(e.d)}<br>${stPill(e.st)}</td>
+    <td class="dt">${esc(e.d)}<br>${isPast(e)?pastPill:stPill(e.st)}</td>
     <td class="lo">${esc(e.c)}</td><td class="co">${esc(e.cost)}</td>
     <td class="no">${esc(e.note)}${ch}</td></tr>`;
 }
@@ -333,7 +346,9 @@ const EMPTY = '<p class="loading">Nothing matches those filters. Widen the searc
 function render(){
   if(!EVENTS.length) return;
   const rows = filtered(), sort = $('#sort').value;
-  $('#count').textContent = rows.length+' of '+EVENTS.length+' events';
+  const hidden = $('#showPast').checked ? 0 : EVENTS.filter(isPast).length;
+  $('#count').textContent = rows.length+' of '+(EVENTS.length-hidden)+' upcoming'+
+    (hidden?'  ·  '+hidden+' past hidden':'');
   if(sort==='cat'){
     $('#groups').innerHTML = Object.keys(CATS).map(k=>{
       const r = rows.filter(e=>e.cat===k); if(!r.length) return '';
@@ -363,7 +378,7 @@ function toCsv(list, filename, planning){
   list.forEach(e=>{
     const row = [e.n, e.d, e.c, e.cost, CATS[e.cat].label,
       e.t===1?'Shortlist':e.t===2?'Relevant':'Reference',
-      e.st==='ok'?'Confirmed':e.st==='warn'?'Disputed — verify before booking':'Not published',
+      isPast(e)?'Past':e.st==='ok'?'Confirmed':e.st==='warn'?'Disputed — verify before booking':'Not published',
       e.u||'', e.note];
     if(planning) row.push('','','','');
     rows.push(row.map(q));
@@ -528,7 +543,7 @@ $('#btnClear').addEventListener('click', async ()=>{
   render(); await loadVerification();
 });
 
-['#q','#cat','#tier','#win','#sort','#selOnly'].forEach(s=>$(s).addEventListener('input',render));
+['#q','#cat','#tier','#win','#sort','#selOnly','#showPast'].forEach(s=>$(s).addEventListener('input',render));
 
 $('#groups').addEventListener('change', onGridChange);
 

@@ -1,6 +1,6 @@
 {
   "compiledAt": "2026-07-28",
-  "note": "Source of truth for the conference register. Edit this file; the site reads it at runtime.",
+  "note": "Source of truth for the register. Edit this file; the site reads it. Events whose dates have passed are hidden by the page automatically — use the Show past toggle to see them.",
   "categories": {
     "ticketing": {
       "label": "Fare payment, ticketing and revenue collection",
@@ -69,13 +69,13 @@
       "s": "2026-11-17",
       "e": "2026-11-18",
       "d": "17–18 Nov 2026",
-      "c": "Washington, DC, USA",
-      "cost": "Free for operators, agencies and government",
+      "c": "The Westin Arlington, Washington, DC",
+      "cost": "Free for operators, agencies and government; technology providers $2,100",
       "cat": "ticketing",
       "t": 1,
       "st": "ok",
       "u": null,
-      "note": "Highest peer density per dollar on the register. ~300 fare collection professionals, 25+ stand exhibition, ten hours of structured networking. Open payments, ABT, digital identity, AI and data. Venue still to be confirmed.",
+      "note": "Highest peer density per dollar on the register. 300+ transit and ticketing professionals, 50+ speakers, 25+ technology providers. Doors 07:30–18:30 on the 17th, 08:00–16:00 on the 18th. 2026 agenda covers account-based ticketing at scale, fare strategy, digital wallets and ticketing cybersecurity, plus a session on what the FIFA World Cup taught US agencies about integrated ticketing.",
       "id": "e2"
     },
     {
@@ -139,13 +139,13 @@
       "s": "2026-11-18",
       "e": "2026-11-19",
       "d": "18–19 Nov 2026",
-      "c": "Royal Horseguards Hotel, London, UK",
+      "c": "Royal Horseguards Hotel, 2 Whitehall Court, London SW1A 2EJ",
       "cost": "£1,195 + VAT one day; £1,560 + VAT both (~$1,600–2,100)",
       "cat": "connectivity",
       "t": 1,
       "st": "ok",
       "u": "https://www.traincomms.com/",
-      "note": "The only event worldwide dedicated to onboard Wi-Fi and trackside networks. Icomera, Huber+Suhner and Nomad Digital are main sponsors; Xentelligent exhibits. Heavy on LEO and Starlink adoption. CCJPA has attended before.",
+      "note": "The only event worldwide dedicated to onboard Wi-Fi and trackside networks. Icomera, Huber+Suhner and Nomad Digital are main sponsors; CGI, Westermo and Antonics also present; Xentelligent exhibits. 2026 theme is the shift to connectivity abundance — integrating LEO satellite, cellular and trackside into one platform while holding operational control, cybersecurity and data sovereignty. CCJPA has attended before.",
       "id": "e7"
     },
     {
@@ -1141,6 +1141,49 @@
       "u": "https://railway-news.com/event-exhibition/saudi-rail/",
       "note": "Largest rail exhibition and conference in the region.",
       "id": "e78"
+    },
+    {
+      "id": "e79",
+      "n": "California Transit Association 62nd Fall Conference & Expo",
+      "s": "2027-11-17",
+      "e": "2027-11-20",
+      "d": "17–20 Nov 2027",
+      "c": "Gaylord Pacific Hotel & Convention Center, Chula Vista, CA",
+      "cost": "Registration opens spring 2027",
+      "cat": "california",
+      "t": 1,
+      "st": "ok",
+      "u": "https://caltransit.org/Events/Annual-Conferences/Fall-Conference-Expo",
+      "note": "Successor to the Monterey conference. Still the cheapest travel on the register and the right room for state contract and Cal-ITP discussions. Four days rather than three. Watch for registration opening in spring."
+    },
+    {
+      "id": "e80",
+      "n": "InnoTrans 2028",
+      "s": null,
+      "e": null,
+      "d": "September 2028, dates TBC",
+      "c": "Messe Berlin, Germany",
+      "cost": "Not yet published",
+      "cat": "connectivity",
+      "t": 2,
+      "st": "tbc",
+      "u": "https://railway-news.com/event-exhibition/innotrans/",
+      "note": "Biennial. Next edition after September 2026. Largest transport technology fair in the world — onboard routers, antennas, access points, validators and passenger information in one place. Dates usually confirmed around 18 months ahead."
+    },
+    {
+      "id": "e81",
+      "n": "Contactless Payments for Transit US 2027",
+      "s": null,
+      "e": null,
+      "d": "2027 edition not yet announced",
+      "c": "Expected San Francisco, CA",
+      "cost": "Not published",
+      "cat": "ticketing",
+      "t": 2,
+      "st": "tbc",
+      "u": null,
+      "note": "The 2026 edition ran in San Francisco after a date change that was never cleanly resolved across listings. Worth tracking: local, so the lowest total cost of any fare payment event. Check the organiser in the new year."
     }
-  ]
+  ],
+  "refreshedAt": "2026-11-12"
 }
